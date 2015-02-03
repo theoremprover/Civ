@@ -1,2 +1,5 @@
 <h1>Civ
-<img src=@{StaticR board_Brett01_gif} width=#{tileSize} height=#{tileSize}>
+
+<div>
+    $forall (tile,(xpos,ypos)) <- tiles
+        <img src=@{tile} width=#{tileSize} height=#{tileSize} margin-top=#{ypos} margin-left=#{xpos}>
