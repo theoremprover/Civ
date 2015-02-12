@@ -2,4 +2,4 @@
 
 <div style="position:relative">
   $forall (coors,boardtile) <- Map.assocs (gameBoard game)
-    <img src=@{tile2StaticR boardtile} class=#{coor2class coors boardtile}>
+    <img src=@{tile2StaticR boardtile} class=#{tile2class boardtile} style=#{tile2style squaresize coors}>

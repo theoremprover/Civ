@@ -84,7 +84,6 @@ library
                  , vector
                  , transformers
                  , time
-                 , containers
 
 executable         Civ
     if flag(library-only)

@@ -18,13 +18,15 @@ data TileID =
 	StartTile CivID
 
 data CivID =
-	America | Arabs | Aztec | China | Egypt | English | French | Germany |
+	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
 	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
 	deriving Show
 
+type PlayerID = Int
+
 data Game = Game {
-	gameBoard      :: Map Coors BoardTile }
---	gamePlayers    :: [PlayerID],   -- First player is start player
+	gameBoard      :: Map Coors BoardTile,
+	gamePlayers    :: [PlayerID] }   -- First player is start player
 --	gamePhase      :: Phase,
 --	gamePlayerTurn :: PlayerIndex,
 --	gamePlayerData :: Map PlayerID PlayerData
@@ -60,8 +62,6 @@ data Terrain = Grassland | Woods | Sea | Desert | Mountain
 data Resource = Incense | Iron | Cloth | Wheat | Atom | Spy
 
 data Colour = Red | Green | Blue | Violet | Yellow
-
-type PlayerID = Int
 
 data Player = Player {
 	playerName   :: String,

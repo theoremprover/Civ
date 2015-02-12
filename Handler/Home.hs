@@ -26,12 +26,13 @@ testGame = Game
 	(Map.fromList [
 		((0,0),BoardTile True Tile1 Northward),
 		((4,0),BoardTile False Tile2 Northward),
-		((8,0),BoardTile True Tile9 Westward),
-		((12,0),BoardTile True (StartTile America) Westward),
-		((0,4),BoardTile True (StartTile Russia) Eastward),
-		((4,4),BoardTile True Tile14 Eastward),
-		((8,4),BoardTile False Tile25 Northward),
-		((12,4),BoardTile True Tile26 Southward) ])
+		((0,4),BoardTile True Tile9 Westward),
+		((4,4),BoardTile True (StartTile America) Westward),
+		((0,8),BoardTile True (StartTile Russia) Eastward),
+		((4,8),BoardTile True Tile14 Eastward),
+		((0,12),BoardTile False Tile25 Northward),
+		((4,12),BoardTile True Tile26 Southward) ])
+	[1,2]
 
 {-
 shuffle l = getStdGen >>= shuffle' l where

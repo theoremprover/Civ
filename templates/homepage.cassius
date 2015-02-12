@@ -1,9 +1,3 @@
-h1
-	text-align: center
-
-h2##{aDomId}
-    color: #990
-
 .squaresize
     max-width : #{show $ squaresize}px    
     max-height: #{show $ squaresize}px    
@@ -15,32 +9,6 @@ h2##{aDomId}
     max-height: #{show $ squaresize * 4}px
     min-width : #{show $ squaresize * 4}px
     min-height: #{show $ squaresize * 4}px
-
-.coorx0
-    position: absolute
-    left: 0px
-.coorx4
-    position: absolute
-    left: #{show $ squaresize * 4}px
-.coorx8
-    position: absolute
-    left: #{show $ squaresize * 8}px
-.coorx12
-    position: absolute
-    left: #{show $ squaresize * 12}px
-
-.coory0
-    position: absolute
-    top: 0px
-.coory4
-    position: absolute
-    top: #{show $ squaresize * 4}px
-.coory8
-    position: absolute
-    top: #{show $ squaresize * 8}px
-.coory12
-    position: absolute
-    top: #{show $ squaresize * 12}px
 
 .northward
     transform: rotate(0deg)
