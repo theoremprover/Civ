@@ -1,6 +1,5 @@
 <h1>Civ
 
-<div>
-	<table border=0>
-		$forall (tile,(xpos,ypos)) <- tiles
-			<img src=@{tile} width=#{tileSize} height=#{tileSize} margin-top=#{ypos} margin-left=#{xpos}>
+<div style="position:relative">
+  $forall (coors,boardtile) <- Map.assocs (gameBoard game)
+    <img src=@{tile2StaticR boardtile} class=#{coor2class coors boardtile}>

@@ -22,6 +22,8 @@ library
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
+                     Handler.Board
+                     Handler.BoardDisplay
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -80,7 +82,9 @@ library
                  , unordered-containers
                  , containers
                  , vector
+                 , transformers
                  , time
+                 , containers
 
 executable         Civ
     if flag(library-only)
