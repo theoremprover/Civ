@@ -1,5 +1,6 @@
 <h1>Civ
 
 <div style="position:relative">
-  $forall (coors,boardtile) <- Map.assocs (gameBoard game)
-    <img src=@{tile2StaticR boardtile} class=#{tile2class boardtile} style=#{tile2style squaresize coors}>
+  $forall boardtile <- gameBoardTiles game
+    <img src=@{tile2StaticR boardtile} class=#{tile2class boardtile} style=#{tile2style squaresize (boardTileXcoor boardtile) (boardTileYcoor boardtile)}>
+  

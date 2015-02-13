@@ -23,6 +23,7 @@ library
                      Handler.Common
                      Handler.Home
                      Handler.Board
+                     Handler.Board2
                      Handler.BoardDisplay
 
     if flag(dev) || flag(library-only)

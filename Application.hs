@@ -33,7 +33,8 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 import Handler.Common
 import Handler.Home
 
---import Handler.Board
+import Handler.Board
+--import Handler.Board2
 --import Handler.BoardDisplay
 
 -- This line actually creates our YesodDispatch instance. It is the second half
@@ -70,7 +71,8 @@ makeFoundation appSettings = do
         (sqlPoolSize $ appDatabaseConf appSettings)
 
     -- Perform database migration using our application's logging settings.
-    runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
+    runLoggingT (runSqlPool (runMigration Import.migrateAll) pool) logFunc
+    runLoggingT (runSqlPool (runMigration Handler.Board.migrateAll) pool) logFunc
 
     -- Return the foundation
     return $ mkFoundation pool

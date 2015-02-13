@@ -1,22 +1,42 @@
+{-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+
 module Handler.Board where
+
+import Database.Persist
+import Database.Persist.Sqlite
+import Database.Persist.TH
 
 import Import
 
-type Coors = (Int,Int)
+import Handler.Board2
 
-data Orientation = Northward | Southward | Eastward | Westward
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
-data BoardTile = BoardTile {
-	boardTileDiscovered  :: Bool,
-	boardTileID          :: TileID,
-	boardTileOrientation :: Orientation }
+Games
+    name Text
+    gameId GameId
 
-data TileID =
-	Tile1 | Tile2 | Tile3 | Tile4 | Tile5 | Tile6 | Tile7 | Tile8 | Tile9 | Tile10 |
-	Tile11 | Tile12 | Tile13 | Tile14 | Tile15 | Tile16 | Tile17 | Tile18 | Tile19 | Tile20 |
-	Tile21 | Tile22 | Tile23 | Tile24 | Tile25 | Tile26 | Tile27 |
-	StartTile CivID
+Game
+    boardTiles [BoardTile]
 
+BoardTile
+    tileID TileID
+    xcoor Int
+    ycoor Int
+    discovered Bool
+    orientation Orientation
+
+|]
+
+{-
 data CivID =
 	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
 	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
@@ -27,20 +47,16 @@ type PlayerID = Int
 data Game = Game {
 	gameBoard      :: Map Coors BoardTile,
 	gamePlayers    :: [PlayerID] }   -- First player is start player
---	gamePhase      :: Phase,
---	gamePlayerTurn :: PlayerIndex,
---	gamePlayerData :: Map PlayerID PlayerData
---	}
+	gamePhase      :: Phase,
+	gamePlayerTurn :: PlayerIndex,
+	gamePlayerData :: Map PlayerID PlayerData
 
-
-{-
 type Tiles = Map TileID Tile
-
-tiles :: Tiles
-tiles = 
 
 data Tile = Tile {
 	tileSquares :: Map Coors Square }
+
+data Settlement = Hut Bool | BarbarianVillage Bool
 
 data Square = Square {
 	squareTerrain :: Terrain,
@@ -48,7 +64,17 @@ data Square = Square {
 	squareUnits :: [(PlayerID,Piece)],
 	squareResource :: Maybe Resource,
 	squareCulture :: Int,
+	squareHutOrVillage :: Maybe Settlement,
 	squareCoin :: Int }
+
+tiles :: Tiles
+tiles = Map.fromList [
+	(Tile1,Tile $ Map.fromList [
+		((0,0),ds Desert),((0,0),ds Desert),((0,0),hut ds Grass),((0,0),ds Grass),
+	where
+	ds terrain = Square terrain Nothing [] Nothing 0 0
+	hut f terrain = f terrain { squareHutOrVillage :: Just (Left False) }
+	vil f terrain = f terrain { squareHutOrVillage :: Just (Right False) }
 
 type FlagID = Int
 type SettlerID = Int
@@ -57,7 +83,7 @@ data Piece = Flag FlagID | Settler SettlerID
 
 type CityID = Int
 
-data Terrain = Grassland | Woods | Sea | Desert | Mountain
+data Terrain = Grass | Woods | Sea | Desert | Mountain
 
 data Resource = Incense | Iron | Cloth | Wheat | Atom | Spy
 
@@ -77,7 +103,7 @@ data PlayerData = PlayerData {
 	freeCoins :: Int,
 	freeCulture :: Int,
 	dialTrade :: Int,
-	techTree :: TechTree,
+--	techTree :: TechTree,
 	playerGovernment :: Government,
 	playerPolicies :: [Policy] }
 

@@ -3,26 +3,28 @@ module Handler.BoardDisplay where
 import Import
 
 import Handler.Board
+import Handler.Board2
 
 import Text.Printf
 
-tile2StaticR (BoardTile discovered tileid _) = StaticR $ case tileid of
-	StartTile America  -> if discovered then _Images_Tiles_America_front_jpg else _Images_Tiles_America_back_jpg
-	StartTile Arabs    -> if discovered then _Images_Tiles_Arabs_front_jpg else _Images_Tiles_Arabs_back_jpg
-	StartTile Aztecs   -> if discovered then _Images_Tiles_Aztecs_front_jpg else _Images_Tiles_Aztecs_back_jpg
-	StartTile China    -> if discovered then _Images_Tiles_China_front_jpg else _Images_Tiles_China_back_jpg
-	StartTile Egypt    -> if discovered then _Images_Tiles_Egypt_front_jpg else _Images_Tiles_Egypt_back_jpg
-	StartTile English  -> if discovered then _Images_Tiles_English_front_jpg else _Images_Tiles_English_back_jpg
-	StartTile French   -> if discovered then _Images_Tiles_French_front_jpg else _Images_Tiles_French_back_jpg
-	StartTile Germany  -> if discovered then _Images_Tiles_Germany_front_jpg else _Images_Tiles_Germany_back_jpg
-	StartTile Greeks   -> if discovered then _Images_Tiles_Greeks_front_jpg else _Images_Tiles_Greeks_back_jpg
-	StartTile Indians  -> if discovered then _Images_Tiles_Indians_front_jpg else _Images_Tiles_Indians_back_jpg
-	StartTile Japanese -> if discovered then _Images_Tiles_Japanese_front_jpg else _Images_Tiles_Japanese_back_jpg
-	StartTile Mongols  -> if discovered then _Images_Tiles_Mongols_front_jpg else _Images_Tiles_Mongols_back_jpg
-	StartTile Rome     -> if discovered then _Images_Tiles_Rome_front_jpg else _Images_Tiles_Rome_back_jpg
-	StartTile Russia   -> if discovered then _Images_Tiles_Russia_front_jpg else _Images_Tiles_Russia_back_jpg
-	StartTile Spanish  -> if discovered then _Images_Tiles_Spanish_front_jpg else _Images_Tiles_Spanish_back_jpg
-	StartTile Zulu     -> if discovered then _Images_Tiles_Zulu_front_jpg else _Images_Tiles_Zulu_back_jpg
+tile2StaticR :: BoardTile -> Route App
+tile2StaticR (BoardTile tileid _ _ discovered _) = StaticR $ case tileid of
+	TileAmerica  -> if discovered then _Images_Tiles_America_front_jpg else _Images_Tiles_America_back_jpg
+	TileArabs    -> if discovered then _Images_Tiles_Arabs_front_jpg else _Images_Tiles_Arabs_back_jpg
+	TileAztecs   -> if discovered then _Images_Tiles_Aztecs_front_jpg else _Images_Tiles_Aztecs_back_jpg
+	TileChina    -> if discovered then _Images_Tiles_China_front_jpg else _Images_Tiles_China_back_jpg
+	TileEgypt    -> if discovered then _Images_Tiles_Egypt_front_jpg else _Images_Tiles_Egypt_back_jpg
+	TileEnglish  -> if discovered then _Images_Tiles_English_front_jpg else _Images_Tiles_English_back_jpg
+	TileFrench   -> if discovered then _Images_Tiles_French_front_jpg else _Images_Tiles_French_back_jpg
+	TileGermany  -> if discovered then _Images_Tiles_Germany_front_jpg else _Images_Tiles_Germany_back_jpg
+	TileGreeks   -> if discovered then _Images_Tiles_Greeks_front_jpg else _Images_Tiles_Greeks_back_jpg
+	TileIndians  -> if discovered then _Images_Tiles_Indians_front_jpg else _Images_Tiles_Indians_back_jpg
+	TileJapanese -> if discovered then _Images_Tiles_Japanese_front_jpg else _Images_Tiles_Japanese_back_jpg
+	TileMongols  -> if discovered then _Images_Tiles_Mongols_front_jpg else _Images_Tiles_Mongols_back_jpg
+	TileRome     -> if discovered then _Images_Tiles_Rome_front_jpg else _Images_Tiles_Rome_back_jpg
+	TileRussia   -> if discovered then _Images_Tiles_Russia_front_jpg else _Images_Tiles_Russia_back_jpg
+	TileSpanish  -> if discovered then _Images_Tiles_Spanish_front_jpg else _Images_Tiles_Spanish_back_jpg
+	TileZulu     -> if discovered then _Images_Tiles_Zulu_front_jpg else _Images_Tiles_Zulu_back_jpg
 	Tile1  -> if discovered then _Images_Tiles_Tile1_jpg else _Images_Tiles_Back_jpg
 	Tile2  -> if discovered then _Images_Tiles_Tile2_jpg else _Images_Tiles_Back_jpg
 	Tile3  -> if discovered then _Images_Tiles_Tile3_jpg else _Images_Tiles_Back_jpg
@@ -52,13 +54,13 @@ tile2StaticR (BoardTile discovered tileid _) = StaticR $ case tileid of
 	Tile27 -> if discovered then _Images_Tiles_Tile27_jpg else _Images_Tiles_Back_jpg
 
 tile2class :: BoardTile -> String
-tile2class (BoardTile _ _ orientation) =
-	"tilesize " ++ case orientation of
+tile2class boardtile =
+	"tilesize " ++ case boardTileOrientation boardtile of
 	Northward -> "northward"
 	Southward -> "southward"
 	Eastward  -> "eastward"
 	Westward  -> "westward"
 
-tile2style :: Int -> Coors -> String
-tile2style squaresize (x,y) =
+tile2style :: Int -> Int -> Int -> String
+tile2style squaresize x y =
 	printf "position:absolute; left:%ipx; top:%ipx;" (x*squaresize) (y*squaresize)
