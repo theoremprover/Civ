@@ -1,6 +1,18 @@
-<h1>Civ
+<h1>Civilization Game
 
-<div style="position:relative">
-  $forall boardtile <- gameBoardTiles game
-    <img src=@{tile2StaticR boardtile} class=#{tile2class boardtile} style=#{tile2style squaresize (boardTileXcoor boardtile) (boardTileYcoor boardtile)}>
-  
+<table border=0>
+  <tr>
+    <td>
+    <td>
+    <td>
+  <tr>
+    <td>
+    <td>
+      <div style="position: relative;">
+        $forall boardtile <- gameBoardTiles game
+          <img src=@{tile2StaticR boardtile} class=#{tile2class boardtile} style=#{tile2style tileSize (boardTileXcoor boardtile) (boardTileYcoor boardtile)}>
+    <td>
+  <tr>
+    <td>
+    <td>
+    <td>

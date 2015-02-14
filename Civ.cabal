@@ -85,6 +85,8 @@ library
                  , vector
                  , transformers
                  , time
+                 , regex-base
+                 , regex-tdfa
 
 executable         Civ
     if flag(library-only)

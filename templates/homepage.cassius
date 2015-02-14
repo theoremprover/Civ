@@ -1,20 +1,26 @@
-.squaresize
-    max-width : #{show $ squaresize}px    
-    max-height: #{show $ squaresize}px    
-    min-width : #{show $ squaresize}px    
-    min-height: #{show $ squaresize}px    
+.Tile
+    min-width : #{show tileSize}px
+    max-width : #{show tileSize}px
+    min-height: #{show tileSize}px
+    min-height: #{show tileSize}px
 
-.tilesize
-    max-width : #{show $ squaresize * 4}px
-    max-height: #{show $ squaresize * 4}px
-    min-width : #{show $ squaresize * 4}px
-    min-height: #{show $ squaresize * 4}px
+.Square
+    min-width : #{show squareSize}px
+    max-width : #{show squareSize}px
+    min-height: #{show squareSize}px
+    min-height: #{show squareSize}px
 
-.northward
+.Card
+    min-width : #{show cardXSize}px
+    max-width : #{show cardXSize}px
+    min-height: #{show $ div (100 * cardXSize) 154}px
+    min-height: #{show $ div (100 * cardXSize) 154}px
+
+.Northward
     transform: rotate(0deg)
-.eastward
+.Eastward
     transform: rotate(90deg)
-.southward
+.Southward
     transform: rotate(180deg)
-.westward
+.Westward
     transform: rotate(270deg)

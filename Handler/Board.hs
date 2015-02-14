@@ -10,39 +10,72 @@
 
 module Handler.Board where
 
-import Database.Persist
-import Database.Persist.Sqlite
 import Database.Persist.TH
 
 import Import
 
 import Handler.Board2
 
+type PlayerIndex = Int
+type XCoor = Int
+type YCoor = Int
+type CityID = Int
+
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
 Games
-    name Text
+    name String
     gameId GameId
 
 Game
     boardTiles [BoardTile]
+    playerSequence [Player]
+    phase Phase
+    playerTurn PlayerIndex
 
 BoardTile
     tileID TileID
-    xcoor Int
-    ycoor Int
+    xcoor XCoor
+    ycoor YCoor
     discovered Bool
     orientation Orientation
 
+Player
+    name String
+    civ Civ
+    colour Colour
+    freeCoins Int
+    freeCulture Int
+    dialTrade Int
+    government Government
+    policies [Policy]
+    techTree [TechCard]
+
+TechCard
+    treeLevel TechLevel
+    tech Tech
+    coins Int
 |]
 
 {-
-data CivID =
-	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
-	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
-	deriving Show
 
-type PlayerID = Int
+type FlagID = Int
+type SettlerID = Int
+
+
+data Player = Player {
+	playerName   :: String,
+	playerCiv    :: CivID,
+	playerColour :: Colour }
+
+data PlayerData = PlayerData {
+	freeCoins :: Int,
+	freeCulture :: Int,
+	dialTrade :: Int,
+--	techTree :: TechTree,
+	playerGovernment :: Government,
+	playerPolicies :: [Policy] }
+
 
 data Game = Game {
 	gameBoard      :: Map Coors BoardTile,
@@ -76,82 +109,11 @@ tiles = Map.fromList [
 	hut f terrain = f terrain { squareHutOrVillage :: Just (Left False) }
 	vil f terrain = f terrain { squareHutOrVillage :: Just (Right False) }
 
-type FlagID = Int
-type SettlerID = Int
 
 data Piece = Flag FlagID | Settler SettlerID
 
-type CityID = Int
-
-data Terrain = Grass | Woods | Sea | Desert | Mountain
-
-data Resource = Incense | Iron | Cloth | Wheat | Atom | Spy
-
-data Colour = Red | Green | Blue | Violet | Yellow
-
-data Player = Player {
-	playerName   :: String,
-	playerCiv    :: CivID,
-	playerColour :: Colour }
-
-type PlayerIndex = Int
-
-data Phase = StartOfTurn | Trade | CityManagement | Movement | Research
-	deriving (Show,Eq,Ord)
-
-data PlayerData = PlayerData {
-	freeCoins :: Int,
-	freeCulture :: Int,
-	dialTrade :: Int,
---	techTree :: TechTree,
-	playerGovernment :: Government,
-	playerPolicies :: [Policy] }
-
-data Policy =
-	Rationalism | NaturalReligion | MilitaryTradition | UrbanDevelopment |
-	Patronage | Pacifism | OrganizedReligion | Expansionism
-	deriving (Show,Eq)
-
-type TechLevel = Int
-
-data Tech =
-	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
-	HorsebackRiding | AnimalHusbandry | Philosophy | Navigation | Navy |
-	CivilService | Mysticism | MonarchyTech | DemocracyTech | Chivalry | Mathematics | Logistics |
-	PrintingPress | Sailing | Construction | Engineering | Irrigation | Bureaucracy |
-	Theology | CommunismTech | Gunpowder | Railroad | MetalCasting | Ecology | Biology |
-	SteamPower | Banking | MilitaryScience | Education |
-	Computers | MassMedia | Ballistics | ReplaceableParts | Flight | Plastics | Combustion | AtomicTheory |
-	SpaceFlight
-	deriving (Show,Eq)
-
-data Building =
-	Market | Bank | Temple | Cathedral | Granary | Aquaeduct | Library | University |
-	Barracks | Academy | TradingPost | Workshop | IronMine | Harbour | Shipyard
-
-data Unit =
-	Infantry_1_3 | Infantry_2_2 | Infantry_3_1 |
-	Artillery_1_3 | Artillery_2_2 | Artillery_3_1 |
-	Cavalry_1_3 | Cavalry_2_2 | Cavalry_3_1 |
-	Aircraft_5_7 | Aircraft_6_6 | Aircraft_7_5
-
-data Wonder =
-	Stonehenge | Colossus | HangingGardens | TheOracle | TheGreatWall |
-	ChichenItza | Pyramids | GreatLighthouse | StatueOfZeus |
-	AngkorWat | HimejiCastle | TajMahal | PorcelainTower | MachuPichu |
-	BrandenburgGate | Louvre | NotreDame | LeonardosWorkshop |
-	SydneyOperaHouse | StatueOfLiberty | PanamaCanal | UnitedNations |
-	BigBen | CristoRedentor | Kremlin | Pentagon | TheInternet
-	deriving (Show,Eq)
-
-data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 
 type TechTree = Map TechLevel [Tech]
-
-data Government =
-	Anarchy | Despotism | Monarchy | Democracy |
-	Fundamentalism | Republic | Feudalism | Communism
-	deriving (Show,Eq)
 
 class Outskirts a where
 	oCoins :: Int

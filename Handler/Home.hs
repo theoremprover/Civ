@@ -25,9 +25,22 @@ getHomeR = do
 			BoardTile Tile5 4 8 True Northward,
 			BoardTile Tile6 0 12 True Westward,
 			BoardTile TileArabs 4 12 True Northward ]
+			[
+				Player "Red" English Red 2 3 15 Democracy [Rationalism,NaturalReligion]
+					[TechCard TechLevelI Writing 1, TechCard TechLevelI HorsebackRiding 0, TechCard TechLevelII DemocracyTech 2],
+				Player "Green" Russia Green 3 4 16 Despotism [UrbanDevelopment,NaturalReligion,MilitaryTradition]
+					[TechCard TechLevelI Metalworking 0, TechCard TechLevelI HorsebackRiding 0 ]
+				]
+			StartOfTurn 0
+
 		insert $ Games "testgame" gid
 		get404 gid
 	defaultLayout $ do
 		setTitle "Civ"
-		let squaresize = 80 :: Int
+		let
+			percent    = 75 :: Int
+			scale x    = div (x*percent) 100
+			squareSize = scale 93
+			tileSize   = scale 372
+			cardXSize  = scale 187
 		$(widgetFile "homepage")
