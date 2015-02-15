@@ -1,26 +1,45 @@
+.Board
+    min-width : #{scale boardXSize 1.0}px
+    max-width : #{scale boardXSize 1.0}px
+    min-height: #{scale boardYSize 1.0}px
+    max-height: #{scale boardYSize 1.0}px
+    position  : relative
+    padding   : 0
+
 .Tile
-    min-width : #{show tileSize}px
-    max-width : #{show tileSize}px
-    min-height: #{show tileSize}px
-    max-height: #{show tileSize}px
+    min-width : #{scale tileSize 1.0}px
+    max-width : #{scale tileSize 1.0}px
+    min-height: #{scale tileSize 1.0}px
+    max-height: #{scale tileSize 1.0}px
+    position  : absolute
 
 .Square
-    min-width : #{show squareSize}px
-    max-width : #{show squareSize}px
-    min-height: #{show squareSize}px
-    max-height: #{show squareSize}px
+    min-width : #{scale squareSize 1.0}px
+    max-width : #{scale squareSize 1.0}px
+    min-height: #{scale squareSize 1.0}px
+    max-height: #{scale squareSize 1.0}px
 
 .HorCard
-    min-width : #{show horCardXSize}px
-    max-width : #{show horCardXSize}px
-    min-height: #{show $ div (100 * horCardXSize) 154}px
-    max-height: #{show $ div (100 * horCardXSize) 154}px
+    min-width : #{scale horCardXSize 1.0}px
+    max-width : #{scale horCardXSize 1.0}px
+    min-height: #{scale horCardXSize 0.65}px
+    max-height: #{scale horCardXSize 0.65}px
 
 .VertCard
-    min-width : #{show vertCardXSize}px
-    max-width : #{show vertCardXSize}px
-    min-height: #{show $ div (154 * vertCardXSize) 100}px
-    max-height: #{show $ div (154 * vertCardXSize) 100}px
+    min-width : #{scale vertCardXSize 1.0}px
+    max-width : #{scale vertCardXSize 1.0}px
+    min-height: #{scale vertCardXSize 1.54}px
+    max-height: #{scale vertCardXSize 1.54}px
+
+.Dial
+    min-width : #{scale dialSize 1.0}px
+    max-width : #{scale dialSize 1.0}px
+    min-height: #{scale dialSize 0.65}px
+    max-height: #{scale dialSize 0.65}px
+
+.NoSpacing
+    padding: 0
+    margin : 0
 
 .Northward
     transform: rotate(0deg)

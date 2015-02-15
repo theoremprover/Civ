@@ -13,6 +13,8 @@ import Handler.BoardDisplay
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 
+import qualified Prelude
+
 getHomeR :: Handler Html
 getHomeR = do
 	game <- runDB $ do
@@ -38,10 +40,15 @@ getHomeR = do
 	defaultLayout $ do
 		setTitle "Civ"
 		let
-			percent    = 75 :: Int
-			scale x    = div (x*percent) 100
-			squareSize = scale 93
-			tileSize   = scale 372
-			vertCardXSize = scale 122
-			horCardXSize  = scale 187
+			percent       = 0.75 :: Double
+			scale :: Int -> Double -> String
+			scale x factor = show (toInteger (fromIntegral x * percent * factor) :: Int)
+			squareSize    =  93
+			tileSize      = 372   -- Should be dividable by 4
+			vertCardXSize = 122
+			horCardXSize  = 187
+			dialSize      = 561
+			boardtiles    = gameBoardTiles game
+			boardXSize    = (Prelude.maximum (map boardTileXcoor boardtiles) + 4 ) * (div tileSize 4)
+			boardYSize    = (Prelude.maximum (map boardTileYcoor boardtiles) + 4 ) * (div tileSize 4)
 		$(widgetFile "homepage")

@@ -7,8 +7,8 @@ module Handler.BoardDisplay where
 import Import
 
 import Text.Hamlet (HtmlUrl, hamlet)
-import Data.Text (Text)
-import Text.Blaze.Html.Renderer.String (renderHtml)
+--import Data.Text (Text)
+--import Text.Blaze.Html.Renderer.String (renderHtml)
 
 import Handler.Board
 import Handler.Board2
@@ -17,6 +17,7 @@ import Text.Printf
 --import Text.Regex.Base
 import Text.Regex.TDFA
 import Data.Typeable
+import Data.List((!!))
 
 tile2StaticR :: BoardTile -> Route App
 tile2StaticR (BoardTile tileid _ _ discovered _) = StaticR $
@@ -31,17 +32,25 @@ tile2class boardtile = "Tile " ++ show (boardTileOrientation boardtile)
 
 tile2style :: Int -> XCoor -> YCoor -> String
 tile2style tilesize x y =
-	printf "position:absolute; left:%ipx; top:%ipx;" (div (x*tilesize) 4) (div (y*tilesize) 4)
+	printf "position:absolute; left:%ipx; top:%ipx;" (x * div tilesize 4) (y * div tilesize 4)
 
 class (Show a,Typeable a) => ToStaticR a where
 	staticRoute :: a -> Route App
 	staticRoute a =
 		StaticR $ StaticRoute ["Images",toPathPiece (show $ typeOf a),toPathPiece (show a) ++ ".jpg"] []
 
-instance ToStaticR Tech 
+instance ToStaticR Tech
+instance ToStaticR Civ
 
-techTree playerindex = renderHtml [hamlet|
-<p>TEST!
+board game tilesize = [hamlet|
+<div .Board>
+  $forall boardtile <- gameBoardTiles game
+    <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{tile2style tilesize (boardTileXcoor boardtile) (boardTileYcoor boardtile)}>
+|]
+
+dial game playerindex = [hamlet|
+<div .NoSpacing>
+  <img .Dial src=@{staticRoute (playerCiv $ (gamePlayerSequence game) !! playerindex)}>
 |]
 
 {-
