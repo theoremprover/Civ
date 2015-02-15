@@ -4,6 +4,8 @@
   <tr>
     <td>
     <td>
+      <script type="text/javascript">
+        ^{techTree 1}
     <td>
   <tr>
     <td>
@@ -15,4 +17,5 @@
   <tr>
     <td>
     <td>
+      ^{techTree 0}	
     <td>

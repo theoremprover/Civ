@@ -2,19 +2,25 @@
     min-width : #{show tileSize}px
     max-width : #{show tileSize}px
     min-height: #{show tileSize}px
-    min-height: #{show tileSize}px
+    max-height: #{show tileSize}px
 
 .Square
     min-width : #{show squareSize}px
     max-width : #{show squareSize}px
     min-height: #{show squareSize}px
-    min-height: #{show squareSize}px
+    max-height: #{show squareSize}px
 
-.Card
-    min-width : #{show cardXSize}px
-    max-width : #{show cardXSize}px
-    min-height: #{show $ div (100 * cardXSize) 154}px
-    min-height: #{show $ div (100 * cardXSize) 154}px
+.HorCard
+    min-width : #{show horCardXSize}px
+    max-width : #{show horCardXSize}px
+    min-height: #{show $ div (100 * horCardXSize) 154}px
+    max-height: #{show $ div (100 * horCardXSize) 154}px
+
+.VertCard
+    min-width : #{show vertCardXSize}px
+    max-width : #{show vertCardXSize}px
+    min-height: #{show $ div (154 * vertCardXSize) 100}px
+    max-height: #{show $ div (154 * vertCardXSize) 100}px
 
 .Northward
     transform: rotate(0deg)

@@ -42,5 +42,6 @@ getHomeR = do
 			scale x    = div (x*percent) 100
 			squareSize = scale 93
 			tileSize   = scale 372
-			cardXSize  = scale 187
+			vertCardXSize = scale 122
+			horCardXSize  = scale 187
 		$(widgetFile "homepage")

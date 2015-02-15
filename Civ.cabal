@@ -87,6 +87,7 @@ library
                  , time
                  , regex-base
                  , regex-tdfa
+                 , blaze-html
 
 executable         Civ
     if flag(library-only)

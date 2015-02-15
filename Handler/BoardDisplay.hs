@@ -1,8 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Handler.BoardDisplay where
 
 import Import
+
+import Text.Hamlet (HtmlUrl, hamlet)
+import Data.Text (Text)
+import Text.Blaze.Html.Renderer.String (renderHtml)
 
 import Handler.Board
 import Handler.Board2
@@ -33,6 +39,10 @@ class (Show a,Typeable a) => ToStaticR a where
 		StaticR $ StaticRoute ["Images",toPathPiece (show $ typeOf a),toPathPiece (show a) ++ ".jpg"] []
 
 instance ToStaticR Tech 
+
+techTree playerindex = renderHtml [hamlet|
+<p>TEST!
+|]
 
 {-
 tech2StaticR (TechCard _ tech _) = StaticR $ StaticRoute ["Images","Techs",show tech ++ ".jpg"] []
