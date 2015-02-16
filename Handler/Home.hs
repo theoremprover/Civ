@@ -16,6 +16,45 @@ import Data.Maybe
 
 import qualified Prelude
 
+type Size = (Double,Double)
+type Pos = (Double,Double)
+
+data DisplayInfo = DisplayInfo {
+	scaleSize :: Size -> Double -> String,
+	squareSize :: Size,
+	tileSize :: Size,
+	vertCardSize :: Size,
+	horCardSize :: Size,
+	dialSize :: Size,
+	dialNavePos :: Pos,
+	tradeDialSize :: Size,
+	coinDialSize :: Size,
+	boardSize :: Size,
+	squareSize :: Size,
+	horCardSize :: Size,
+	vertCardSize :: Size,
+	dialSize :: Size,
+	tradeDialSize :: Size,
+	coinDialSize :: Size
+	}
+
+scalex :: Double -> Double -> Size
+scalex x factor = (x,x*factor)
+
+defaultDisplayInfo = DisplayInfo {
+	scale x factor = show $ round (fromIntegral x * percent * factor),
+	squareSize    = scalex  93 1.00
+	tileSize      = scalex 372 1.00  -- Should be dividable by 4
+	vertCardSize  = scalex 122 1.54
+	horCardSize   = scalex 187 0.65
+	dialSize      = scalex 561 0.65
+	dialNavePos   = (423,137)
+	tradeDialSize = scalex 168 1.40
+	coinDialSize  = scalex  83 1.73
+	boardSize     = undefined
+	squareWidth   = scalex (372/4) 1.0
+	
+
 getHomeR :: Handler Html
 getHomeR = do
 	game <- runDB $ do
@@ -43,13 +82,32 @@ getHomeR = do
 		let
 			percent       = 0.75 :: Double
 			scale :: Int -> Double -> String
-			scale x factor = show $ toInteger (fromIntegral x * percent * factor) :: Int
-			squareSize    =  93 :: Int
-			tileSize      = 372 :: Int  -- Should be dividable by 4
-			vertCardXSize = 122 :: Int
-			horCardXSize  = 187 :: Int
-			dialSize      = 561 :: Int
+			scale x factor = show $ round (fromIntegral x * percent * factor)
+
+			squareSize    =  93
+			tileSize      = 372  -- Should be dividable by 4
+			vertCardXSize = 122
+			horCardXSize  = 187
+			dialSize      = 561
+			(dialNaveX,dialNaveY) = (423,137)
+			tradeDialSize = 168
+			coinDialSize  =  83
+			
 			boardtilesMax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (div tileSize 4)
-			boardXSize    = boardtilesMax boardTileXcoor
-			boardYSize    = boardtilesMax boardTileYcoor
+			boardWidth  = scale (boardtilesMax boardTileXcoor) 1.0
+			boardHeight = scale (boardtilesMax boardTileYcoor) 1.0
+			tileWidth   = scale tileSize 1.0
+			squareWidth = scale squareSize 1.0
+			horCardWidth = scale horCardXSize 1.0
+			horCardHeight = scale horCardXSize 0.65
+			vertCardWidth = scale vertCardXSize 1.0
+			vertCardHeight = scale vertCardXSize 1.54
+			dialWidth = scale dialSize 1.0
+			dialHeight = scale dialSize 0.65
+			tradeDialWidth = scale tradeDialSize 1.0
+			tradeDialHeight = scale tradeDialSize 1.4
+			coinDialWidth  = scale coinDialSize 1.0
+			coinDialHeight = scale coinDialSize 1.73
+			
+			
 		$(widgetFile "homepage")

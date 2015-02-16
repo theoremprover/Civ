@@ -1,45 +1,63 @@
-.Board
-    min-width : #{scale boardXSize 1.0}px
-    max-width : #{scale boardXSize 1.0}px
-    min-height: #{scale boardYSize 1.0}px
-    max-height: #{scale boardYSize 1.0}px
+.Canvas
     position  : relative
     padding   : 0
 
+.Board
+    min-width : #{boardWidth}px
+    max-width : #{boardWidth}px
+    min-height: #{boardHeight}px
+    max-height: #{boardHeight}px
+
 .Tile
-    min-width : #{scale tileSize 1.0}px
-    max-width : #{scale tileSize 1.0}px
-    min-height: #{scale tileSize 1.0}px
-    max-height: #{scale tileSize 1.0}px
+    min-width : #{tileWidth}px
+    max-width : #{tileWidth}px
+    min-height: #{tileWidth}px
+    max-height: #{tileWidth}px
     position  : absolute
 
 .Square
-    min-width : #{scale squareSize 1.0}px
-    max-width : #{scale squareSize 1.0}px
-    min-height: #{scale squareSize 1.0}px
-    max-height: #{scale squareSize 1.0}px
+    min-width : #{squareWidth}px
+    max-width : #{squareWidth}px
+    min-height: #{squareWidth}px
+    max-height: #{squareWidth}px
 
 .HorCard
-    min-width : #{scale horCardXSize 1.0 }px
-    max-width : #{scale horCardXSize 1.0 }px
-    min-height: #{scale horCardXSize 0.65}px
-    max-height: #{scale horCardXSize 0.65}px
+    min-width : #{horCardWidth}px
+    max-width : #{horCardWidth}px
+    min-height: #{horCardHeight}px
+    max-height: #{horCardHeight}px
 
 .VertCard
-    min-width : #{scale vertCardXSize 1.0 }px
-    max-width : #{scale vertCardXSize 1.0 }px
-    min-height: #{scale vertCardXSize 1.54}px
-    max-height: #{scale vertCardXSize 1.54}px
+    min-width : #{vertCardWidth}px
+    max-width : #{vertCardWidth}px
+    min-height: #{vertCardHeight}px
+    max-height: #{vertCardHeight}px
 
 .Dial
-    min-width : #{scale dialSize 1.0 }px
-    max-width : #{scale dialSize 1.0 }px
-    min-height: #{scale dialSize 0.65}px
-    max-height: #{scale dialSize 0.65}px
+    min-width : #{dialWidth}px
+    max-width : #{dialWidth}px
+    min-height: #{dialHeight}px
+    max-height: #{dialHeight}px
+
+.TradeDial
+    min-width : #{tradeDialWidth}px
+    max-width : #{tradeDialWidth}px
+    min-height: #{tradeDialHeight}px
+    max-height: #{tradeDialHeight}px
+
+.CoinDial
+    min-width : #{coinDialWidth}px
+    max-width : #{coinDialWidth}px
+    min-height: #{coinDialHeight}px
+    max-height: #{coinDialHeight}px
 
 .NoSpacing
     padding: 0
     margin : 0
+    border : 0
+
+img
+    display: block
 
 .Northward
     transform: rotate(0deg)
