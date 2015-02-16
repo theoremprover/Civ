@@ -2,6 +2,7 @@
 
 module Handler.Home where
 
+
 import Import
 
 import Database.Persist.Sqlite
@@ -43,11 +44,11 @@ getHomeR = do
 			percent       = 0.75 :: Double
 			scale :: Int -> Double -> String
 			scale x factor = show $ toInteger (fromIntegral x * percent * factor) :: Int
-			squareSize    =  93
-			tileSize      = 372   -- Should be dividable by 4
-			vertCardXSize = 122
-			horCardXSize  = 187
-			dialSize      = 561
+			squareSize    =  93 :: Int
+			tileSize      = 372 :: Int  -- Should be dividable by 4
+			vertCardXSize = 122 :: Int
+			horCardXSize  = 187 :: Int
+			dialSize      = 561 :: Int
 			boardtilesMax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (div tileSize 4)
 			boardXSize    = boardtilesMax boardTileXcoor
 			boardYSize    = boardtilesMax boardTileYcoor
