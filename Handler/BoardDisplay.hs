@@ -34,13 +34,8 @@ tile2style :: Int -> XCoor -> YCoor -> String
 tile2style tilesize x y =
 	printf "position:absolute; left:%ipx; top:%ipx;" (x * div tilesize 4) (y * div tilesize 4)
 
-class (Show a,Typeable a) => ToStaticR a where
-	staticRoute :: a -> Route App
-	staticRoute a =
-		StaticR $ StaticRoute ["Images",toPathPiece (show $ typeOf a),toPathPiece (show a) ++ ".jpg"] []
-
-instance ToStaticR Tech
-instance ToStaticR Civ
+staticRoute :: (Show a) => String -> a -> Route App
+staticRoute folder a = StaticR $ StaticRoute ["Images",toPathPiece folder,toPathPiece (show a) ++ ".jpg"] []
 
 board game tilesize = [hamlet|
 <div .Board>
@@ -50,7 +45,7 @@ board game tilesize = [hamlet|
 
 dial game playerindex = [hamlet|
 <div .NoSpacing>
-  <img .Dial src=@{staticRoute (playerCiv $ (gamePlayerSequence game) !! playerindex)}>
+  <img .Dial src=@{staticRoute "Dials" (playerCiv $ (gamePlayerSequence game) !! playerindex)}>
 |]
 
 {-

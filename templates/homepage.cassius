@@ -20,20 +20,20 @@
     max-height: #{scale squareSize 1.0}px
 
 .HorCard
-    min-width : #{scale horCardXSize 1.0}px
-    max-width : #{scale horCardXSize 1.0}px
+    min-width : #{scale horCardXSize 1.0 }px
+    max-width : #{scale horCardXSize 1.0 }px
     min-height: #{scale horCardXSize 0.65}px
     max-height: #{scale horCardXSize 0.65}px
 
 .VertCard
-    min-width : #{scale vertCardXSize 1.0}px
-    max-width : #{scale vertCardXSize 1.0}px
+    min-width : #{scale vertCardXSize 1.0 }px
+    max-width : #{scale vertCardXSize 1.0 }px
     min-height: #{scale vertCardXSize 1.54}px
     max-height: #{scale vertCardXSize 1.54}px
 
 .Dial
-    min-width : #{scale dialSize 1.0}px
-    max-width : #{scale dialSize 1.0}px
+    min-width : #{scale dialSize 1.0 }px
+    max-width : #{scale dialSize 1.0 }px
     min-height: #{scale dialSize 0.65}px
     max-height: #{scale dialSize 0.65}px
 

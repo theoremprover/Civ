@@ -42,13 +42,13 @@ getHomeR = do
 		let
 			percent       = 0.75 :: Double
 			scale :: Int -> Double -> String
-			scale x factor = show (toInteger (fromIntegral x * percent * factor) :: Int)
+			scale x factor = show $ toInteger (fromIntegral x * percent * factor) :: Int
 			squareSize    =  93
 			tileSize      = 372   -- Should be dividable by 4
 			vertCardXSize = 122
 			horCardXSize  = 187
 			dialSize      = 561
-			boardtiles    = gameBoardTiles game
-			boardXSize    = (Prelude.maximum (map boardTileXcoor boardtiles) + 4 ) * (div tileSize 4)
-			boardYSize    = (Prelude.maximum (map boardTileYcoor boardtiles) + 4 ) * (div tileSize 4)
+			boardtilesMax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (div tileSize 4)
+			boardXSize    = boardtilesMax boardTileXcoor
+			boardYSize    = boardtilesMax boardTileYcoor
 		$(widgetFile "homepage")
