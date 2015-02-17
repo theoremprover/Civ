@@ -16,11 +16,13 @@ import Data.Maybe
 
 import qualified Prelude
 
-type Size = (Double,Double)
-type Pos = (Double,Double)
+type Coor = Double
+type Size = (Coor,Coor)
+type Pos = (Coor,Coor)
+type Proportion = (Double,Double)
 
 data DisplayInfo = DisplayInfo {
-	scaleSize :: Size -> Double -> String,
+	scaleCoor :: Coor -> String,
 	squareSize :: Size,
 	tileSize :: Size,
 	vertCardSize :: Size,
@@ -30,30 +32,32 @@ data DisplayInfo = DisplayInfo {
 	tradeDialSize :: Size,
 	coinDialSize :: Size,
 	boardSize :: Size,
-	squareSize :: Size,
-	horCardSize :: Size,
-	vertCardSize :: Size,
-	dialSize :: Size,
-	tradeDialSize :: Size,
-	coinDialSize :: Size
 	}
 
 scalex :: Double -> Double -> Size
-scalex x factor = (x,x*factor)
+scalex x yfactor = (x,x*yfactor)
+
+scaleCentric :: Size -> Proportion -> Size -> Position
+scaleCentric (sourcew,sourceh) (propx,propy) (targetw,targeth) = (targetw/sourcew*propx,targeth/sourceh*propy)
 
 defaultDisplayInfo = DisplayInfo {
-	scale x factor = show $ round (fromIntegral x * percent * factor),
-	squareSize    = scalex  93 1.00
-	tileSize      = scalex 372 1.00  -- Should be dividable by 4
-	vertCardSize  = scalex 122 1.54
-	horCardSize   = scalex 187 0.65
-	dialSize      = scalex 561 0.65
-	dialNavePos   = (423,137)
-	tradeDialSize = scalex 168 1.40
-	coinDialSize  = scalex  83 1.73
+	scaleCoor coor = undefined,
+	squareSize    = scalex  93 1.00,
+	tileSize      = scalex 372 1.00,
+	vertCardSize  = scalex 122 1.54,
+	horCardSize   = scalex 187 0.65,
+	dialSize      = scalex 561 0.65,
+	dialNaveProportion = (0.75,0.38),
+	tradeDialSize = scalex 168 1.40,
+	coinDialSize  = scalex  83 1.73,
 	boardSize     = undefined
-	squareWidth   = scalex (372/4) 1.0
-	
+	}
+
+displayInfoFactory scale game = defaultDisplayInfo {
+	scaleCoor = \ coor -> show $ round $ fromIntegral coor * scale,
+	boardSize = (scaleCoor $ tilesmax boardTileXCoor, scaleCoor $ tilesmax boardTileYCoor) }
+	where
+	tilesmax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (tileSize defaultDisplayInfo / 4)
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -77,37 +81,10 @@ getHomeR = do
 
 		insert $ Games "testgame" gid
 		get404 gid
+	
 	defaultLayout $ do
-		setTitle "Civ"
+		setTitle "Civilization Boardgame"
 		let
-			percent       = 0.75 :: Double
-			scale :: Int -> Double -> String
-			scale x factor = show $ round (fromIntegral x * percent * factor)
-
-			squareSize    =  93
-			tileSize      = 372  -- Should be dividable by 4
-			vertCardXSize = 122
-			horCardXSize  = 187
-			dialSize      = 561
-			(dialNaveX,dialNaveY) = (423,137)
-			tradeDialSize = 168
-			coinDialSize  =  83
-			
-			boardtilesMax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (div tileSize 4)
-			boardWidth  = scale (boardtilesMax boardTileXcoor) 1.0
-			boardHeight = scale (boardtilesMax boardTileYcoor) 1.0
-			tileWidth   = scale tileSize 1.0
-			squareWidth = scale squareSize 1.0
-			horCardWidth = scale horCardXSize 1.0
-			horCardHeight = scale horCardXSize 0.65
-			vertCardWidth = scale vertCardXSize 1.0
-			vertCardHeight = scale vertCardXSize 1.54
-			dialWidth = scale dialSize 1.0
-			dialHeight = scale dialSize 0.65
-			tradeDialWidth = scale tradeDialSize 1.0
-			tradeDialHeight = scale tradeDialSize 1.4
-			coinDialWidth  = scale coinDialSize 1.0
-			coinDialHeight = scale coinDialSize 1.73
-			
-			
+			di = displayInfoFactory 0.75 game
+			scaleXCoor coors = 
 		$(widgetFile "homepage")

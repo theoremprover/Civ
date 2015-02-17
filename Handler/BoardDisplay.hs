@@ -27,23 +27,25 @@ tile2StaticR (BoardTile tileid _ _ discovered _) = StaticR $
 		(True,False)  -> StaticRoute [ "Images","Tiles","Back.jpg" ] []
 		(True,True)   -> StaticRoute [ "Images","Tiles",toPathPiece (show tileid) ++ ".jpg" ] []
 
-tile2class :: BoardTile -> String
-tile2class boardtile = "Tile " ++ show (boardTileOrientation boardtile)
-
-tile2style :: (Int -> Double -> String) -> Int -> XCoor -> YCoor -> String
-tile2style displayinfo x y =
-	printf "position:absolute; left:%spx; top:%spx;" (scale (x * div tilesize 4) 1.0) (scale (y * div tilesize 4) 1.0)
 
 staticRoute :: (Show a) => String -> a -> Route App
 staticRoute folder a = StaticR $ StaticRoute ["Images",toPathPiece folder,toPathPiece (show a) ++ ".jpg"] []
 
-board game displayinfo tilesize = [hamlet|
+board game di tilesize = [hamlet|
 <div .Board .Canvas .NoSpacing>
   $forall boardtile <- gameBoardTiles game
-    <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{tile2style scale tilesize (boardTileXcoor boardtile) (boardTileYcoor boardtile)}>
+    <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{tile2style boardtile}>
 |]
+	where
+	tile2class :: BoardTile -> String
+	tile2class boardtile = "Tile " ++ show (boardTileOrientation boardtile)
 
-dial game displayinfo playerindex = [hamlet|
+	tile2style :: BoardTile -> String
+	tile2style boardtile = printf "position:absolute; left:%spx; top:%spx;"
+		((scaleX di) (boardTileXCoor boardTile))
+
+
+dial game di playerindex = [hamlet|
 <div .Dial .Canvas .NoSpacing>
   <img .Dial src=@{staticRoute "Dials" (playerCiv $ (gamePlayerSequence game) !! playerindex)}>
   <img .TradeDial src=@{StaticR _Images_Dials_Tradedial_jpg} style=#{tradedial2style displayinfo}>

@@ -3,7 +3,7 @@
     padding   : 0
 
 .Board
-    min-width : #{boardWidth}px
+    min-width : #{(di scaleCoor) (fst $ di boardSize)}px
     max-width : #{boardWidth}px
     min-height: #{boardHeight}px
     max-height: #{boardHeight}px
