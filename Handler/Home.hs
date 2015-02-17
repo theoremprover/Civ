@@ -16,49 +16,6 @@ import Data.Maybe
 
 import qualified Prelude
 
-type Coor = Double
-type Size = (Coor,Coor)
-type Pos = (Coor,Coor)
-type Proportion = (Double,Double)
-
-data DisplayInfo = DisplayInfo {
-	scaleCoor :: Coor -> String,
-	squareSize :: Size,
-	tileSize :: Size,
-	vertCardSize :: Size,
-	horCardSize :: Size,
-	dialSize :: Size,
-	dialNavePos :: Pos,
-	tradeDialSize :: Size,
-	coinDialSize :: Size,
-	boardSize :: Size,
-	}
-
-scalex :: Double -> Double -> Size
-scalex x yfactor = (x,x*yfactor)
-
-scaleCentric :: Size -> Proportion -> Size -> Position
-scaleCentric (sourcew,sourceh) (propx,propy) (targetw,targeth) = (targetw/sourcew*propx,targeth/sourceh*propy)
-
-defaultDisplayInfo = DisplayInfo {
-	scaleCoor coor = undefined,
-	squareSize    = scalex  93 1.00,
-	tileSize      = scalex 372 1.00,
-	vertCardSize  = scalex 122 1.54,
-	horCardSize   = scalex 187 0.65,
-	dialSize      = scalex 561 0.65,
-	dialNaveProportion = (0.75,0.38),
-	tradeDialSize = scalex 168 1.40,
-	coinDialSize  = scalex  83 1.73,
-	boardSize     = undefined
-	}
-
-displayInfoFactory scale game = defaultDisplayInfo {
-	scaleCoor = \ coor -> show $ round $ fromIntegral coor * scale,
-	boardSize = (scaleCoor $ tilesmax boardTileXCoor, scaleCoor $ tilesmax boardTileYCoor) }
-	where
-	tilesmax coorsel = (Prelude.maximum (map coorsel $ gameBoardTiles game) + 4) * (tileSize defaultDisplayInfo / 4)
-
 getHomeR :: Handler Html
 getHomeR = do
 	game <- runDB $ do
@@ -86,5 +43,4 @@ getHomeR = do
 		setTitle "Civilization Boardgame"
 		let
 			di = displayInfoFactory 0.75 game
-			scaleXCoor coors = 
 		$(widgetFile "homepage")

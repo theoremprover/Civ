@@ -3,53 +3,53 @@
     padding   : 0
 
 .Board
-    min-width : #{(di scaleCoor) (fst $ di boardSize)}px
-    max-width : #{boardWidth}px
-    min-height: #{boardHeight}px
-    max-height: #{boardHeight}px
+    min-width : #{scaleXCoor di boardSize}px
+    max-width : #{scaleXCoor di boardSize}px
+    min-height: #{scaleYCoor di boardSize}px
+    max-height: #{scaleYCoor di boardSize}px
 
 .Tile
-    min-width : #{tileWidth}px
-    max-width : #{tileWidth}px
-    min-height: #{tileWidth}px
-    max-height: #{tileWidth}px
+    min-width : #{scaleXCoor di tileSize}px
+    max-width : #{scaleXCoor di tileSize}px
+    min-height: #{scaleYCoor di tileSize}px
+    max-height: #{scaleYCoor di tileSize}px
     position  : absolute
 
 .Square
-    min-width : #{squareWidth}px
-    max-width : #{squareWidth}px
-    min-height: #{squareWidth}px
-    max-height: #{squareWidth}px
+    min-width : #{scaleXCoor di squareSize}px
+    max-width : #{scaleXCoor di squareSize}px
+    min-height: #{scaleYCoor di squareSize}px
+    max-height: #{scaleYCoor di squareSize}px
 
 .HorCard
-    min-width : #{horCardWidth}px
-    max-width : #{horCardWidth}px
-    min-height: #{horCardHeight}px
-    max-height: #{horCardHeight}px
+    min-width : #{scaleXCoor di horCardSize}px
+    max-width : #{scaleXCoor di horCardSize}px
+    min-height: #{scaleYCoor di horCardSize}px
+    max-height: #{scaleYCoor di horCardSize}px
 
 .VertCard
-    min-width : #{vertCardWidth}px
-    max-width : #{vertCardWidth}px
-    min-height: #{vertCardHeight}px
-    max-height: #{vertCardHeight}px
+    min-width : #{scaleXCoor di vertCardSize}px
+    max-width : #{scaleXCoor di vertCardSize}px
+    min-height: #{scaleYCoor di vertCardSize}px
+    max-height: #{scaleYCoor di vertCardSize}px
 
 .Dial
-    min-width : #{dialWidth}px
-    max-width : #{dialWidth}px
-    min-height: #{dialHeight}px
-    max-height: #{dialHeight}px
+    min-width : #{scaleXCoor di dialSize}px
+    max-width : #{scaleXCoor di dialSize}px
+    min-height: #{scaleYCoor di dialSize}px
+    max-height: #{scaleYCoor di dialSize}px
 
 .TradeDial
-    min-width : #{tradeDialWidth}px
-    max-width : #{tradeDialWidth}px
-    min-height: #{tradeDialHeight}px
-    max-height: #{tradeDialHeight}px
+    min-width : #{scaleXCoor di tradeDialSize}px
+    max-width : #{scaleXCoor di tradeDialSize}px
+    min-height: #{scaleYCoor di tradeDialSize}px
+    max-height: #{scaleYCoor di tradeDialSize}px
 
 .CoinDial
-    min-width : #{coinDialWidth}px
-    max-width : #{coinDialWidth}px
-    min-height: #{coinDialHeight}px
-    max-height: #{coinDialHeight}px
+    min-width : #{scaleXCoor di coinDialSize}px
+    max-width : #{scaleXCoor di coinDialSize}px
+    min-height: #{scaleYCoor di coinDialSize}px
+    max-height: #{scaleYCoor di coinDialSize}px
 
 .NoSpacing
     padding: 0
