@@ -55,6 +55,7 @@ TechCard
     treeLevel TechLevel
     tech Tech
     coins Int
+    deriving Show
 |]
 
 {-
