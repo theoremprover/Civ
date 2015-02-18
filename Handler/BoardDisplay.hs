@@ -125,7 +125,13 @@ coindial2style di game playerindex = printf "position:absolute; left:%spx; top:%
 	coins = playerFreeCoins (gamePlayerSequence game !! playerindex) -- TODO: Zusätzliche Coins berechnen
 
 techTree di game playerindex = [hamlet|
+  <table border=0>
+    $for (l,techss) <- techss
+      <tr>
 |]
+	where
+	techs = playerTechTree ((gamePlayerSequence game) !! playerindex)
+	techss = map Prelude.map (\ level -> filter ((==level).techCardTreeLevel) techs) [TechLevelV..TechLevelI]
 
 playerArea di game playerindex = [hamlet|
 <div .NoSpacing>

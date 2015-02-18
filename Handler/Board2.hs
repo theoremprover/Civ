@@ -96,5 +96,5 @@ derivePersistField "Government"
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
-	deriving (Show,Read,Eq)
+	deriving (Show,Read,Eq,Ord,Ix)
 derivePersistField "TechLevel"
