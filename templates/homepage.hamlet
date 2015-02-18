@@ -4,15 +4,15 @@
   <tr>
     <td>
     <td>
-      ^{dial game di 1}
+      ^{playerArea di game 1}
     <td>
   <tr>
     <td>
     <td>
-      ^{board game di}
+      ^{board di game}
     <td>
   <tr>
     <td>
     <td>
-      ^{dial game di 0}
+      ^{playerArea di game 0}
     <td>

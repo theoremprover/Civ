@@ -83,7 +83,7 @@ staticRoute folder a = StaticR $ StaticRoute ["Images",toPathPiece folder,toPath
 scaleXCoor di sizef = (scaleCoor di) $ fst (sizef di)
 scaleYCoor di sizef = (scaleCoor di) $ snd (sizef di)
 
-board game di = [hamlet|
+board di game = [hamlet|
 <div .Board .Canvas .NoSpacing>
   $forall boardtile <- gameBoardTiles game
     <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{tile2style boardtile}>
@@ -97,11 +97,11 @@ board game di = [hamlet|
 		((scaleCoor di) (fromIntegral (boardTileXcoor boardtile) * (fst (tileSize di) / 4)))
 		((scaleCoor di) (fromIntegral (boardTileYcoor boardtile) * (snd (tileSize di) / 4)))
 
-dial game di playerindex = [hamlet|
+dial di game playerindex = [hamlet|
 <div .Dial .Canvas .NoSpacing>
   <img .Dial src=@{staticRoute "Dials" (playerCiv $ (gamePlayerSequence game) !! playerindex)}>
-  <img .TradeDial src=@{StaticR _Images_Dials_Tradedial_gif} style=#{tradedial2style di game playerindex}>
-  <img .CoinDial src=@{StaticR _Images_Dials_Coindial_gif} style=#{coindial2style di game playerindex}>
+  <img .TradeDial src=@{StaticR $ StaticRoute [ "Images","Dials","Tradedial.gif" ] []} style=#{tradedial2style di game playerindex}>
+  <img .CoinDial src=@{StaticR $ StaticRoute [ "Images","Dials","Coindial.gif" ] []} style=#{coindial2style di game playerindex}>
 |]
 
 tradedialDeg game playerindex =
@@ -124,84 +124,16 @@ coindial2style di game playerindex = printf "position:absolute; left:%spx; top:%
 	(x,y) = positionDial (0,0) (coinDialSize di) (dialNaveProportion di) (dialSize di)
 	coins = playerFreeCoins (gamePlayerSequence game !! playerindex) -- TODO: Zusätzliche Coins berechnen
 
-{-
-tech2StaticR (TechCard _ tech _) = StaticR $ StaticRoute ["Images","Techs",show tech ++ ".jpg"] []
+techTree di game playerindex = [hamlet|
+|]
 
-policy2StaticR policy = StaticR $ StaticRoute ["Images","Policies",show tech ++ ".jpg"] []
-
-wonder2StaticR
-
-	Stonehenge -> 
-	Colossus -> 
-	HangingGardens -> 
-	TheOracle -> 
-	TheGreatWall ->
-	ChichenItza -> 
-	Pyramids -> 
-	GreatLighthouse -> 
-	StatueOfZeus ->
-	AngkorWat -> 
-	HimejiCastle -> 
-	TajMahal -> 
-	PorcelainTower -> 
-	MachuPichu ->
-	BrandenburgGate -> 
-	Louvre -> 
-	NotreDame -> 
-	LeonardosWorkshop ->
-	SydneyOperaHouse -> 
-	StatueOfLiberty -> 
-	PanamaCanal -> 
-	UnitedNations ->
-	BigBen -> 
-	CristoRedentor -> 
-	Kremlin -> 
-	Pentagon -> 
-	TheInternet
-
-	Infantry_1_3 -> 
-	Infantry_2_2 -> 
-	Infantry_3_1 ->
-	Artillery_1_3 -> 
-	Artillery_2_2 -> 
-	Artillery_3_1 ->
-	Cavalry_1_3 -> 
-	Cavalry_2_2 -> 
-	Cavalry_3_1 |
-	Aircraft_5_7 -> 
-	Aircraft_6_6 -> 
-	Aircraft_7_5
-
-	Market -> 
-	Bank -> 
-	Temple -> 
-	Cathedral -> 
-	Granary -> 
-	Aquaeduct -> 
-	Library -> 
-	University ->
-	Barracks -> 
-	Academy -> 
-	TradingPost -> 
-	Workshop -> 
-	IronMine -> 
-	Harbour -> 
-	Shipyard
-
-	America -> 
-	Arabs -> 
-	Aztecs -> 
-	China -> 
-	Egypt -> 
-	English -> 
-	French -> 
-	Germany ->
-	Greeks -> 
-	Indians -> 
-	Japanese -> 
-	Mongols -> 
-	Rome -> 
-	Russia -> 
-	Spanish -> 
-	Zulu ->
--}
+playerArea di game playerindex = [hamlet|
+<div .NoSpacing>
+  <table .NoSpacing>
+    <tr>
+      <td>
+        ^{techTree di game playerindex}
+      <td>
+        ^{dial di game playerindex}
+      <td>
+|]
