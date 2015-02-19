@@ -66,13 +66,32 @@ data Building =
 	deriving (Show,Read,Eq)
 derivePersistField "Building"
 
-data Unit =
+data UnitCard =
 	Infantry_1_3 | Infantry_2_2 | Infantry_3_1 |
 	Artillery_1_3 | Artillery_2_2 | Artillery_3_1 |
 	Cavalry_1_3 | Cavalry_2_2 | Cavalry_3_1 |
 	Aircraft_5_7 | Aircraft_6_6 | Aircraft_7_5
 	deriving (Show,Read,Eq)
-derivePersistField "Unit"
+derivePersistField "UnitCard"
+
+unitData :: UnitCard -> (Int,Int,[UnitCard])
+unitData unittype = case unittype of
+	Infantry_1_3  -> (1,3,cavalryUnits)
+	Infantry_2_2  -> (2,2,cavalryUnits)
+	Infantry_3_1  -> (3,1,cavalryUnits)
+	Artillery_1_3 -> (1,3,infantryUnits)
+	Artillery_2_2 -> (2,2,infantryUnits)
+	Artillery_3_1 -> (3,1,infantryUnits)
+	Cavalry_1_3   -> (1,3,artilleryUnits)
+	Cavalry_2_2   -> (2,2,artilleryUnits)
+	Cavalry_3_1   -> (3,1,artilleryUnits)
+	Aircraft_5_7  -> (5,7,[])
+	Aircraft_6_6  -> (6,6,[])
+	Aircraft_7_5  -> (7,5,[])
+	where
+	infantryUnits  = [ Infantry_1_3, Infantry_2_2, Infantry_3_1  ]
+	cavalryUnits   = [ Cavalry_1_3,  Cavalry_2_2,  Cavalry_3_1   ]
+	artilleryUnits = [ Artillery_1_3,Artillery_2_2,Artillery_3_1 ]
 
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | TheOracle | TheGreatWall |
@@ -98,3 +117,68 @@ data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
 	deriving (Show,Read,Eq,Ord,Enum)
 derivePersistField "TechLevel"
+
+data CultureEvent =
+	Astray | BarbarianEncampment | BankCrisis | BreadCircus | Catastrophe |
+	Colonists | Counterfeit | DayOfThePresident | DayOfTheTyrant | Deforestation |
+	Disaster | Desertion | Drought | EconomicCrisis | ExchangeIdeas | Faithless |
+	Flooding | GenerousGift | GiftFromAfar | HonorAndDuty | Ideas | Immigrants |
+	KnightTournament | LongLiveTheQueen | MassDefection | Migrants | Displaced |
+	Nationalism | Disoriented | Patriotism | PrimeTime | PrincelyGift | RevoltI | RevoltII |
+	RoamingHoarde | Sabotage | SharedKnowledge | SupplyDrop
+	deriving (Show,Read,Eq)
+derivePersistField "CultureEvent"
+
+cultureEventsLevel 1 = [
+	GiftFromAfar,GiftFromAfar,GiftFromAfar,
+	BarbarianEncampment,BarbarianEncampment,
+	BreadCircus,BreadCircus,
+	Counterfeit,Counterfeit,
+	Desertion,Desertion,
+	Disoriented,
+	DayOfTheTyrant,DayOfTheTyrant,DayOfTheTyrant,
+	Drought,Drought,
+	ExchangeIdeas,ExchangeIdeas,ExchangeIdeas,
+	HonorAndDuty,HonorAndDuty,
+	Migrants,Migrants,
+	RevoltI,
+	Sabotage,Sabotage ]
+cultureEventsLevel 2 = [
+	GenerousGift,GenerousGift,GenerousGift,
+	Catastrophe,
+	Colonists,Colonists,
+	Deforestation,Deforestation,
+	EconomicCrisis,
+	Flooding,
+	KnightTournament,KnightTournament,
+	SharedKnowledge,SharedKnowledge,SharedKnowledge,
+	Astray,
+	MassDefection,MassDefection,
+	Nationalism,Nationalism,
+	RoamingHoarde,RoamingHoarde,
+	RevoltII,
+	LongLiveTheQueen,LongLiveTheQueen ]
+cultureEventsLevel 3 = [
+	PrincelyGift,PrincelyGift,
+	BankCrisis,
+	Disaster,
+	Immigrants,Immigrants,
+	Displaced,
+	Patriotism,
+	PrimeTime,PrimeTime,
+	SupplyDrop,SupplyDrop,
+	DayOfThePresident,
+	MassDefection,
+	Ideas,Ideas ]
+
+data GreatPerson =
+	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlberEinstein | AndrewCarnegie |
+	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
+	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
+	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
+	JimHenson | JoanOfArc | KhalidIbnAlWalid | Leonidas | LorenzoDiMedici | LouisPasteur |
+	MarcoPolo | MarieCurie | MarkTwain | Michelangelo | MotherTheresa | NikolaTesla |
+	OrvilleWright | SirIsaacNewton | SunTzu | SusanBAnthony | ThomasEdison | Valmiki |
+	WilliamShakespeare | ZhengHe
+	deriving (Show,Read,Eq)
+derivePersistField "GreatPerson"

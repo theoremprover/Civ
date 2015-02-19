@@ -30,9 +30,24 @@ getHomeR = do
 			BoardTile TileArabs 4 12 True Northward ]
 			[
 				Player "Red" English Red 2 7 15 Democracy [Rationalism,NaturalReligion]
-					[TechCard TechLevelI Writing 1, TechCard TechLevelI HorsebackRiding 0, TechCard TechLevelII DemocracyTech 2],
+					[TechCard TechLevelI Writing 1, TechCard TechLevelI HorsebackRiding 0, TechCard TechLevelII DemocracyTech 2]
+					[ Artillery_1_3,Infantry_2_2,Cavalry_1_3 ]
+					[	CultureCard Sabotage False,
+						CultureCard SharedKnowledge True ]
+					[	GreatPersonCard JoanOfArc True,
+						GreatPersonCard KhalidIbnAlWalid True,
+						GreatPersonCard Leonidas False,
+						GreatPersonCard LorenzoDiMedici False ],
 				Player "Green" Russia Green 3 29 16 Despotism [UrbanDevelopment,NaturalReligion,MilitaryTradition]
 					[TechCard TechLevelI Metalworking 0, TechCard TechLevelI HorsebackRiding 0 ]
+					[ Infantry_2_2,Infantry_2_2,Artillery_1_3,Artillery_3_1,Infantry_3_1,Aircraft_7_5,Aircraft_5_7 ]
+					[	CultureCard GenerousGift False,
+						CultureCard GiftFromAfar True,
+						CultureCard HonorAndDuty False,
+						CultureCard Ideas False,
+						CultureCard Immigrants False ]
+					[	GreatPersonCard APGianni False,
+						GreatPersonCard Archimedes True ]
 				]
 			StartOfTurn 0
 
