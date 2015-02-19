@@ -60,17 +60,17 @@ defaultDisplayInfo = DisplayInfo {
 	tradeDialSize = scalex 168 1.40,
 	coinDialSize  = scalex  83 1.73,
 	boardSize     = undefined,
-	techCardCoinProp = (0.20,0.40),
+	techCardCoinProp = (0.24,0.40),
 	coinSize         = scalex  32 1.0,
 	coinDistanceProp = (1.1,0),
 	dialCoinProp     = (0.25,0.05),
 	governmentProp   = (0.02,0.43),
 	oneCultureSize   = scalex 32 1.0,
 	oneCultureDistProp   = (1.1,0),
-	fiveCultureSize  = scalex 40 1.0,
+	fiveCultureSize  = scalex 45 1.0,
 	fiveCultureDistProp  = (1.1,0),
-	cultureRowsProp      = (0.25,0.75),
-	cultureRowsDistProp  = (0,0.1)
+	cultureRowsProp      = (0.25,0.72),
+	cultureRowsDistProp  = (0,0.15)
 	}
 	where
 	scalex :: Double -> Double -> Size
@@ -171,15 +171,15 @@ coins di targetsize targetprop num = itemRow di targetsize targetprop
 	(StaticR $ StaticRoute ["Images","Dials","Coin.gif"] [])
 	("Coin"::String) (coinDistanceProp di) (coinSize di) num
 
-cultureTokens di targetsize targetprop1 num = [hamlet|
-  ^{culture5Tokens di targetsize targetprop1 (div num 5) }
-  ^{culture1Tokens di targetsize targetprop5 (mod num 5) }
+cultureTokens di targetsize targetprop5 num = [hamlet|
+  ^{culture5Tokens di targetsize targetprop5 (div num 5) }
+  ^{culture1Tokens di targetsize targetprop1 (mod num 5) }
 |]
 	where
-	targetprop5 :: Proportion
-	targetprop5 = (
-		fst targetprop1 + fst (cultureRowsDistProp di),
-		snd targetprop1 + snd (cultureRowsDistProp di) )
+	targetprop1 :: Proportion
+	targetprop1 = (
+		fst targetprop5 + fst (cultureRowsDistProp di),
+		snd targetprop5 + snd (cultureRowsDistProp di) )
 
 culture5Tokens di targetsize targetprop num = itemRow di targetsize targetprop
 	(StaticR $ StaticRoute ["Images","Dials","5Culture.gif"] [])
