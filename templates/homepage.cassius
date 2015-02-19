@@ -57,6 +57,18 @@
     min-height: #{scaleYCoor di coinSize}px
     max-height: #{scaleYCoor di coinSize}px
 
+.Culture1
+    min-width : #{scaleXCoor di oneCultureSize}px
+    max-width : #{scaleXCoor di oneCultureSize}px
+    min-height: #{scaleYCoor di oneCultureSize}px
+    max-height: #{scaleYCoor di oneCultureSize}px
+
+.Culture5
+    min-width : #{scaleXCoor di fiveCultureSize}px
+    max-width : #{scaleXCoor di fiveCultureSize}px
+    min-height: #{scaleYCoor di fiveCultureSize}px
+    max-height: #{scaleYCoor di fiveCultureSize}px
+
 .NoSpacing
     padding: 0
     margin : 0

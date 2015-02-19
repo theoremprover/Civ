@@ -40,7 +40,13 @@ data DisplayInfo = DisplayInfo {
 	coinSize :: Size,
 	coinDistanceProp :: Proportion,
 	dialCoinProp :: Proportion,
-	governmentProp :: Proportion
+	governmentProp :: Proportion,
+	oneCultureSize :: Size,
+	oneCultureDistProp :: Proportion,
+	fiveCultureSize :: Size,
+	fiveCultureDistProp :: Proportion,
+	cultureRowsProp :: Proportion,
+	cultureRowsDistProp :: Proportion
 	}
 
 defaultDisplayInfo = DisplayInfo {
@@ -55,10 +61,16 @@ defaultDisplayInfo = DisplayInfo {
 	coinDialSize  = scalex  83 1.73,
 	boardSize     = undefined,
 	techCardCoinProp = (0.20,0.40),
-	coinSize      = scalex  32 1.0,
+	coinSize         = scalex  32 1.0,
 	coinDistanceProp = (1.1,0),
-	dialCoinProp = (0.25,0.05),
-	governmentProp = (0.02,0.43)
+	dialCoinProp     = (0.25,0.05),
+	governmentProp   = (0.02,0.43),
+	oneCultureSize   = scalex 32 1.0,
+	oneCultureDistProp   = (1.1,0),
+	fiveCultureSize  = scalex 40 1.0,
+	fiveCultureDistProp  = (1.1,0),
+	cultureRowsProp      = (0.25,0.75),
+	cultureRowsDistProp  = (0,0.1)
 	}
 	where
 	scalex :: Double -> Double -> Size
@@ -108,6 +120,7 @@ dial di game playerindex = [hamlet|
   <img .CoinDial src=@{StaticR $ StaticRoute [ "Images","Dials","Coindial.gif" ] []} style=#{coindial2style di game playerindex}>
   ^{coins di (dialSize di) (dialCoinProp di) (playerFreeCoins player)}
   <img .VertCard src=@{staticRoute "Government" (playerGovernment player)} style=#{positionProp2style di (dialSize di) (governmentProp di)}>
+  ^{cultureTokens di (dialSize di) (cultureRowsProp di) (playerFreeCulture player)}
 |]
 	where
 	player :: Player
@@ -143,6 +156,40 @@ coindial2style di game playerindex = printf "position:absolute; left:%spx; top:%
 	(x,y) = positionDial (0,0) (coinDialSize di) (dialNaveProp di) (dialSize di)
 	coins = playerFreeCoins (gamePlayerSequence game !! playerindex) -- TODO: Zusätzliche Coins berechnen
 
+itemRow di (targetw,targeth) (propx,propy) staticr itemclass distanceprop itemsize num = [hamlet|
+  $forall i <- is
+    <img .#{itemclass} style=#{itemstyle i} src=@{staticr}>
+|]
+	where
+	is = [0..(num-1)] :: [Int]
+	itemstyle :: Int -> String
+	itemstyle i = printf "position:absolute; left:%spx; top:%spx;"
+		(scaleCoor di $ targetw*propx + fst distanceprop * fst itemsize * (fromIntegral i))
+		(scaleCoor di $ targeth*propy + snd distanceprop * snd itemsize * (fromIntegral i))
+
+coins di targetsize targetprop num = itemRow di targetsize targetprop
+	(StaticR $ StaticRoute ["Images","Dials","Coin.gif"] [])
+	("Coin"::String) (coinDistanceProp di) (coinSize di) num
+
+cultureTokens di targetsize targetprop1 num = [hamlet|
+  ^{culture5Tokens di targetsize targetprop1 (div num 5) }
+  ^{culture1Tokens di targetsize targetprop5 (mod num 5) }
+|]
+	where
+	targetprop5 :: Proportion
+	targetprop5 = (
+		fst targetprop1 + fst (cultureRowsDistProp di),
+		snd targetprop1 + snd (cultureRowsDistProp di) )
+
+culture5Tokens di targetsize targetprop num = itemRow di targetsize targetprop
+	(StaticR $ StaticRoute ["Images","Dials","5Culture.gif"] [])
+	("Culture5"::String) (fiveCultureDistProp di) (fiveCultureSize di) num
+
+culture1Tokens di targetsize targetprop num = itemRow di targetsize targetprop
+	(StaticR $ StaticRoute ["Images","Dials","1Culture.gif"] [])
+	("Culture1"::String) (oneCultureDistProp di) (oneCultureSize di) num
+
+{-
 coins di (targetw,targeth) (propx,propy) num = [hamlet|
   $forall i <- is
     <img .Coin style=#{coinstyle i} src=@{StaticR $ StaticRoute ["Images","Dials","Coin.gif"] []}>
@@ -153,6 +200,18 @@ coins di (targetw,targeth) (propx,propy) num = [hamlet|
 	coinstyle i = printf "position:absolute; left:%spx; top:%spx;"
 		(scaleCoor di $ targetw*propx + fst (coinDistanceProp di) * fst (coinSize di) * (fromIntegral i))
 		(scaleCoor di $ targeth*propy + snd (coinDistanceProp di) * snd (coinSize di) * (fromIntegral i))
+
+cultureTokens di (targetw,targeth) (propx,propy) num = [hamlet|
+  $forall i <- is
+    <img .Culture1 style=#{coinstyle i} src=@{StaticR $ StaticRoute ["Images","Dials","Coin.gif"] []}>
+|]
+	where
+	is = [0..(num-1)] :: [Int]
+	coinstyle :: Int -> String
+	coinstyle i = printf "position:absolute; left:%spx; top:%spx;"
+		(scaleCoor di $ targetw*propx + fst (coinDistanceProp di) * fst (coinSize di) * (fromIntegral i))
+		(scaleCoor di $ targeth*propy + snd (coinDistanceProp di) * snd (coinSize di) * (fromIntegral i))
+-}
 
 techCard di techcard = [hamlet|
   <div .Canvas .NoSpacing>
