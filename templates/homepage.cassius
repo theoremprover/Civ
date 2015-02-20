@@ -69,6 +69,24 @@
     min-height: #{scaleYCoor di fiveCultureSize}px
     max-height: #{scaleYCoor di fiveCultureSize}px
 
+.Unit
+    min-width : #{scaleXCoor di unitCardSize}px
+    max-width : #{scaleXCoor di unitCardSize}px
+    min-height: #{scaleYCoor di unitCardSize}px
+    max-height: #{scaleYCoor di unitCardSize}px
+
+.Token
+    min-width : #{scaleXCoor di tokenSize}px
+    max-width : #{scaleXCoor di tokenSize}px
+    min-height: #{scaleYCoor di tokenSize}px
+    max-height: #{scaleYCoor di tokenSize}px
+
+.StartPlayer
+    min-width : #{scaleXCoor di startPlayerSize}px
+    max-width : #{scaleXCoor di startPlayerSize}px
+    min-height: #{scaleYCoor di startPlayerSize}px
+    max-height: #{scaleYCoor di startPlayerSize}px
+
 .NoSpacing
     padding: 0
     margin : 0

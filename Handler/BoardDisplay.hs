@@ -13,12 +13,14 @@ import Text.Hamlet (HtmlUrl, hamlet)
 
 import Handler.Board
 import Handler.Board2
+import Handler.Logic
 
 import Text.Printf
 --import Text.Regex.Base
 import Text.Regex.TDFA
 import Data.Typeable
 import Data.List((!!))
+import Data.Maybe
 
 type Coor = Double
 type Size = (Coor,Coor)
@@ -26,6 +28,7 @@ type Pos = (Coor,Coor)
 type Proportion = (Double,Double)
 
 data DisplayInfo = DisplayInfo {
+	whoAmI :: PlayerIndex,
 	scaleCoor :: Coor -> String,
 	squareSize :: Size,
 	tileSize :: Size,
@@ -46,20 +49,26 @@ data DisplayInfo = DisplayInfo {
 	fiveCultureSize :: Size,
 	fiveCultureDistProp :: Proportion,
 	cultureRowsProp :: Proportion,
-	cultureRowsDistProp :: Proportion
+	cultureRowsDistProp :: Proportion,
+	unitCardSize :: Size,
+	unitCardDistProp :: Proportion,
+	tokenSize :: Size,
+	personRowLength :: Int,
+	startPlayerSize :: Size
 	}
 
 defaultDisplayInfo = DisplayInfo {
-	scaleCoor     = undefined,
-	squareSize    = scalex  93 1.00,
-	tileSize      = scalex 372 1.00,
-	vertCardSize  = scalex 122 1.54,
-	horCardSize   = scalex 187 0.65,
-	dialSize      = scalex 561 0.65,
-	dialNaveProp  = (0.754,0.355),
-	tradeDialSize = scalex 168 1.40,
-	coinDialSize  = scalex  83 1.73,
-	boardSize     = undefined,
+	whoAmI = undefined,
+	scaleCoor        = undefined,
+	squareSize       = scalex  93 1.00,
+	tileSize         = scalex 372 1.00,
+	vertCardSize     = scalex 122 1.54,
+	horCardSize      = scalex 187 0.65,
+	dialSize         = scalex 561 0.65,
+	dialNaveProp     = (0.754,0.355),
+	tradeDialSize    = scalex 168 1.40,
+	coinDialSize     = scalex  83 1.73,
+	boardSize        = undefined,
 	techCardCoinProp = (0.24,0.40),
 	coinSize         = scalex  32 1.0,
 	coinDistanceProp = (1.1,0),
@@ -67,23 +76,31 @@ defaultDisplayInfo = DisplayInfo {
 	governmentProp   = (0.02,0.43),
 	oneCultureSize   = scalex 32 1.0,
 	oneCultureDistProp   = (1.1,0),
-	fiveCultureSize  = scalex 45 1.0,
+	fiveCultureSize      = scalex 45 1.0,
 	fiveCultureDistProp  = (1.1,0),
 	cultureRowsProp      = (0.25,0.72),
-	cultureRowsDistProp  = (0,0.15)
+	cultureRowsDistProp  = (0,0.15),
+	unitCardSize     = scalex 202 1.0,
+	unitCardDistProp = (0,0.38),
+	tokenSize        = scalex 60 1.0,
+	personRowLength  = 4,
+	startPlayerSize  = scalex 187 1.0
 	}
 	where
 	scalex :: Double -> Double -> Size
 	scalex x yfactor = (x,x*yfactor)
 
 
-displayInfoFactory :: Double -> Game -> DisplayInfo
-displayInfoFactory scale game = defaultDisplayInfo {
+displayInfoFactory :: PlayerIndex -> Double -> Game -> DisplayInfo
+displayInfoFactory whoami scale game = defaultDisplayInfo {
+	whoAmI = whoami,
 	scaleCoor = \ coor -> show $ round $ coor * scale,
 	boardSize = (tilesmaxx,tilesmaxy) }
 	where
-	tilesmaxx = (fromIntegral $ Prelude.maximum (map boardTileXcoor $ gameBoardTiles game) + 4) * (fst (tileSize defaultDisplayInfo) / 4)
-	tilesmaxy = (fromIntegral $ Prelude.maximum (map boardTileYcoor $ gameBoardTiles game) + 4) * (snd (tileSize defaultDisplayInfo) / 4)
+	tilesmaxx = (fromIntegral $ Prelude.maximum (map boardTileXcoor $ gameBoardTiles game) + 4) *
+		(fst (tileSize defaultDisplayInfo) / 4)
+	tilesmaxy = (fromIntegral $ Prelude.maximum (map boardTileYcoor $ gameBoardTiles game) + 4) *
+		(snd (tileSize defaultDisplayInfo) / 4)
 
 tile2StaticR :: BoardTile -> Route App
 tile2StaticR (BoardTile tileid _ _ discovered _) = StaticR $
@@ -93,8 +110,11 @@ tile2StaticR (BoardTile tileid _ _ discovered _) = StaticR $
 		(True,False)  -> StaticRoute [ "Images","Tiles","Back.jpg" ] []
 		(True,True)   -> StaticRoute [ "Images","Tiles",toPathPiece (show tileid) ++ ".jpg" ] []
 
-staticRoute :: (Show a) => String -> a -> Route App
-staticRoute folder a = StaticR $ StaticRoute ["Images",toPathPiece folder,toPathPiece (show a) ++ ".jpg"] []
+staticRoute :: (Show a) => (String,String) -> a -> Route App
+staticRoute (folder,extension) a = StaticR $ StaticRoute [
+	"Images",
+	toPathPiece folder,
+	toPathPiece (show a) ++ "." ++ toPathPiece extension] []
 
 scaleXCoor di sizef = (scaleCoor di) $ fst (sizef di)
 scaleYCoor di sizef = (scaleCoor di) $ snd (sizef di)
@@ -115,11 +135,11 @@ board di game = [hamlet|
 
 dial di game player = [hamlet|
 <div .Dial .Canvas .NoSpacing>
-  <img .Dial src=@{staticRoute "Dials" (playerCiv player)}>
-  <img .TradeDial src=@{StaticR $ StaticRoute [ "Images","Dials","Tradedial.gif" ] []} style=#{tradedial2style di game player}>
-  <img .CoinDial src=@{StaticR $ StaticRoute [ "Images","Dials","Coindial.gif" ] []} style=#{coindial2style di game player}>
+  <img .Dial src=@{staticRoute ("Dials","jpg") (playerCiv player)}>
+  <img .TradeDial src=@{StaticR _Images_Dials_Tradedial_gif} style=#{tradedial2style di game player}>
+  <img .CoinDial src=@{StaticR _Images_Dials_Coindial_gif} style=#{coindial2style di game player}>
   ^{coins di (dialSize di) (dialCoinProp di) (playerFreeCoins player)}
-  <img .VertCard src=@{staticRoute "Government" (playerGovernment player)} style=#{positionProp2style di (dialSize di) (governmentProp di)}>
+  <img .VertCard src=@{staticRoute ("Government","jpg") (playerGovernment player)} style=#{positionProp2style di (dialSize di) (governmentProp di)}>
   ^{cultureTokens di (dialSize di) (cultureRowsProp di) (playerFreeCulture player)}
 |]
 
@@ -153,20 +173,21 @@ coindial2style di game player = printf "position:absolute; left:%spx; top:%spx; 
 	(x,y) = positionDial (0,0) (coinDialSize di) (dialNaveProp di) (dialSize di)
 	coins = playerFreeCoins player -- TODO: Zusätzliche Coins berechnen
 
-itemRow di (targetw,targeth) (propx,propy) staticr itemclass distanceprop itemsize num = [hamlet|
-  $forall i <- is
-    <img .#{itemclass} style=#{itemstyle i} src=@{staticr}>
+itemRow di (targetw,targeth) (propx,propy) staticr_rots itemclass distanceprop itemsize = [hamlet|
+  $forall (i,(staticr,rot)) <- zip indices staticr_rots
+    <img .#{itemclass} style=#{itemstyle i rot} src=@{staticr}>
 |]
 	where
-	is = [0..(num-1)] :: [Int]
-	itemstyle :: Int -> String
-	itemstyle i = printf "position:absolute; left:%spx; top:%spx;"
+	indices = [0..] :: [Int]
+	itemstyle :: Int -> Int -> String
+	itemstyle i rot = printf "position:absolute; left:%spx; top:%spx; transform: rotate(%ideg);"
 		(scaleCoor di $ targetw*propx + fst distanceprop * fst itemsize * (fromIntegral i))
 		(scaleCoor di $ targeth*propy + snd distanceprop * snd itemsize * (fromIntegral i))
+		rot
 
 coins di targetsize targetprop num = itemRow di targetsize targetprop
-	(StaticR $ StaticRoute ["Images","Dials","Coin.gif"] [])
-	("Coin"::String) (coinDistanceProp di) (coinSize di) num
+	(Prelude.replicate num (StaticR _Images_Dials_Coin_gif,0))
+	("Coin"::String) (coinDistanceProp di) (coinSize di)
 
 cultureTokens di targetsize targetprop5 num = [hamlet|
   ^{culture5Tokens di targetsize targetprop5 (div num 5) }
@@ -179,21 +200,25 @@ cultureTokens di targetsize targetprop5 num = [hamlet|
 		snd targetprop5 + snd (cultureRowsDistProp di) )
 
 culture5Tokens di targetsize targetprop num = itemRow di targetsize targetprop
-	(StaticR $ StaticRoute ["Images","Dials","5Culture.gif"] [])
-	("Culture5"::String) (fiveCultureDistProp di) (fiveCultureSize di) num
+	(Prelude.replicate num (StaticR _Images_Dials_5Culture_gif,0))
+	("Culture5"::String) (fiveCultureDistProp di) (fiveCultureSize di)
 
 culture1Tokens di targetsize targetprop num = itemRow di targetsize targetprop
-	(StaticR $ StaticRoute ["Images","Dials","1Culture.gif"] [])
-	("Culture1"::String) (oneCultureDistProp di) (oneCultureSize di) num
+	(Prelude.replicate num (StaticR _Images_Dials_1Culture_gif,0))
+	("Culture1"::String) (oneCultureDistProp di) (oneCultureSize di)
 
 techCard di techcard = [hamlet|
   <div .Canvas .NoSpacing>
-    <img .HorCard src=@{staticRoute "Tech" (techCardTech techcard)}>
+    <img .HorCard src=@{staticRoute ("Tech","jpg") (techCardTech techcard)}>
     ^{coins di (horCardSize di) (techCardCoinProp di) (techCardCoins techcard)}
 |]
 
-techTree di game player = [hamlet|
+techTree di game playerindex = [hamlet|
+<div .Canvas .NoSpacing>
   <table border=0>
+    <colgroup>
+      $forall j <- columns
+        <col width=#{(scaleCoor di) colwidth}>
     $forall (i,techcards) <- techss
       <tr>
         $forall j <- Prelude.replicate i 0
@@ -202,65 +227,118 @@ techTree di game player = [hamlet|
         $forall techcard <- techcards
           <td colspan=2>
             ^{techCard di techcard}
+  $if startplayer
+    <img .StartPlayer style="position:absolute; right:0px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
 |]
 	where
+	startplayer = gameStartPlayer game == playerindex
+	player = gamePlayerSequence game !! playerindex
+	columns :: [Int]
+	columns = [1 .. (length $ fromJust $ lookup 0 techss)]
+	colwidth :: Coor
+	colwidth = fst (horCardSize di) / 2
 	techss :: [(Int,[TechCard])]
 	techss = Prelude.map (\ (i,level) -> (i,filter ((==level).techCardTreeLevel) (playerTechTree player)))
 		[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 
 --TODO: DisplayInfo in Monade
-vertCardRow :: (Show b) => DisplayInfo -> String -> [a] -> (a -> b) -> (a -> Bool) -> (a -> Route App) -> HtmlUrl (Route App)
-vertCardRow di folder cards toshowable revealedf backsidestaticrf = [hamlet|
+vertCardRow :: (Show b) => DisplayInfo -> PlayerIndex -> String -> [a] -> (a -> b) -> (a -> Bool) -> (a -> Route App) -> HtmlUrl (Route App)
+vertCardRow di playerindex folder cards toshowable revealedf backsidestaticrf = [hamlet|
   <table>
     <tr>
       $forall card <- cards
         <td>
-          $if revealedf card
-            <img .VertCard src=@{staticRoute folder (toshowable card)}>
+          $if reveal card
+            <img .VertCard src=@{staticRoute folderext (toshowable card)}>
           $else
             <img .VertCard src=@{backsidestaticrf card}>
 |]
+	where
+	folderext = (folder,"jpg")
+	reveal card = revealedf card || (whoAmI di == playerindex)
+
+unitColumn di game playerindex = [hamlet|
+  <div .Canvas .NoSpacing>
+    ^{itemRow di zero zero staticr_rots itemclass distanceprop itemsize}
+|]
+	where
+	player = gamePlayerSequence game !! playerindex
+	units = playerUnits player
+	zero = (0.0,0.0)
+	staticr_rots = case playerindex == whoAmI di of
+		True -> zip (map (staticRoute ("Unit","jpg")) units) (map rot units)
+		False -> map (\ _ -> (StaticR _Images_Unit_Unit_back_jpg,0)) units
+	rot unit = (unitLevel unit player - 1) * (-90)
+	itemclass = "Unit"::String
+	distanceprop = unitCardDistProp di
+	itemsize = unitCardSize di
+
+itemTokens di game playerindex = [hamlet|
+  $forall staticr <- tokens
+    <img .Token style="float:left" src=@{staticr}>
+|]
+	where
+	reveal = playerindex == whoAmI di
+	tostaticr :: (Show a) => Route App -> a -> Route App
+	tostaticr conceilstaticr token = case reveal of
+		True -> staticRoute ("Resource","gif") token
+		False -> conceilstaticr
+	player = gamePlayerSequence game !! playerindex
+	resources = map (staticRoute ("Resource","gif")) $
+		sort (playerResources player)
+	huts = map (tostaticr (StaticR _Images_Resource_Hut_gif)) $
+		sort (playerHuts player)
+	villages = map (tostaticr (StaticR _Images_Resource_Village_gif)) $
+		sort (playerVillages player)
+	tokens = resources ++ villages ++ huts
 
 playerArea di game playerindex rotation = [hamlet|
 <div .NoSpacing style="transform: rotate(#{show rotation}deg)">
   <table .NoSpacing>
     <tr>
       <td valign=bottom>
-        ^{techTree di game player}
+        ^{techTree di game playerindex}
       <td>
         <table>
           <tr align=right>
             <td>
-              ^{vertCardRow di "Policy" (playerPolicies player) id alwaysTrue undefined}
+              <table>
+                <tr>
+                  <td align=left>
+                    ^{itemTokens di game playerindex}
+                  <td align=right>
+                    ^{vertCardRow di playerindex "Policy" (playerPolicies player) id alwaysTrue undefined}
           <tr>
             <td>
               ^{dial di game player}
-      <td>
-        <table>
-          <tr valign=top>
-            <td>
-              ^{vertCardRow di "GreatPerson" (take 4 (playerGreatPersons player)) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
+      <td valign=top>
+        <table style="clear: both; overflow: visible">
           <tr>
-            <td>
-              ^{vertCardRow di "GreatPerson" (drop 4 (playerGreatPersons player)) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
+            <td style="valign:top;">
+              ^{vertCardRow di playerindex "GreatPerson" (take personswidth $ playerGreatPersons player) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
           <tr>
-            <td>
-              ^{vertCardRow di "CultureCards" (take 4 (playerCultureCards player)) cultureCardEvent cultureCardRevealed culturecardback}
+            <td style="valign:top;">
+              ^{vertCardRow di playerindex "GreatPerson" (drop personswidth $ playerGreatPersons player) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
           <tr>
-            <td>
-              ^{vertCardRow di "CultureCards" (drop 4 (playerCultureCards player)) cultureCardEvent cultureCardRevealed culturecardback}
+            <td style="valign:top;">
+              ^{vertCardRow di playerindex "CultureCards" (take personswidth $ playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
+          <tr>
+            <td style="valign:top;">
+              ^{vertCardRow di playerindex "CultureCards" (drop personswidth $ playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
+      <td valign=top>
+        ^{unitColumn di game playerindex}
 |]
 	where
+	personswidth = personRowLength di
 	alwaysTrue :: Policy -> Bool
 	alwaysTrue _ = True
 	player :: Player
 	player = gamePlayerSequence game !! playerindex
 	culturecardback :: CultureCard -> Route App
-	culturecardback culturecard = StaticR $ case map ((cultureCardEvent culturecard) `elem`) (map cultureEventsLevel [1,2,3]) of
-		[True,False,False] -> StaticRoute [ "Images","CultureCards","CultureLevel1_back.jpg" ] []
-		[False,True,False] -> StaticRoute [ "Images","CultureCards","CultureLevel2_back.jpg" ] []
-		[False,False,True] -> StaticRoute [ "Images","CultureCards","CultureLevel3_back.jpg" ] []
+	culturecardback culturecard = case map ((cultureCardEvent culturecard) `elem`) (map cultureEventsLevel [1,2,3]) of
+		[True,False,False] -> StaticR _Images_CultureCards_CultureLevel1_back_jpg
+		[False,True,False] -> StaticR _Images_CultureCards_CultureLevel2_back_jpg
+		[False,False,True] -> StaticR _Images_CultureCards_CultureLevel3_back_jpg
 		l -> error $ "cultureEventsLevels not disjunct: " ++ show l
 	greatpersonback :: GreatPersonCard -> Route App
 	greatpersonback _ = StaticR _Images_GreatPerson_Back_gif
-	-- TODO: Routen statisch machen

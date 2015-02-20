@@ -25,6 +25,7 @@ library
                      Handler.Board
                      Handler.Board2
                      Handler.BoardDisplay
+                     Handler.Logic
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

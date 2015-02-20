@@ -1,18 +1,18 @@
 <h1>Civilization Game
 
-<table border=0 cellspacing=0 cellpadding=0>
+<table border=0 cellspacing=0 cellpadding=0 width=100%>
   <tr>
     <td>
     <td>
-      ^{playerArea di game 1 180}
+      ^{playerArea di game (mod ((+) (whoAmI di) 1) 2) 180}
     <td>
   <tr>
     <td>
-    <td>
+    <td align=center valign=center>
       ^{board di game}
     <td>
   <tr>
     <td>
     <td>
-      ^{playerArea di game 0 0}
+      ^{playerArea di game (whoAmI di) 0}
     <td>

@@ -30,16 +30,35 @@ data Terrain = Grass | Woods | Sea | Desert | Mountain
 	deriving (Show,Read,Eq)
 derivePersistField "Terrain"
 
-data Resource = Incense | Iron | Cloth | Wheat | Atom | Spy
-	deriving (Show,Read,Eq)
+data Resource = Incense | Iron | Cloth | Wheat
+	deriving (Show,Read,Eq,Ord)
 derivePersistField "Resource"
+
+-- TODO: Huts/Villages Ergänzen
+data Hut = IncenseHut | WheatHut | IronHut | ClothHut | ThreeCultureHut
+	deriving (Show,Read,Eq,Ord)
+derivePersistField "Hut"
+allHuts = [
+	IncenseHut,
+	WheatHut, WheatHut,
+	IronHut, IronHut, IronHut,
+	ClothHut,
+	ThreeCultureHut ]
+
+data Village = FriendlyBarbarianVillage | TeacherVillage | WealthVillage | CityStateVillage |
+	SpyVillage | AtomVillage
+	deriving (Show,Read,Eq,Ord)
+derivePersistField "Village"
+allVillages = [
+	FriendlyBarbarianVillage, TeacherVillage, WealthVillage, CityStateVillage, SpyVillage,
+	AtomVillage ]
 
 data Colour = Red | Green | Blue | Violet | Yellow
 	deriving (Show,Read,Eq)
 derivePersistField "Colour"
 
 data Phase = StartOfTurn | Trade | CityManagement | Movement | Research
-	deriving (Show,Read,Eq,Ord)
+	deriving (Show,Read,Eq,Ord,Enum,Bounded)
 derivePersistField "Phase"
 
 data Policy =
@@ -88,10 +107,14 @@ unitData unittype = case unittype of
 	Aircraft_5_7  -> (5,7,[])
 	Aircraft_6_6  -> (6,6,[])
 	Aircraft_7_5  -> (7,5,[])
-	where
-	infantryUnits  = [ Infantry_1_3, Infantry_2_2, Infantry_3_1  ]
-	cavalryUnits   = [ Cavalry_1_3,  Cavalry_2_2,  Cavalry_3_1   ]
-	artilleryUnits = [ Artillery_1_3,Artillery_2_2,Artillery_3_1 ]
+
+infantryUnits  = [ Infantry_1_3, Infantry_2_2, Infantry_3_1  ]
+cavalryUnits   = [ Cavalry_1_3,  Cavalry_2_2,  Cavalry_3_1   ]
+artilleryUnits = [ Artillery_1_3,Artillery_2_2,Artillery_3_1 ]
+
+isInfantry  = (`elem` infantryUnits)
+isCavalry   = (`elem` cavalryUnits)
+isArtillery = (`elem` artilleryUnits)
 
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | TheOracle | TheGreatWall |
@@ -129,6 +152,7 @@ data CultureEvent =
 	deriving (Show,Read,Eq)
 derivePersistField "CultureEvent"
 
+cultureEventsLevel :: Int -> [CultureEvent]
 cultureEventsLevel 1 = [
 	GiftFromAfar,GiftFromAfar,GiftFromAfar,
 	BarbarianEncampment,BarbarianEncampment,
@@ -172,7 +196,7 @@ cultureEventsLevel 3 = [
 	Ideas,Ideas ]
 
 data GreatPerson =
-	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlberEinstein | AndrewCarnegie |
+	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlbertEinstein | AndrewCarnegie |
 	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
 	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
 	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
@@ -182,3 +206,10 @@ data GreatPerson =
 	WilliamShakespeare | ZhengHe
 	deriving (Show,Read,Eq)
 derivePersistField "GreatPerson"
+
+greatArtists = [ AkiraKurosawa,FridaKahlo,JerryGarcia,MarkTwain,Valmiki,WilliamShakespeare,Michelangelo ]
+greatBuilders = [ AdaLovelace,Archimedes,FrankLloydWright,HenryFord,NikolaTesla,OrvilleWright,ThomasEdison ]
+greatGenerals = [ GeorgyZhukov,GustavAdolf,Hannibal,JoanOfArc,KhalidIbnAlWalid,SunTzu,Leonidas ]
+greatHumanitarians = [ MotherTheresa,DrMartinLutherKing,JacquesCousteau,FlorenceNightingale,JimHenson,SusanBAnthony,FranciscusOfAssisi ]
+greatMerchants = [ APGianni,AdamSmith,AndrewCarnegie,CaptainJamesCook,LorenzoDiMedici,ZhengHe,MarcoPolo ]
+greatScientists = [ AlanTuring,AlbertEinstein,CharlesDarwin,GalieoGalilei,SirIsaacNewton,MarieCurie,LouisPasteur ]
