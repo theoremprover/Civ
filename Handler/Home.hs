@@ -55,7 +55,10 @@ getHomeR = do
 						GreatPersonCard LorenzoDiMedici False ]
 					[ Incense, Wheat, Iron, Iron, Incense ]
 					[ IronHut, ClothHut ]
-					[ SpyVillage, AtomVillage ],
+					[ SpyVillage, AtomVillage ]
+					[	City 6 14 Metropolis 6 13 False,
+						City 1 13 City Nothing Nothing True
+					],
 				Player "Green" Russia Green 3 29 16 Despotism
 					[ UrbanDevelopment, NaturalReligion, MilitaryTradition]
 					[	TechCard TechLevelI Metalworking 0,
@@ -71,6 +74,7 @@ getHomeR = do
 					[ Wheat, Iron ]
 					[ WheatHut, IncenseHut ]
 					[ SpyVillage ]
+					[	City 1 2 City Nothing Nothing False ]
 				]
 			StartOfTurn
 			0
@@ -82,5 +86,5 @@ getHomeR = do
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		let
-			di = displayInfoFactory 0 1.0 game
+			di = displayInfoFactory 0 0.70 game
 		$(widgetFile "homepage")

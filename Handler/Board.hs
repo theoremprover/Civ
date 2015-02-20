@@ -58,6 +58,15 @@ Player
     resources [Resource]
 	huts [Hut]
 	villages [Village]
+    cities [City]
+
+City
+    xCoor XCoor
+    yCoor YCoor
+    type CityType
+    secondXCoor XCoor Maybe
+    secondYCoor YCoor Maybe
+    walls Bool
 
 TechCard
     treeLevel TechLevel

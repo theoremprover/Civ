@@ -213,3 +213,7 @@ greatGenerals = [ GeorgyZhukov,GustavAdolf,Hannibal,JoanOfArc,KhalidIbnAlWalid,S
 greatHumanitarians = [ MotherTheresa,DrMartinLutherKing,JacquesCousteau,FlorenceNightingale,JimHenson,SusanBAnthony,FranciscusOfAssisi ]
 greatMerchants = [ APGianni,AdamSmith,AndrewCarnegie,CaptainJamesCook,LorenzoDiMedici,ZhengHe,MarcoPolo ]
 greatScientists = [ AlanTuring,AlbertEinstein,CharlesDarwin,GalieoGalilei,SirIsaacNewton,MarieCurie,LouisPasteur ]
+
+data CityType = City | Metropolis
+	deriving (Show,Read,Eq)
+derivePersistField "CityType"

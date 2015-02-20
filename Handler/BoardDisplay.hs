@@ -119,6 +119,7 @@ staticRoute (folder,extension) a = StaticR $ StaticRoute [
 scaleXCoor di sizef = (scaleCoor di) $ fst (sizef di)
 scaleYCoor di sizef = (scaleCoor di) $ snd (sizef di)
 
+--TODO: Mit Table/rowspan/colspan einfacher?
 board di game = [hamlet|
 <div .Board .Canvas .NoSpacing>
   $forall boardtile <- gameBoardTiles game
@@ -228,7 +229,7 @@ techTree di game playerindex = [hamlet|
           <td colspan=2>
             ^{techCard di techcard}
   $if startplayer
-    <img .StartPlayer style="position:absolute; right:0px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
+    <img .StartPlayer style="position:absolute; right:5px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
 |]
 	where
 	startplayer = gameStartPlayer game == playerindex
