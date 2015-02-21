@@ -5,10 +5,20 @@ module Handler.Board2 where
 import Import
 
 import Database.Persist.TH
+import Data.Ix as Ix
+import qualified Data.List
+import qualified Prelude
 
-data Orientation = Northward | Southward | Eastward | Westward
-	deriving (Show,Read,Eq)
+data Orientation = Northward | Eastward | Southward | Westward
+	deriving (Show,Read,Eq,Ord,Ix.Ix,Bounded)
 derivePersistField "Orientation"
+
+addOrientation :: Orientation -> Orientation -> Orientation
+addOrientation ori1 ori2 = range oris Data.List.!!
+	mod (Ix.index oris ori1 + Ix.index oris ori2) (Data.List.length $ range oris)
+	where
+	oris :: (Orientation,Orientation)
+	oris = (Prelude.minBound,Prelude.maxBound)
 
 data TileID =
 	Tile1 | Tile2 | Tile3 | Tile4 | Tile5 | Tile6 | Tile7 | Tile8 | Tile9 | Tile10 |
@@ -214,6 +224,6 @@ greatHumanitarians = [ MotherTheresa,DrMartinLutherKing,JacquesCousteau,Florence
 greatMerchants = [ APGianni,AdamSmith,AndrewCarnegie,CaptainJamesCook,LorenzoDiMedici,ZhengHe,MarcoPolo ]
 greatScientists = [ AlanTuring,AlbertEinstein,CharlesDarwin,GalieoGalilei,SirIsaacNewton,MarieCurie,LouisPasteur ]
 
-data CityType = City | Metropolis
+data CityType = PlainCity | Metropolis
 	deriving (Show,Read,Eq)
 derivePersistField "CityType"

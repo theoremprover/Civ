@@ -56,8 +56,8 @@ getHomeR = do
 					[ Incense, Wheat, Iron, Iron, Incense ]
 					[ IronHut, ClothHut ]
 					[ SpyVillage, AtomVillage ]
-					[	City 6 14 Metropolis 6 13 False,
-						City 1 13 City Nothing Nothing True
+					[	City 6 14 True Metropolis Westward False,
+						City 1 13 False PlainCity Northward True
 					],
 				Player "Green" Russia Green 3 29 16 Despotism
 					[ UrbanDevelopment, NaturalReligion, MilitaryTradition]
@@ -74,7 +74,7 @@ getHomeR = do
 					[ Wheat, Iron ]
 					[ WheatHut, IncenseHut ]
 					[ SpyVillage ]
-					[	City 1 2 City Nothing Nothing False ]
+					[	City 1 2 True PlainCity Northward False ]
 				]
 			StartOfTurn
 			0
@@ -86,5 +86,7 @@ getHomeR = do
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		let
-			di = displayInfoFactory 0 0.70 game
+			di = displayInfoFactory 0 0.70 game [Northward,Southward]
+			numplayers = length (gamePlayerSequence game)
+			playeroffset o = mod ((+) (whoAmI di) o) numplayers
 		$(widgetFile "homepage")

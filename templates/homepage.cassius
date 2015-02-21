@@ -14,12 +14,31 @@
     min-height: #{scaleYCoor di tileSize}px
     max-height: #{scaleYCoor di tileSize}px
     position  : absolute
+    z-index   : 0
 
 .Square
     min-width : #{scaleXCoor di squareSize}px
     max-width : #{scaleXCoor di squareSize}px
     min-height: #{scaleYCoor di squareSize}px
     max-height: #{scaleYCoor di squareSize}px
+    z-index   : 1
+    transform-origin: #{scaleXCoor di rotateOrigin}px #{scaleYCoor di rotateOrigin}px
+
+.Building
+    min-width : #{scaleXCoor di buildingSize}px
+    max-width : #{scaleXCoor di buildingSize}px
+    min-height: #{scaleYCoor di buildingSize}px
+    max-height: #{scaleYCoor di buildingSize}px
+    z-index   : 1
+    transform-origin: #{scaleXCoor di rotateOrigin}px #{scaleYCoor di rotateOrigin}px
+
+.Metropolis
+    min-width : #{scaleXCoor di metropolisSize}px
+    max-width : #{scaleXCoor di metropolisSize}px
+    min-height: #{scaleYCoor di metropolisSize}px
+    max-height: #{scaleYCoor di metropolisSize}px
+    z-index   : 1
+    transform-origin: #{scaleXCoor di rotateOrigin}px #{scaleYCoor di rotateOrigin}px
 
 .HorCard
     min-width : #{scaleXCoor di horCardSize}px
@@ -38,6 +57,7 @@
     max-width : #{scaleXCoor di dialSize}px
     min-height: #{scaleYCoor di dialSize}px
     max-height: #{scaleYCoor di dialSize}px
+    z-index   : 0
 
 .TradeDial
     min-width : #{scaleXCoor di tradeDialSize}px

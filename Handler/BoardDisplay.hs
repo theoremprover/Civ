@@ -20,6 +20,7 @@ import Text.Printf
 import Text.Regex.TDFA
 import Data.Typeable
 import Data.List((!!))
+import Data.Char
 import Data.Maybe
 
 type Coor = Double
@@ -54,7 +55,11 @@ data DisplayInfo = DisplayInfo {
 	unitCardDistProp :: Proportion,
 	tokenSize :: Size,
 	personRowLength :: Int,
-	startPlayerSize :: Size
+	startPlayerSize :: Size,
+	playerOrientation :: [Orientation],
+	buildingSize :: Size,
+	metropolisSize :: Size,
+	rotateOrigin :: Pos
 	}
 
 defaultDisplayInfo = DisplayInfo {
@@ -84,18 +89,29 @@ defaultDisplayInfo = DisplayInfo {
 	unitCardDistProp = (0,0.38),
 	tokenSize        = scalex 60 1.0,
 	personRowLength  = 4,
-	startPlayerSize  = scalex 187 1.0
+	startPlayerSize  = scalex 187 1.0,
+	playerOrientation = undefined,
+	buildingSize     = scalex 83 1.0,
+	metropolisSize   = undefined,
+	rotateOrigin     = undefined
 	}
 	where
 	scalex :: Double -> Double -> Size
 	scalex x yfactor = (x,x*yfactor)
 
 
-displayInfoFactory :: PlayerIndex -> Double -> Game -> DisplayInfo
-displayInfoFactory whoami scale game = defaultDisplayInfo {
+displayInfoFactory :: PlayerIndex -> Double -> Game -> [Orientation] -> DisplayInfo
+displayInfoFactory whoami scale game orientations = defaultDisplayInfo {
 	whoAmI = whoami,
 	scaleCoor = \ coor -> show $ round $ coor * scale,
-	boardSize = (tilesmaxx,tilesmaxy) }
+	boardSize = (tilesmaxx,tilesmaxy),
+	playerOrientation = orientations,
+	metropolisSize =
+		(fst (buildingSize defaultDisplayInfo) + fst (squareSize defaultDisplayInfo),
+		snd (buildingSize defaultDisplayInfo)),
+	rotateOrigin = (fst (buildingSize defaultDisplayInfo) / 2,snd (buildingSize defaultDisplayInfo) / 2)
+
+	}
 	where
 	tilesmaxx = (fromIntegral $ Prelude.maximum (map boardTileXcoor $ gameBoardTiles game) + 4) *
 		(fst (tileSize defaultDisplayInfo) / 4)
@@ -119,20 +135,54 @@ staticRoute (folder,extension) a = StaticR $ StaticRoute [
 scaleXCoor di sizef = (scaleCoor di) $ fst (sizef di)
 scaleYCoor di sizef = (scaleCoor di) $ snd (sizef di)
 
+centreCoor (x0,y0) (w0,h0) (itemw,itemh) = ( x0+(w0-itemw)/2, y0+(h0-itemh)/2 )
+
+divCoor (x,y) f = (x/f,y/f)
+
+colourString :: Colour -> String
+colourString colour = map Data.Char.toLower (show colour)
+
 --TODO: Mit Table/rowspan/colspan einfacher?
 board di game = [hamlet|
 <div .Board .Canvas .NoSpacing>
   $forall boardtile <- gameBoardTiles game
-    <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{tile2style boardtile}>
+    <img src=@{tile2StaticR boardtile} .#{tile2class boardtile} style=#{to_style (squarecoor (boardTileXcoor boardtile) (boardTileYcoor boardtile))}>
+  $forall (playerindex,player) <- players
+    $forall city <- playerCities player
+      <img .#{city_to_class city playerindex} style=#{to_style (buildingcoor (cityXCoor city) (cityYCoor city))} src=@{tocitysrc player city}>
 |]
 	where
+	players = zip [0..] (gamePlayerSequence game)
+
+	tocitysrc :: Player -> City -> Route App
+	tocitysrc player city = StaticR $ StaticRoute ["Images","Squares",toPathPiece name] [] where
+		name = printf "%s%i_%s.jpg"
+			(case cityType city of
+				PlainCity -> "City" :: String
+				Metropolis -> "Metropolis" :: String)
+			(basicCityDefence city)
+			(colourString $ playerColour player) :: String
+
 	tile2class :: BoardTile -> String
 	tile2class boardtile = "Tile " ++ show (boardTileOrientation boardtile)
 
-	tile2style :: BoardTile -> String
-	tile2style boardtile = printf "position:absolute; left:%spx; top:%spx;"
-		((scaleCoor di) (fromIntegral (boardTileXcoor boardtile) * (fst (tileSize di) / 4)))
-		((scaleCoor di) (fromIntegral (boardTileYcoor boardtile) * (snd (tileSize di) / 4)))
+	buildingcoor x y = centreCoor (squarecoor x y) (divCoor (tileSize di) 4) (buildingSize di)
+
+	squarecoor x y = (
+		fromIntegral x * (fst (tileSize di) / 4),
+		fromIntegral y * (snd (tileSize di) / 4) )
+
+	to_style :: Pos -> String
+	to_style (x,y) = printf "position:absolute; left:%spx; top:%spx"
+		((scaleCoor di) x) ((scaleCoor di) y)
+
+	city_to_class city playerindex =
+		case cityType city of
+			PlainCity -> "Building" :: String
+			Metropolis -> "Metropolis" :: String
+		++
+		(" " :: String) ++
+		show (addOrientation (playerOrientation di !! playerindex) (cityOrientation city))
 
 dial di game player = [hamlet|
 <div .Dial .Canvas .NoSpacing>
@@ -293,13 +343,13 @@ itemTokens di game playerindex = [hamlet|
 		sort (playerVillages player)
 	tokens = resources ++ villages ++ huts
 
-playerArea di game playerindex rotation = [hamlet|
-<div .NoSpacing style="transform: rotate(#{show rotation}deg)">
+playerArea di game playerindex = [hamlet|
+<div .NoSpacing .#{playerclass}>
   <table .NoSpacing>
     <tr>
       <td valign=bottom>
         ^{techTree di game playerindex}
-      <td>
+      <td style="max-width:#{(scaleCoor di) (fst (dialSize di))}px">
         <table>
           <tr align=right>
             <td>
@@ -329,7 +379,8 @@ playerArea di game playerindex rotation = [hamlet|
       <td valign=top>
         ^{unitColumn di game playerindex}
 |]
-	where
+	where 
+	playerclass = show $ playerOrientation di !! playerindex 
 	personswidth = personRowLength di
 	alwaysTrue :: Policy -> Bool
 	alwaysTrue _ = True

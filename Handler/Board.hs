@@ -63,9 +63,9 @@ Player
 City
     xCoor XCoor
     yCoor YCoor
+    capital Bool
     type CityType
-    secondXCoor XCoor Maybe
-    secondYCoor YCoor Maybe
+    orientation Orientation
     walls Bool
 
 TechCard

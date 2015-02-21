@@ -4,7 +4,7 @@
   <tr>
     <td>
     <td>
-      ^{playerArea di game (mod ((+) (whoAmI di) 1) 2) 180}
+      ^{playerArea di game (playeroffset 1)}
     <td>
   <tr>
     <td>
@@ -14,5 +14,5 @@
   <tr>
     <td>
     <td>
-      ^{playerArea di game (whoAmI di) 0}
+      ^{playerArea di game (playeroffset 0)}
     <td>
