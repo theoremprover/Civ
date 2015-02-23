@@ -361,12 +361,15 @@ playerArea di game playerindex = [hamlet|
             <td valign=bottom>
               ^{techTree di game playerindex}
             <td>
-              <table style="max-width:#{(scaleCoor di) (fst (dialSize di))}px">
+              <table>
                 <tr>
-                  <td align=left>
-                    ^{itemTokens di game playerindex}
-                  <td align=right>
-                    ^{vertCardRow di playerindex "Policy" (playerPolicies player) id alwaysTrue undefined}
+                  <td>
+                    <table style="max-width:#{(scaleCoor di) (fst (dialSize di))}px">
+                      <tr>
+                        <td align=left>
+                          ^{itemTokens di game playerindex}
+                        <td align=right>
+                          ^{vertCardRow di playerindex "Policy" (playerPolicies player) id alwaysTrue undefined}
                 <tr>
                   <td>
                     ^{dial di game player}
