@@ -347,35 +347,29 @@ playerArea di game playerindex = [hamlet|
 <div .NoSpacing .#{playerclass}>
   <table .NoSpacing>
     <tr>
-      <td valign=bottom>
-        ^{techTree di game playerindex}
-      <td style="max-width:#{(scaleCoor di) (fst (dialSize di))}px">
-        <table>
-          <tr align=right>
-            <td>
+      <td>
+        <table .NoSpacing>
+          <tr>
+            <td colspan=2 align=center>
               <table>
+                <tr>
+                  <td style="valign:top; align:right">
+                    ^{vertCardRow di playerindex "GreatPerson" (playerGreatPersons player) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
+                  <td style="valign:top; align:left">
+                    ^{vertCardRow di playerindex "CultureCards" (playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
+          <tr>
+            <td valign=bottom>
+              ^{techTree di game playerindex}
+            <td>
+              <table style="max-width:#{(scaleCoor di) (fst (dialSize di))}px">
                 <tr>
                   <td align=left>
                     ^{itemTokens di game playerindex}
                   <td align=right>
                     ^{vertCardRow di playerindex "Policy" (playerPolicies player) id alwaysTrue undefined}
-          <tr>
-            <td>
-              ^{dial di game player}
-      <td valign=top>
-        <table style="clear: both; overflow: visible">
-          <tr>
-            <td style="valign:top;">
-              ^{vertCardRow di playerindex "GreatPerson" (take personswidth $ playerGreatPersons player) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
-          <tr>
-            <td style="valign:top;">
-              ^{vertCardRow di playerindex "GreatPerson" (drop personswidth $ playerGreatPersons player) greatPersonCardPerson greatPersonCardRevealed greatpersonback}
-          <tr>
-            <td style="valign:top;">
-              ^{vertCardRow di playerindex "CultureCards" (take personswidth $ playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
-          <tr>
-            <td style="valign:top;">
-              ^{vertCardRow di playerindex "CultureCards" (drop personswidth $ playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
+                <tr>
+                  <td>
+                    ^{dial di game player}
       <td valign=top>
         ^{unitColumn di game playerindex}
 |]
