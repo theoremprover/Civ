@@ -227,3 +227,7 @@ greatScientists = [ AlanTuring,AlbertEinstein,CharlesDarwin,GalieoGalilei,SirIsa
 data CityType = PlainCity | Metropolis
 	deriving (Show,Read,Eq)
 derivePersistField "CityType"
+
+data PieceType = Wagon | Flag
+	deriving (Show,Read,Eq,Ord)
+derivePersistField "PieceType"

@@ -56,8 +56,8 @@ getHomeR = do
 					[ Incense, Wheat, Iron, Iron, Incense ]
 					[ IronHut, ClothHut ]
 					[ SpyVillage, AtomVillage ]
-					[	City 6 14 True Metropolis Westward False,
-						City 1 13 False PlainCity Northward True
+					[	City 6 14 True Metropolis Westward False [],
+						City 1 13 False PlainCity Northward True []
 					],
 				Player "Green" Russia Green 3 29 16 Despotism
 					[ UrbanDevelopment, NaturalReligion, MilitaryTradition]
@@ -74,11 +74,19 @@ getHomeR = do
 					[ Wheat, Iron ]
 					[ WheatHut, IncenseHut ]
 					[ SpyVillage ]
-					[	City 1 2 True PlainCity Northward False ]
+					[	City 1 2 True PlainCity Northward False [] ]
 				]
 			StartOfTurn
 			0
 			0
+			[	Piece Flag 0 4 13,
+				Piece Flag 0 5 13,
+				Piece Flag 0 5 13,
+				Piece Flag 0 5 13,
+				Piece Wagon 0 1 13,
+				Piece Flag 1 0 13,
+				Piece Wagon 1 0 14,
+				Piece Wagon 1 0 14 ]
 
 		insert $ Games "testgame" gid
 		get404 gid

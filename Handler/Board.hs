@@ -34,6 +34,14 @@ Game
     phase Phase
     playerTurn PlayerIndex
 	startPlayer PlayerIndex
+    pieces [Piece]
+
+Piece
+    xcoor XCoor
+    ycoor YCoor
+    owner PlayerIndex
+    type PieceType
+    deriving Ord
 
 BoardTile
     tileID TileID
@@ -67,6 +75,7 @@ City
     type CityType
     orientation Orientation
     walls Bool
+    assignedSettlers [Piece]
 
 TechCard
     treeLevel TechLevel

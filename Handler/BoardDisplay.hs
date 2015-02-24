@@ -59,7 +59,8 @@ data DisplayInfo = DisplayInfo {
 	playerOrientation :: [Orientation],
 	buildingSize :: Size,
 	metropolisSize :: Size,
-	rotateOrigin :: Pos
+	rotateOrigin :: Pos,
+	pieceSquareProps :: [[Proportion]]
 	}
 
 defaultDisplayInfo = DisplayInfo {
@@ -93,7 +94,16 @@ defaultDisplayInfo = DisplayInfo {
 	playerOrientation = undefined,
 	buildingSize     = scalex 83 1.0,
 	metropolisSize   = undefined,
-	rotateOrigin     = undefined
+	rotateOrigin     = undefined,
+	flagSize  = scalex 45 1.27,
+	wagonSize = scalex 65 0.86,
+	pieceSquareProps = [
+		[],
+		[(0.5,0.5)],
+		[(0.33,0.5),(0.67,0.5)],
+		[(0.5,0.33),(0.33,0.67),(0.67,0.67)],
+		[(0.33,0.33),(0.67,0.33),(0.33,0.67),(0.67,0.67)] ]
+		-- TODO: Für mehr Figuren erweitern
 	}
 	where
 	scalex :: Double -> Double -> Size
@@ -150,9 +160,21 @@ board di game = [hamlet|
   $forall (playerindex,player) <- players
     $forall city <- playerCities player
       <img .#{city_to_class city playerindex} style=#{to_style (buildingcoor (cityXCoor city) (cityYCoor city))} src=@{tocitysrc player city}>
+  $forall ((xcoor,ycoor):_,pieces) <- coorpieces
+    $forall (props,piece) <- zip (pieceSquareProps di) pieces
+      <img .#{show (pieceType piece)} style=#{piece2style piece} src=@{piecestaticr piece}>
+    
 |]
 	where
 	players = zip [0..] (gamePlayerSequence game)
+
+	piece2style piece = 
+
+	piecestaticr piece = StaticR $ StaticRoute ["Images","Pieces",toPathPiece name] [] where
+		name = show $ pieceType piece ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence !! pieceOwner) ++ ".gif"
+
+	coorpieces = groupBy (\ p1 p2 -> fst p1 == pst p2) $ sort $
+		map (\ piece -> ((pieceXcoor piece,pieceYcoor piece),piece)) (gamePieces game)
 
 	tocitysrc :: Player -> City -> Route App
 	tocitysrc player city = StaticR $ StaticRoute ["Images","Squares",toPathPiece name] [] where

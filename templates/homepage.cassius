@@ -107,6 +107,18 @@
     min-height: #{scaleYCoor di startPlayerSize}px
     max-height: #{scaleYCoor di startPlayerSize}px
 
+.Flag
+    min-width : #{scaleXCoor di flagSize}px
+    max-width : #{scaleXCoor di flagSize}px
+    min-height: #{scaleYCoor di flagSize}px
+    max-height: #{scaleYCoor di flagSize}px
+
+.Wagon
+    min-width : #{scaleXCoor di wagonSize}px
+    max-width : #{scaleXCoor di wagonSize}px
+    min-height: #{scaleYCoor di wagonSize}px
+    max-height: #{scaleYCoor di wagonSize}px
+
 .NoSpacing
     padding: 0
     margin : 0
