@@ -13,6 +13,7 @@ module Handler.Board where
 import Database.Persist.TH
 
 import Import
+import qualified Prelude
 
 import Handler.Board2
 
@@ -42,6 +43,7 @@ Piece
     owner PlayerIndex
     type PieceType
     deriving Ord
+    deriving Eq
 
 BoardTile
     tileID TileID

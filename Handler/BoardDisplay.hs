@@ -60,6 +60,8 @@ data DisplayInfo = DisplayInfo {
 	buildingSize :: Size,
 	metropolisSize :: Size,
 	rotateOrigin :: Pos,
+	flagSize :: Size,
+	wagonSize :: Size,
 	pieceSquareProps :: [[Proportion]]
 	}
 
@@ -149,6 +151,9 @@ centreCoor (x0,y0) (w0,h0) (itemw,itemh) = ( x0+(w0-itemw)/2, y0+(h0-itemh)/2 )
 
 divCoor (x,y) f = (x/f,y/f)
 
+centre2lefttopCoor (x0,y0) (squarew,squareh) (propx,propy) (itemw,itemh) =
+	( x0+squarew*propx-itemw/2, y0+squareh*propy-itemh/2 )
+
 colourString :: Colour -> String
 colourString colour = map Data.Char.toLower (show colour)
 
@@ -160,21 +165,25 @@ board di game = [hamlet|
   $forall (playerindex,player) <- players
     $forall city <- playerCities player
       <img .#{city_to_class city playerindex} style=#{to_style (buildingcoor (cityXCoor city) (cityYCoor city))} src=@{tocitysrc player city}>
-  $forall ((xcoor,ycoor):_,pieces) <- coorpieces
-    $forall (props,piece) <- zip (pieceSquareProps di) pieces
-      <img .#{show (pieceType piece)} style=#{piece2style piece} src=@{piecestaticr piece}>
-    
+  $forall pieces <- coorpieces
+    $forall (prop,piece) <- zip ((!!) (pieceSquareProps di) (length pieces)) pieces
+      <img .#{show (pieceType piece)} style=#{piece2style piece prop} src=@{piecestaticr piece}>
 |]
 	where
 	players = zip [0..] (gamePlayerSequence game)
 
-	piece2style piece = 
+	piece2style piece prop = to_style $ centre2lefttopCoor (squarecoor (pieceXcoor piece) (pieceYcoor piece)) (squareSize di) prop $
+		case pieceType piece of
+			Wagon -> wagonSize di
+			Flag -> flagSize di
 
 	piecestaticr piece = StaticR $ StaticRoute ["Images","Pieces",toPathPiece name] [] where
-		name = show $ pieceType piece ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence !! pieceOwner) ++ ".gif"
+		name = (show (pieceType piece) ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence game !! pieceOwner piece) ++ ".gif") :: String
 
-	coorpieces = groupBy (\ p1 p2 -> fst p1 == pst p2) $ sort $
-		map (\ piece -> ((pieceXcoor piece,pieceYcoor piece),piece)) (gamePieces game)
+	--ordpieces p1 p2 = case pieceXcoor p1 == pieceXcoor p2 of
+	--	True -> compare (pieceXcoor p1) ()
+
+	coorpieces = groupBy (\ p1 p2 -> (pieceXcoor p1 == pieceXcoor p2) && (pieceYcoor p1 == pieceYcoor p2)) $ sort (gamePieces game)
 
 	tocitysrc :: Player -> City -> Route App
 	tocitysrc player city = StaticR $ StaticRoute ["Images","Squares",toPathPiece name] [] where

@@ -79,14 +79,14 @@ getHomeR = do
 			StartOfTurn
 			0
 			0
-			[	Piece Flag 0 4 13,
-				Piece Flag 0 5 13,
-				Piece Flag 0 5 13,
-				Piece Flag 0 5 13,
-				Piece Wagon 0 1 13,
-				Piece Flag 1 0 13,
-				Piece Wagon 1 0 14,
-				Piece Wagon 1 0 14 ]
+			[	Piece 4 13 0 Flag,
+				Piece 5 13 0 Flag,
+				Piece 5 13 0 Flag,
+				Piece 5 13 0 Flag,
+				Piece 1 13 0 Wagon,
+				Piece 0 13 1 Flag,
+				Piece 0 14 1 Wagon,
+				Piece 0 14 1 Wagon ]
 
 		insert $ Games "testgame" gid
 		get404 gid
