@@ -15,5 +15,20 @@ basicCityDefence city =
 	+
 	(if cityCapital city then 6 else 0)
 
+-- TODO: Implementieren
 unitLevel :: UnitCard -> Player -> Int
 unitLevel unit player = 2
+
+type PieceLimit = Int
+
+-- TODO: Implementieren
+pieceLimit :: Player -> PieceLimit
+pieceLimit player = 4
+
+-- TODO: Implementieren
+availableWagons :: Player -> Int
+availableWagons player = 2
+
+-- TODO: Implementieren
+availableFlags :: Player -> Int
+availableFlags player = 6

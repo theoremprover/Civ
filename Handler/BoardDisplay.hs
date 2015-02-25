@@ -62,7 +62,7 @@ data DisplayInfo = DisplayInfo {
 	rotateOrigin :: Pos,
 	flagSize :: Size,
 	wagonSize :: Size,
-	pieceSquareProps :: [[Proportion]]
+	pieceSquareProps :: [[(Int,Proportion)]]
 	}
 
 defaultDisplayInfo = DisplayInfo {
@@ -99,13 +99,17 @@ defaultDisplayInfo = DisplayInfo {
 	rotateOrigin     = undefined,
 	flagSize  = scalex 45 1.27,
 	wagonSize = scalex 65 0.86,
-	pieceSquareProps = [
+	pieceSquareProps = map (zip [10..]) [
 		[],
 		[(0.5,0.5)],
-		[(0.33,0.5),(0.67,0.5)],
-		[(0.5,0.33),(0.33,0.67),(0.67,0.67)],
-		[(0.33,0.33),(0.67,0.33),(0.33,0.67),(0.67,0.67)] ]
-		-- TODO: Für mehr Figuren erweitern
+		[(0.33,0.33),(0.67,0.67)],
+		[(0.5,0.33),(0.30,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.3,0.67),(0.7,0.67)] ],
+		[(0.3,0.33),(0.7,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)] ],
+		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)] ],
+		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
+		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
+		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
 	}
 	where
 	scalex :: Double -> Double -> Size
@@ -157,6 +161,8 @@ centre2lefttopCoor (x0,y0) (squarew,squareh) (propx,propy) (itemw,itemh) =
 colourString :: Colour -> String
 colourString colour = map Data.Char.toLower (show colour)
 
+piecesOnSquare :: 
+
 --TODO: Mit Table/rowspan/colspan einfacher?
 board di game = [hamlet|
 <div .Board .Canvas .NoSpacing>
@@ -166,7 +172,7 @@ board di game = [hamlet|
     $forall city <- playerCities player
       <img .#{city_to_class city playerindex} style=#{to_style (buildingcoor (cityXCoor city) (cityYCoor city))} src=@{tocitysrc player city}>
   $forall pieces <- coorpieces
-    $forall (prop,piece) <- zip ((!!) (pieceSquareProps di) (length pieces)) pieces
+    $forall ((zindex,prop),piece) <- zip ((!!) (pieceSquareProps di) (length pieces)) pieces
       <img .#{show (pieceType piece)} style=#{piece2style piece prop} src=@{piecestaticr piece}>
 |]
 	where
@@ -179,9 +185,6 @@ board di game = [hamlet|
 
 	piecestaticr piece = StaticR $ StaticRoute ["Images","Pieces",toPathPiece name] [] where
 		name = (show (pieceType piece) ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence game !! pieceOwner piece) ++ ".gif") :: String
-
-	--ordpieces p1 p2 = case pieceXcoor p1 == pieceXcoor p2 of
-	--	True -> compare (pieceXcoor p1) ()
 
 	coorpieces = groupBy (\ p1 p2 -> (pieceXcoor p1 == pieceXcoor p2) && (pieceYcoor p1 == pieceYcoor p2)) $ sort (gamePieces game)
 
@@ -310,7 +313,8 @@ techTree di game playerindex = [hamlet|
           <td colspan=2>
             ^{techCard di techcard}
   $if startplayer
-    <img .StartPlayer style="position:absolute; right:5px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
+    <img .StartPlayer style="position:absolute; left:5px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
+  ^{}
 |]
 	where
 	startplayer = gameStartPlayer game == playerindex

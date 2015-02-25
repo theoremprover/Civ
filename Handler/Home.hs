@@ -80,10 +80,15 @@ getHomeR = do
 			0
 			0
 			[	Piece 4 13 0 Flag,
+				Piece 5 12 0 Flag,
+				Piece 5 12 0 Flag,
+				Piece 5 12 0 Flag,
 				Piece 5 13 0 Flag,
 				Piece 5 13 0 Flag,
 				Piece 5 13 0 Flag,
-				Piece 1 13 0 Wagon,
+				Piece 5 13 0 Flag,
+				Piece 5 11 0 Flag,
+				Piece 1 11 0 Wagon,
 				Piece 0 13 1 Flag,
 				Piece 0 14 1 Wagon,
 				Piece 0 14 1 Wagon ]
