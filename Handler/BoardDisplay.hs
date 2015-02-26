@@ -297,9 +297,8 @@ techCard di techcard = [hamlet|
 |]
 
 techTree di game playerindex = [hamlet|
-<div>
   <div .Canvas .NoSpacing>
-    <table border=0 valign=bottom>
+    <table border=0>
       <colgroup>
         $forall j <- columns
           <col width=#{(scaleCoor di) colwidth}>
@@ -318,20 +317,20 @@ techTree di game playerindex = [hamlet|
       <tr>
         <td valign=top>
           <table .NoSpacing>
-            $forall i <- availablewagons
+            $forall i <- unusedwagons
               <tr>
                 <td>
                   <img .Wagon src=@{piecestaticr game (Piece 0 0 playerindex Wagon)}>
         <td valign=top>
           <table .NoSpacing>
-            $forall i <- availableflags
+            $forall i <- unusedflags
               <tr>
                 <td>
                   <img .Flag src=@{piecestaticr game (Piece 0 0 playerindex Flag)}>
 |]
 	where
-	availablewagons = [1..(availableWagons player)]
-	availableflags = [1..(availableFlags player)]
+	unusedwagons = [1..(playerUnused Wagon game playerindex)]
+	unusedflags = [1..(playerUnused Flag game playerindex)]
 	startplayer = gameStartPlayer game == playerindex
 	player = gamePlayerSequence game !! playerindex
 	columns :: [Int]
@@ -342,7 +341,7 @@ techTree di game playerindex = [hamlet|
 	techss = Prelude.map (\ (i,level) -> (i,filter ((==level).techCardTreeLevel) (playerTechTree player)))
 		[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 
---TODO: DisplayInfo in Monade
+--TODO: DisplayInfo/Game in Monade
 vertCardRow :: (Show b) => DisplayInfo -> PlayerIndex -> String -> [a] -> (a -> b) -> (a -> Bool) -> (a -> Route App) -> HtmlUrl (Route App)
 vertCardRow di playerindex folder cards toshowable revealedf backsidestaticrf = [hamlet|
   <table>
@@ -408,7 +407,7 @@ playerArea di game playerindex = [hamlet|
                   <td style="valign:top; align:left">
                     ^{vertCardRow di playerindex "CultureCards" (playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
           <tr>
-            <td>
+            <td valign=bottom .Canvas .NoSpacing>
               ^{techTree di game playerindex}
             <td>
               <table>

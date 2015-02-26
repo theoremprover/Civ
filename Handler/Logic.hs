@@ -22,19 +22,22 @@ unitLevel unit player = 2
 type PieceLimit = Int
 
 -- TODO: Implementieren
-pieceLimit :: Player -> PieceLimit
-pieceLimit player = 4
+pieceStackingLimit :: Player -> PieceLimit
+pieceStackingLimit player = 4
 
 playersPieces :: Game -> PlayerIndex -> [Piece]
 playersPieces game playerindex = filter ((==playerindex).pieceOwner) $ gamePieces game
 
-wagonsInPlay :: Game -> PlayerIndex -> Int
-wagonsInPlay game playerindex = length $ playersPieces game playerindex
+piecesInPlay :: PieceType -> Game -> PlayerIndex -> Int
+piecesInPlay piecetype game playerindex = length $ filter ((==piecetype).pieceType) $ playersPieces game playerindex
+
+playerUnused :: PieceType -> Game -> PlayerIndex -> Int
+playerUnused piecetype game playerindex = playerMax piecetype game playerindex - piecesInPlay piecetype game playerindex
 
 -- TODO: Implementieren
-availableWagons :: Player -> Int
-availableWagons player = 2
+playerMax :: PieceType -> Game -> PlayerIndex -> Int
+playerMax piecetype game playerindex = case piecetype of
+	Wagon -> 2
+	Flag  -> 6
 
--- TODO: Implementieren
-availableFlags :: Player -> Int
-availableFlags player = 6
+
