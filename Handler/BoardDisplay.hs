@@ -104,12 +104,12 @@ defaultDisplayInfo = DisplayInfo {
 		[(0.5,0.5)],
 		[(0.33,0.33),(0.67,0.67)],
 		[(0.5,0.33),(0.30,0.67),(0.7,0.67)],
-		[(0.3,0.33),(0.7,0.33),(0.3,0.67),(0.7,0.67)] ],
-		[(0.3,0.33),(0.7,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)] ],
-		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)] ],
-		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
-		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
-		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ]
+		[(0.3,0.33),(0.7,0.33),(0.3,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
 	}
 	where
 	scalex :: Double -> Double -> Size
@@ -161,8 +161,6 @@ centre2lefttopCoor (x0,y0) (squarew,squareh) (propx,propy) (itemw,itemh) =
 colourString :: Colour -> String
 colourString colour = map Data.Char.toLower (show colour)
 
-piecesOnSquare :: 
-
 --TODO: Mit Table/rowspan/colspan einfacher?
 board di game = [hamlet|
 <div .Board .Canvas .NoSpacing>
@@ -173,7 +171,7 @@ board di game = [hamlet|
       <img .#{city_to_class city playerindex} style=#{to_style (buildingcoor (cityXCoor city) (cityYCoor city))} src=@{tocitysrc player city}>
   $forall pieces <- coorpieces
     $forall ((zindex,prop),piece) <- zip ((!!) (pieceSquareProps di) (length pieces)) pieces
-      <img .#{show (pieceType piece)} style=#{piece2style piece prop} src=@{piecestaticr piece}>
+      <img .#{show (pieceType piece)} style=#{piece2style piece prop} src=@{piecestaticr game piece}>
 |]
 	where
 	players = zip [0..] (gamePlayerSequence game)
@@ -182,9 +180,6 @@ board di game = [hamlet|
 		case pieceType piece of
 			Wagon -> wagonSize di
 			Flag -> flagSize di
-
-	piecestaticr piece = StaticR $ StaticRoute ["Images","Pieces",toPathPiece name] [] where
-		name = (show (pieceType piece) ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence game !! pieceOwner piece) ++ ".gif") :: String
 
 	coorpieces = groupBy (\ p1 p2 -> (pieceXcoor p1 == pieceXcoor p2) && (pieceYcoor p1 == pieceYcoor p2)) $ sort (gamePieces game)
 
@@ -217,6 +212,9 @@ board di game = [hamlet|
 		++
 		(" " :: String) ++
 		show (addOrientation (playerOrientation di !! playerindex) (cityOrientation city))
+
+piecestaticr game piece = StaticR $ StaticRoute ["Images","Pieces",toPathPiece name] [] where
+	name = (show (pieceType piece) ++ "_" ++ (colourString $ playerColour $ gamePlayerSequence game !! pieceOwner piece) ++ ".gif") :: String
 
 dial di game player = [hamlet|
 <div .Dial .Canvas .NoSpacing>
@@ -300,7 +298,7 @@ techCard di techcard = [hamlet|
 
 techTree di game playerindex = [hamlet|
 <div .Canvas .NoSpacing>
-  <table border=0>
+  <table border=0 valign=bottom>
     <colgroup>
       $forall j <- columns
         <col width=#{(scaleCoor di) colwidth}>
@@ -314,9 +312,25 @@ techTree di game playerindex = [hamlet|
             ^{techCard di techcard}
   $if startplayer
     <img .StartPlayer style="position:absolute; left:5px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
-  ^{}
+  <div style="position:absolute; right:5px; top:0px;">
+    <table .NoSpacing>
+      <tr>
+        <td valign=top>
+          <table .NoSpacing>
+            $forall i <- availablewagons
+              <tr>
+                <td>
+                  <img .Wagon src=@{piecestaticr game (Piece 0 0 playerindex Wagon)}>
+        <td valign=top>
+          <table .NoSpacing>
+            $forall i <- availableflags
+              <tr>
+                <td>
+                  <img .Flag src=@{piecestaticr game (Piece 0 0 playerindex Flag)}>
 |]
 	where
+	availablewagons = [1..(availableWagons player)]
+	availableflags = [1..(availableFlags player)]
 	startplayer = gameStartPlayer game == playerindex
 	player = gamePlayerSequence game !! playerindex
 	columns :: [Int]
@@ -393,7 +407,7 @@ playerArea di game playerindex = [hamlet|
                   <td style="valign:top; align:left">
                     ^{vertCardRow di playerindex "CultureCards" (playerCultureCards player) cultureCardEvent cultureCardRevealed culturecardback}
           <tr>
-            <td valign=bottom>
+            <td>
               ^{techTree di game playerindex}
             <td>
               <table>

@@ -25,6 +25,12 @@ type PieceLimit = Int
 pieceLimit :: Player -> PieceLimit
 pieceLimit player = 4
 
+playersPieces :: Game -> PlayerIndex -> [Piece]
+playersPieces game playerindex = filter ((==playerindex).pieceOwner) $ gamePieces game
+
+wagonsInPlay :: Game -> PlayerIndex -> Int
+wagonsInPlay game playerindex = length $ playersPieces game playerindex
+
 -- TODO: Implementieren
 availableWagons :: Player -> Int
 availableWagons player = 2
