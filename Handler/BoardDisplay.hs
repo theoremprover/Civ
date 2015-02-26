@@ -297,19 +297,20 @@ techCard di techcard = [hamlet|
 |]
 
 techTree di game playerindex = [hamlet|
-<div .Canvas .NoSpacing>
-  <table border=0 valign=bottom>
-    <colgroup>
-      $forall j <- columns
-        <col width=#{(scaleCoor di) colwidth}>
-    $forall (i,techcards) <- techss
-      <tr>
-        $forall j <- Prelude.replicate i 0
-          <td>
-            <br>
-        $forall techcard <- techcards
-          <td colspan=2>
-            ^{techCard di techcard}
+<div>
+  <div .Canvas .NoSpacing>
+    <table border=0 valign=bottom>
+      <colgroup>
+        $forall j <- columns
+          <col width=#{(scaleCoor di) colwidth}>
+      $forall (i,techcards) <- techss
+        <tr>
+          $forall j <- Prelude.replicate i 0
+            <td>
+              <br>
+          $forall techcard <- techcards
+            <td colspan=2>
+              ^{techCard di techcard}
   $if startplayer
     <img .StartPlayer style="position:absolute; left:5px; top:0px;" src=@{StaticR _Images_StartPlayer_gif}>
   <div style="position:absolute; right:5px; top:0px;">
