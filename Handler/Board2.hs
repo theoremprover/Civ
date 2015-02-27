@@ -103,6 +103,9 @@ data UnitCard =
 	deriving (Show,Read,Eq)
 derivePersistField "UnitCard"
 
+data MilBranch = Artillery | Infantry | Cavalry | Aircraft
+	deriving (Show,Eq)
+
 unitData :: UnitCard -> (Int,Int,[UnitCard])
 unitData unittype = case unittype of
 	Infantry_1_3  -> (1,3,cavalryUnits)

@@ -19,14 +19,12 @@ basicCityDefence city =
 unitLevel :: UnitCard -> Player -> Int
 unitLevel unit player = 2
 
-type PieceLimit = Int
-
 -- TODO: Implementieren
-pieceStackingLimit :: Player -> PieceLimit
+pieceStackingLimit :: Player -> Int
 pieceStackingLimit player = 4
 
 playersPieces :: Game -> PlayerIndex -> [Piece]
-playersPieces game playerindex = filter ((==playerindex).pieceOwner) $ gamePieces game
+playersPieces game playerindex = filter ((==playerindex) . pieceOwner) $ gamePieces game
 
 piecesInPlay :: PieceType -> Game -> PlayerIndex -> Int
 piecesInPlay piecetype game playerindex = length $ filter ((==piecetype).pieceType) $ playersPieces game playerindex
@@ -37,7 +35,27 @@ playerUnused piecetype game playerindex = playerMax piecetype game playerindex -
 -- TODO: Implementieren
 playerMax :: PieceType -> Game -> PlayerIndex -> Int
 playerMax piecetype game playerindex = case piecetype of
-	Wagon -> 2
-	Flag  -> 6
+	Wagon -> getAbility game playerindex AvailableWagons
+	Flag  -> getAbility game playerindex AvailableFlags
 
+data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch
+	deriving (Show,Eq)
 
+type Ability a = PlayerIndex -> GameM a
+
+infix 0 :=
+
+setMin :: AbilityID 
+
+ability Logistics = do
+	setMin (UnitLevel Infantry) (Just 2)
+	setMin (UnitLevel Cavalry) 2
+	setMin (UnitLevel Artillery) 2
+
+ability MetalCasting = setMin (UnitLevel Artillery) 3
+
+ability Flight = setMin (UnitLevel Airforce) 
+
+ability Russia = [
+	AvailableFlags := (+1) ]
+ability _ = []

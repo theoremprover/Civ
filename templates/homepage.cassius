@@ -29,7 +29,7 @@
     max-width : #{scaleXCoor di buildingSize}px
     min-height: #{scaleYCoor di buildingSize}px
     max-height: #{scaleYCoor di buildingSize}px
-    z-index   : 1
+    z-index   : 2
     transform-origin: #{scaleXCoor di rotateOrigin}px #{scaleYCoor di rotateOrigin}px
 
 .Metropolis
@@ -37,7 +37,7 @@
     max-width : #{scaleXCoor di metropolisSize}px
     min-height: #{scaleYCoor di metropolisSize}px
     max-height: #{scaleYCoor di metropolisSize}px
-    z-index   : 1
+    z-index   : 2
     transform-origin: #{scaleXCoor di rotateOrigin}px #{scaleYCoor di rotateOrigin}px
 
 .HorCard
