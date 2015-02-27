@@ -35,9 +35,10 @@ playerUnused piecetype game playerindex = playerMax piecetype game playerindex -
 -- TODO: Implementieren
 playerMax :: PieceType -> Game -> PlayerIndex -> Int
 playerMax piecetype game playerindex = case piecetype of
-	Wagon -> getAbility game playerindex AvailableWagons
-	Flag  -> getAbility game playerindex AvailableFlags
+	Wagon -> 2 --getAbility game playerindex AvailableWagons
+	Flag  -> 6 --getAbility game playerindex AvailableFlags
 
+{-
 data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch
 	deriving (Show,Eq)
 
@@ -59,3 +60,4 @@ ability Flight = setMin (UnitLevel Airforce)
 ability Russia = [
 	AvailableFlags := (+1) ]
 ability _ = []
+-}
