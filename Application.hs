@@ -66,9 +66,9 @@ makeFoundation appSettings = do
         logFunc = messageLoggerSource tempFoundation appLogger
 
     -- Create the database connection pool
-    pool <- flip runLoggingT logFunc $ createSqlitePool
-        (sqlDatabase $ appDatabaseConf appSettings)
-        (sqlPoolSize $ appDatabaseConf appSettings)
+    pool <- flip runLoggingT logFunc $ createMySQLPool
+        (myConnInfo $ appDatabaseConf appSettings)
+        (myPoolSize $ appDatabaseConf appSettings)
 
     -- Perform database migration using our application's logging settings.
     runLoggingT (runSqlPool (runMigration Import.migrateAll) pool) logFunc
