@@ -5,7 +5,7 @@ module Handler.Home where
 
 import Import
 
-import Database.Persist.Sqlite
+--import Database.Persist.Sqlite
 
 import Handler.Board
 import Handler.Board2
