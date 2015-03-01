@@ -14,13 +14,14 @@ module Application
 
 import Control.Monad.Logger                 (liftLoc, runLoggingT)
 import Database.Persist.MySQL              (createMySQLPool, myConnInfo,
-                                             myPoolSize, runSqlPool)
+                                             myPoolSize, runSqlPool, runMigrationSilent)
 import Import
 import Language.Haskell.TH.Syntax           (qLocation)
-import Network.Wai.Handler.Warp             (Settings, defaultSettings,
+import Network.Wai.Handler.Warp              (Settings, defaultSettings,
                                              defaultShouldDisplayException,
                                              runSettings, setHost,
                                              setOnException, setPort, getPort)
+import Network.Wai.Handler.CGI              (run)
 import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              IPAddrSource (..),
                                              OutputFormat (..), destination,
@@ -71,8 +72,8 @@ makeFoundation appSettings = do
         (myPoolSize $ appDatabaseConf appSettings)
 
     -- Perform database migration using our application's logging settings.
-    runLoggingT (runSqlPool (runMigration Import.migrateAll) pool) logFunc
-    runLoggingT (runSqlPool (runMigration Handler.Board.migrateAll) pool) logFunc
+    runLoggingT (runSqlPool (runMigrationSilent Import.migrateAll) pool) logFunc
+    runLoggingT (runSqlPool (runMigrationSilent Handler.Board.migrateAll) pool) logFunc
 
     -- Return the foundation
     return $ mkFoundation pool
@@ -145,7 +146,7 @@ appMain = do
     app <- makeApplication foundation
 
     -- Run the application with Warp
-    runSettings (warpSettings foundation) app
+    run app
 
 
 --------------------------------------------------------------
