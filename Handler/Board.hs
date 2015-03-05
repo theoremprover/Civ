@@ -66,8 +66,8 @@ Player
     cultureCards [CultureCard]
     greatPersons [GreatPersonCard]
     resources [Resource]
-	huts [Hut]
-	villages [Village]
+    huts [Hut]
+    villages [Village]
     cities [City]
 
 City
