@@ -7,13 +7,13 @@ import Handler.Board2
 
 basicCityDefence :: City -> Int
 basicCityDefence city =
-	(if cityWalls city then 4 else 0)
-	+
 	(case cityType city of
 		PlainCity -> 6
 		Metropolis -> 8)
 	+
 	(if cityCapital city then 6 else 0)
+	+
+	(if cityWalls city then 4 else 0)
 
 -- TODO: Implementieren
 unitLevel :: UnitCard -> Player -> Int
@@ -38,26 +38,43 @@ playerMax piecetype game playerindex = case piecetype of
 	Wagon -> 2 --getAbility game playerindex AvailableWagons
 	Flag  -> 6 --getAbility game playerindex AvailableFlags
 
+-----------
+
+data Ability = 
+
+infix 0 +=
+
+class Ability a b where
+	(+=) :: a -> (AbilityValue b -> AbilityValue b) -> Ability a b
+
+instance Ability MilBranch UnitLevel where
+	milbranch += f = 
+
+class HasAbilities x where
+	get :: x -> [ Ability ]
+
+instance HasAbilities Tech where
+	get Logistics = [
+		Infantry  := Enabled UnitLevelII,
+		Cavalry   := Enabled UnitLevelII,
+		Artillery := Enabled UnitLevelII ]
+	get Bureaucracy = [
+		Coins += (+1) ]
+	get x = error $ "get not implemented for " ++ show x
+
+instance HasAbilities Civ where
+	get Russia = [ Available Flag += (+1) ]
 {-
-data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch
+data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch | Coins
 	deriving (Show,Eq)
-
-type Ability a = PlayerIndex -> GameM a
-
-infix 0 :=
-
-setMin :: AbilityID 
-
-ability Logistics = do
-	setMin (UnitLevel Infantry) (Just 2)
-	setMin (UnitLevel Cavalry) 2
-	setMin (UnitLevel Artillery) 2
-
-ability MetalCasting = setMin (UnitLevel Artillery) 3
-
-ability Flight = setMin (UnitLevel Airforce) 
-
-ability Russia = [
-	AvailableFlags := (+1) ]
-ability _ = []
 -}
+
+data (Ord a) => AbilityValue a = Disabled | Change (a -> a) | Enabled a
+	deriving (Show,Eq,Ord)
+
+-- IM CODE (GameM):
+--	numWagons ::  <- get playerid 
+--	unitLevelArtillery <- get playerid :: Artillery
+
+ability MetalCasting = [ UnitLevel Artillery := Enabled 3 ]
+

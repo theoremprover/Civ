@@ -149,6 +149,10 @@ data Government =
 	deriving (Show,Read,Eq)
 derivePersistField "Government"
 
+data UnitLevel = UnitLevelI | UnitLevelII | UnitLevelIII | UnitLevelStar
+	deriving (Show,Read,Eq,Ord,Enum)
+--derivePersistField "UnitLevel"
+
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
 	deriving (Show,Read,Eq,Ord,Enum)
