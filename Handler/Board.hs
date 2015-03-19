@@ -25,17 +25,14 @@ type Damage = Int
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
-Games
-    name String
-    gameId GameId
-
 Game
-    boardTiles [BoardTile]
-    playerSequence [Player]
+	name String
+    boardTiles [BoardTileId]
+    playerSequence [PlayerId]
     phase Phase
     playerTurn PlayerIndex
 	startPlayer PlayerIndex
-    pieces [Piece]
+    pieces [PieceId]
 
 Piece
     xcoor XCoor
@@ -61,14 +58,14 @@ Player
     dialTrade Int
     government Government
     policies [Policy]
-    techTree [TechCard]
-    units [UnitCard]
-    cultureCards [CultureCard]
-    greatPersons [GreatPersonCard]
+    techTree [TechCardId]
+    units [UnitCardId]
+    cultureCards [CultureCardId]
+    greatPersons [GreatPersonCardId]
     resources [Resource]
     huts [Hut]
     villages [Village]
-    cities [City]
+    cities [CityId]
 
 City
     xCoor XCoor
@@ -77,7 +74,7 @@ City
     type CityType
     orientation Orientation
     walls Bool
-    assignedSettlers [Piece]
+    assignedSettlers [PieceId]
 
 TechCard
     treeLevel TechLevel

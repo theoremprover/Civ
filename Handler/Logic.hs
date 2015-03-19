@@ -40,6 +40,7 @@ playerMax piecetype game playerindex = case piecetype of
 
 -----------
 
+{-
 data Ability = 
 
 infix 0 +=
@@ -53,6 +54,41 @@ instance Ability MilBranch UnitLevel where
 class HasAbilities x where
 	get :: x -> [ Ability ]
 
+
+instance HasAbilities Civ where
+	get Russia = [ Available Flag += (+1) ]
+
+data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch | Coins
+	deriving (Show,Eq)
+
+-- IM CODE (GameM):
+--	numWagons ::  <- get playerid 
+--	unitLevelArtillery <- get playerid :: Artillery
+
+ability MetalCasting = [ UnitLevel Artillery := Enabled 3 ]
+
+-}
+
+data Action = Action {
+	actionPhase :: Phase,
+	actionDescription :: String,
+	actionAction :: GameM () }
+
+data Value a = Disabled | Change (a -> a) | Enabled a
+
+data Values a where =
+	UnitLevelV :: MilBranch  
+
+instance HasAbilities Player where
+	ability player = [
+		StartOfTurn != "Change Government" (startOfTurn player),
+		Trade != "Obtain Trade" (obtainTrade player),
+		CityManagement != "City Management" (cityManagement player),
+		Movement != "Movement" (movement player),
+		Research != "Research" (research player) ]
+
+
+
 instance HasAbilities Tech where
 	get Logistics = [
 		Infantry  := Enabled UnitLevelII,
@@ -61,20 +97,3 @@ instance HasAbilities Tech where
 	get Bureaucracy = [
 		Coins += (+1) ]
 	get x = error $ "get not implemented for " ++ show x
-
-instance HasAbilities Civ where
-	get Russia = [ Available Flag += (+1) ]
-{-
-data AbilityID = StackingLimit | AvailableWagons | AvailableFlags | UnitLevel MilBranch | Coins
-	deriving (Show,Eq)
--}
-
-data (Ord a) => AbilityValue a = Disabled | Change (a -> a) | Enabled a
-	deriving (Show,Eq,Ord)
-
--- IM CODE (GameM):
---	numWagons ::  <- get playerid 
---	unitLevelArtillery <- get playerid :: Artillery
-
-ability MetalCasting = [ UnitLevel Artillery := Enabled 3 ]
-
