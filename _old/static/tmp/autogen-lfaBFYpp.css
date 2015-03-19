@@ -1,0 +1,15 @@
+.ScaleFactor {
+    transform: scale(0.25);
+}
+.Northward {
+    transform: rotate(0deg);
+}
+.Eastward {
+    transform: rotate(90deg);
+}
+.Southward {
+    transform: rotate(180deg);
+}
+.Westward {
+    transform: rotate(270deg);
+}

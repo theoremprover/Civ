@@ -1,0 +1,58 @@
+h1;
+	text-align: center;
+
+h2#hident2 {
+    color: #990;
+}
+.squaresize {
+    max-width : 100px    ;
+    max-height: 100px    ;
+}
+.tilesize {
+    max-width : 400px;
+    max-height: 400px;
+}
+.coorx0 {
+    position: absolute;
+    left: 0px;
+}
+.coorx4 {
+    position: absolute;
+    left: 400px;
+}
+.coorx8 {
+    position: absolute;
+    left: 800px;
+}
+.coorx12 {
+    position: absolute;
+    left: 1200px;
+}
+.coory0 {
+    position: absolute;
+    top: 0px;
+}
+.coory4 {
+    position: absolute;
+    top: 400px;
+}
+.coory8 {
+    position: absolute;
+    top: 800px;
+}
+.coory12 {
+    position: absolute;
+    top: 1200px;
+}
+.northward {
+    transform: rotate(0deg);
+}
+.eastward {
+    transform: rotate(90deg);
+}
+.southward {
+    transform: rotate(180deg);
+}
+.westward {
+    transform: rotate(270deg);
+}

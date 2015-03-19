@@ -1,0 +1,48 @@
+h1;
+	text-align: center;
+
+h2#hident2 {
+    color: #990;
+}
+.squaresize {
+    max-width: 50px    ;
+}
+.tilesize {
+    max-width: 200px    ;
+}
+.coorx0 {
+    transform: translateX(0px);
+}
+.coorx4 {
+    transform: translateX(200px);
+}
+.coorx8 {
+    transform: translateX(400px);
+}
+.coorx12 {
+    transform: translateX(600px);
+}
+.coory0 {
+    transform: translateY(0px);
+}
+.coory4 {
+    transform: translateY(200px);
+}
+.coory8 {
+    transform: translateY(400px);
+}
+.coory12 {
+    transform: translateY(600px);
+}
+.northward {
+    transform: rotate(0deg);
+}
+.eastward {
+    transform: rotate(90deg);
+}
+.southward {
+    transform: rotate(180deg);
+}
+.westward {
+    transform: rotate(270deg);
+}

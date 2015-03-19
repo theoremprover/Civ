@@ -1,0 +1,118 @@
+.Canvas {
+    position  : relative;
+    padding   : 0;
+}
+.Board {
+    min-width : 521px;
+    max-width : 521px;
+    min-height: 1042px;
+    max-height: 1042px;
+}
+.Tile {
+    min-width : 260px;
+    max-width : 260px;
+    min-height: 260px;
+    max-height: 260px;
+    position  : absolute;
+    z-index   : 0;
+}
+.Square {
+    min-width : 65px;
+    max-width : 65px;
+    min-height: 65px;
+    max-height: 65px;
+    z-index   : 1;
+}
+.Metropolis {
+    min-width : 119px;
+    max-width : 119px;
+    min-height: 54px;
+    max-height: 54px;
+    z-index   : 1;
+}
+.HorCard {
+    min-width : 131px;
+    max-width : 131px;
+    min-height: 85px;
+    max-height: 85px;
+}
+.VertCard {
+    min-width : 85px;
+    max-width : 85px;
+    min-height: 132px;
+    max-height: 132px;
+}
+.Dial {
+    min-width : 393px;
+    max-width : 393px;
+    min-height: 255px;
+    max-height: 255px;
+}
+.TradeDial {
+    min-width : 118px;
+    max-width : 118px;
+    min-height: 165px;
+    max-height: 165px;
+}
+.CoinDial {
+    min-width : 58px;
+    max-width : 58px;
+    min-height: 101px;
+    max-height: 101px;
+}
+.Coin {
+    min-width : 22px;
+    max-width : 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+.Culture1 {
+    min-width : 22px;
+    max-width : 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+.Culture5 {
+    min-width : 31px;
+    max-width : 31px;
+    min-height: 31px;
+    max-height: 31px;
+}
+.Unit {
+    min-width : 141px;
+    max-width : 141px;
+    min-height: 141px;
+    max-height: 141px;
+}
+.Token {
+    min-width : 42px;
+    max-width : 42px;
+    min-height: 42px;
+    max-height: 42px;
+}
+.StartPlayer {
+    min-width : 131px;
+    max-width : 131px;
+    min-height: 131px;
+    max-height: 131px;
+}
+.NoSpacing {
+    padding: 0;
+    margin : 0;
+    border : 0;
+}
+img {
+    display: block;
+}
+.Northward {
+    transform: rotate(0deg);
+}
+.Eastward {
+    transform: rotate(90deg);
+}
+.Southward {
+    transform: rotate(180deg);
+}
+.Westward {
+    transform: rotate(270deg);
+}

@@ -1,0 +1,79 @@
+.Canvas {
+    position  : relative;
+    padding   : 0;
+}
+.Board {
+    min-width : 558px;
+    max-width : 558px;
+    min-height: 1116px;
+    max-height: 1116px;
+}
+.Tile {
+    min-width : 279px;
+    max-width : 279px;
+    min-height: 279px;
+    max-height: 279px;
+    position  : absolute;
+}
+.Square {
+    min-width : 70px;
+    max-width : 70px;
+    min-height: 70px;
+    max-height: 70px;
+}
+.HorCard {
+    min-width : 140px;
+    max-width : 140px;
+    min-height: 91px;
+    max-height: 91px;
+}
+.VertCard {
+    min-width : 92px;
+    max-width : 92px;
+    min-height: 141px;
+    max-height: 141px;
+}
+.Dial {
+    min-width : 421px;
+    max-width : 421px;
+    min-height: 273px;
+    max-height: 273px;
+}
+.TradeDial {
+    min-width : 126px;
+    max-width : 126px;
+    min-height: 176px;
+    max-height: 176px;
+}
+.CoinDial {
+    min-width : 62px;
+    max-width : 62px;
+    min-height: 108px;
+    max-height: 108px;
+}
+.Coin {
+    min-width : 24px;
+    max-width : 24px;
+    min-height: 24px;
+    max-height: 24px;
+}
+.NoSpacing {
+    padding: 0;
+    margin : 0;
+    border : 0;
+}
+img {
+    display: block;
+}
+.Northward {
+    transform: rotate(0deg);
+}
+.Eastward {
+    transform: rotate(90deg);
+}
+.Southward {
+    transform: rotate(180deg);
+}
+.Westward {
+    transform: rotate(270deg);
+}

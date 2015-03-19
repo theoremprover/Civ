@@ -1,0 +1,30 @@
+.Tile {
+    min-width : 186px;
+    max-width : 186px;
+    min-height: 186px;
+    min-height: 186px;
+}
+.Square {
+    min-width : 46px;
+    max-width : 46px;
+    min-height: 46px;
+    min-height: 46px;
+}
+.Card {
+    min-width : 93px;
+    max-width : 93px;
+    min-height: 60px;
+    min-height: 60px;
+}
+.Northward {
+    transform: rotate(0deg);
+}
+.Eastward {
+    transform: rotate(90deg);
+}
+.Southward {
+    transform: rotate(180deg);
+}
+.Westward {
+    transform: rotate(270deg);
+}

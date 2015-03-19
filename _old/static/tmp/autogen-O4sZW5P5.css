@@ -1,0 +1,24 @@
+.squaresize {
+    max-width : 80px    ;
+    max-height: 80px    ;
+    min-width : 80px    ;
+    min-height: 80px    ;
+}
+.tilesize {
+    max-width : 320px;
+    max-height: 320px;
+    min-width : 320px;
+    min-height: 320px;
+}
+.northward {
+    transform: rotate(0deg);
+}
+.eastward {
+    transform: rotate(90deg);
+}
+.southward {
+    transform: rotate(180deg);
+}
+.westward {
+    transform: rotate(270deg);
+}
