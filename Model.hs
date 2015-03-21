@@ -7,6 +7,17 @@ import Model2
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
+User
+    ident Text
+    password Text Maybe
+    UniqueUser ident
+    deriving Typeable
+Email
+    email Text
+    user UserId Maybe
+    verkey Text Maybe
+    UniqueEmail email
+
 Game
 	name String
     boardTiles [BoardTileId]
