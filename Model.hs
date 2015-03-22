@@ -1,4 +1,7 @@
-module Model where
+module Model (
+	module Model,
+	module Model2
+	) where
 
 import ClassyPrelude.Yesod
 import Database.Persist.Quasi

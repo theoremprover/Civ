@@ -1,8 +1,8 @@
 module Handler.Home where
 
 import Import
-import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
-                              withSmallInput)
+
+import Model
 
 -- This is a handler function for the GET request method on the HomeR
 -- resource pattern. All of your resource patterns are defined in
@@ -13,28 +13,19 @@ import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
 -- inclined, or create a single monolithic file.
 getHomeR :: Handler Html
 getHomeR = do
-    (formWidget, formEnctype) <- generateFormPost sampleForm
-    let submission = Nothing :: Maybe (FileInfo, Text)
-        handlerName = "getHomeR" :: Text
-    defaultLayout $ do
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
-
-postHomeR :: Handler Html
-postHomeR = do
-    ((result, formWidget), formEnctype) <- runFormPost sampleForm
-    let handlerName = "postHomeR" :: Text
-        submission = case result of
-            FormSuccess res -> Just res
-            _ -> Nothing
-
-    defaultLayout $ do
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
-
-sampleForm :: Form (FileInfo, Text)
-sampleForm = renderBootstrap3 BootstrapBasicForm $ (,)
-    <$> fileAFormReq "Choose a file"
-    <*> areq textField (withSmallInput "What's on the file?") Nothing
+	when False $ do
+		runDB $ do
+			tileids <- mapM insert [
+				BoardTile TileSpanish 0 0 True Southward,
+				BoardTile Tile1 4 0 True Eastward,
+				BoardTile Tile2 0 4 True Southward,
+				BoardTile Tile3 4 4 False Southward,
+				BoardTile Tile4 0 8 False Southward,
+				BoardTile Tile5 4 8 True Northward,
+				BoardTile Tile6 0 12 True Westward,
+				BoardTile TileArabs 4 12 True Northward ]
+			insert $ Game "testgame" tileids
+		return ()
+	defaultLayout $ do
+		setTitle "Civilization Boardgame"
+		$(widgetFile "homepage")
