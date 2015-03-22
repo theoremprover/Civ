@@ -26,6 +26,7 @@ getHomeR = do
 				BoardTile TileArabs 4 12 True Northward ]
 			insert $ Game "testgame" tileids
 		return ()
+	
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		$(widgetFile "homepage")
