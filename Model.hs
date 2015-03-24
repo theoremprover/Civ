@@ -24,6 +24,7 @@ Email
 Game
 	name String
     boardTiles [BoardTileId]
+	UniqueGameName name
 
 BoardTile
     tileID TileID

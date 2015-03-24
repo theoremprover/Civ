@@ -23,6 +23,8 @@ library
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
+                     AppData
+                     GameMonad
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
