@@ -2,7 +2,6 @@ module GameMonad where
 
 import Import
 
-import Handler.Database
 import Model
 
 createNewGame name = do
@@ -16,8 +15,3 @@ createNewGame name = do
 		BoardTile Tile6 0 12 True Westward,
 		BoardTile TileArabs 4 12 True Northward ]
 	insert $ Game name tileids
-
-loadAppData gameid = do
-	
-	runDB $ do
-	
