@@ -32,5 +32,4 @@ BoardTile
     ycoor YCoor
     discovered Bool
     orientation Orientation
-
 |]

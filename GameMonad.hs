@@ -15,3 +15,9 @@ createNewGame name = do
 		BoardTile Tile6 0 12 True Westward,
 		BoardTile TileArabs 4 12 True Northward ]
 	insert $ Game name tileids
+
+withLoadedAppData gameid = do
+	Game appDataGameName tileids <- runDB $ get404 gameid
+	appDataTiles <- runDB $ selectList [ <-. tileids] []
+
+getTiles = 

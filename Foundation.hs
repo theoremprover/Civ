@@ -1,4 +1,7 @@
-module Foundation where
+module Foundation (
+	module Foundation,
+	module AppData
+	) where
 
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
@@ -21,7 +24,7 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appData        :: AppData
+    , appData        :: Maybe AppData
     }
 
 instance HasHttpManager App where
