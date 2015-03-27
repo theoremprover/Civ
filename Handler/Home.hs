@@ -17,6 +17,7 @@ getHomeR = do
 
 		defaultLayout $ do
 			setTitle "Civilization Boardgame"
-			app <- handlerToWidget getYesod
-			let tiles = show $ map boardTileTileID (appDataTiles $ appData app)
+--			app <- handlerToWidget getYesod
+--			let tiles = show $ map boardTileTileID (appDataTiles $ appData app)
+			tiles <- getAppDataSel appDataTiles
 			$(widgetFile "homepage")
