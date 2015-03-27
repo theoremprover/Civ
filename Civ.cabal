@@ -83,7 +83,6 @@ library
                  , unordered-containers
                  , containers
                  , vector
-                 , mtl
                  , time
 
 executable         Civ
