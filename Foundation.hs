@@ -12,6 +12,8 @@ import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 
+import Control.Concurrent.MVar
+
 import AppData
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -24,7 +26,7 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appData        :: Maybe AppData
+    , appDataMVar    :: MVar AppData
     }
 
 instance HasHttpManager App where

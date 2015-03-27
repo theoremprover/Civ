@@ -5,7 +5,6 @@ module GameMonad where
 import Import
 
 import Model
-import Control.Monad.Reader(local)
 
 createNewGame name = do
 	tileids <- mapM insert [
@@ -19,14 +18,17 @@ createNewGame name = do
 		BoardTile TileArabs 4 12 True Northward ]
 	insert $ Game name tileids
 
-withLoadedAppData gameid contm = do
-	Game gamename tileids <- runDB $ get404 gameid
-	tiles <- runDB $ selectList [ BoardTileId <-. tileids ] []
-	local ( \ _ -> AppData {
-		appDataGameName = gamename,
-		appDataTiles = tiles
-		} ) contm
+getAppDataMVar = do
+	app <- getYesod
+	return $ appDataMVar app
+
+loadAppData gameid = do
+	Game appDataGameName tileids <- runDB $ get404 gameid
+	appDataTiles <- fmap (fmap entityVal) $ runDB $ selectList [ BoardTileId <-. tileids ] []
+	appdatamvar <- getAppDataMVar
+	liftIO $ putMVar appdatamvar $ AppData {..}
 
 getAppDataSel selector = do
-	app <- getYesod
-	return $ selector app
+	appdatamvar <- handlerToWidget getAppDataMVar
+	appdata <- liftIO $ readMVar appdatamvar
+	return $ selector appdata

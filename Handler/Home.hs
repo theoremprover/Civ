@@ -13,11 +13,13 @@ getHomeR = do
 			Nothing -> createNewGame gamename
 			Just (Entity gameid game) -> return gameid
 
-	withLoadedAppData gameid $ do
+	loadAppData gameid
 
-		defaultLayout $ do
-			setTitle "Civilization Boardgame"
---			app <- handlerToWidget getYesod
---			let tiles = show $ map boardTileTileID (appDataTiles $ appData app)
-			tiles <- getAppDataSel appDataTiles
-			$(widgetFile "homepage")
+	defaultLayout $ do
+		setTitle "Civilization Boardgame"
+		tiles <- getAppDataSel appDataTiles
+		let tileids = map boardTileTileID tiles	
+		[whamlet|
+<h1>Civilization Boardgame
+#{show tileids}
+|]

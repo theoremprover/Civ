@@ -1,2 +1,2 @@
 <h1>Civilization Boardgame
-  <p>#{show tiles}
+  <p>#{show tileids}
