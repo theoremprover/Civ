@@ -14,11 +14,12 @@ getHomeR = do
 			Just (Entity gameid game) -> return gameid
 
 	loadAppData gameid
+	setDisplayData 0 1.0
 
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
-		tiles <- getAppDataSel appDataTiles
-		let tileids = map boardTileTileID tiles	
+		appdata <- getAppData
+		let tileids = map boardTileTileID (appDataTiles appdata)	
 		[whamlet|
 <h1>Civilization Boardgame
 #{show tileids}

@@ -5,6 +5,7 @@ module GameMonad where
 import Import
 
 import Model
+import DisplayData
 
 createNewGame name = do
 	tileids <- mapM insert [
@@ -18,9 +19,9 @@ createNewGame name = do
 		BoardTile TileArabs 4 12 True Northward ]
 	insert $ Game name tileids
 
-getAppDataMVar = do
-	app <- getYesod
-	return $ appDataMVar app
+getAppDataMVar = getYesod >>= return . appDataMVar
+
+getDisplayDataMVar = getYesod >>= return . appDisplayDataMVar
 
 loadAppData gameid = do
 	Game appDataGameName tileids <- runDB $ get404 gameid
@@ -28,7 +29,12 @@ loadAppData gameid = do
 	appdatamvar <- getAppDataMVar
 	liftIO $ putMVar appdatamvar $ AppData {..}
 
-getAppDataSel selector = do
+setDisplayData whoAmI displayScale = do
+	displaydatamvar <- getDisplayDataMVar
+	liftIO $ putMVar displaydatamvar $ DisplayData {..}
+
+getAppData = do
 	appdatamvar <- handlerToWidget getAppDataMVar
-	appdata <- liftIO $ readMVar appdatamvar
-	return $ selector appdata
+	liftIO $ readMVar appdatamvar
+
+getDisplayData = handlerToWidget getDisplayDataMVar >>= liftIO . readMVar
