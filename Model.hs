@@ -38,7 +38,4 @@ Player
     name String
     colour Colour
     civ Civ
-
-PlayerAction
-    
 |]
