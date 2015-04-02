@@ -4,6 +4,12 @@ import Import
 import GameMonad
 import Model
 
+import Handler.PlayerActionForm
+
+playerActionForm :: Html -> MForm Handler (FormResult PlayerAction,Widget)
+playerActionForm = do
+	(paRes,paView) <- mreq 
+
 getHomeR :: Handler Html
 getHomeR = do
 	let gamename = "testgame"
@@ -22,13 +28,18 @@ getHomeR = do
 		appdata <- getAppData
 		displaydata <- getDisplayData
 
-		let tileids = map boardTileTileID (appDataTiles appdata)
+		let tileids = map boardTileTileID $ fmap entityVal (appDataTiles appdata)
 
 		[whamlet|
 <h1>Civilization Boardgame
-#{show tileids}
+<form method=post action=@{HomeR}>
+  #{show tileids}
+  <input type=submit name=>
 |]
 
-postPostR :: Handler Html
-postPostR = do
-	
+postHomeR :: Handler Html
+postHomeR = do
+	((result, widget), enctype) <- runFormPost playerActionForm
+	case result of
+		FormSuccess playeraction -> defaultLayout $ do
+			setTitle $ show playeraction

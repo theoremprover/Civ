@@ -23,6 +23,7 @@ library
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
+                     Handler.Commit
                      AppData
                      DisplayData
                      GameMonad
