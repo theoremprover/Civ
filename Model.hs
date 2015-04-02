@@ -22,9 +22,10 @@ Email
     UniqueEmail email
 
 Game
-	name String
+    name String
     boardTiles [BoardTileId]
-	UniqueGameName name
+    players [PlayerId]
+    UniqueGameName name
 
 BoardTile
     tileID TileID
@@ -32,4 +33,12 @@ BoardTile
     ycoor YCoor
     discovered Bool
     orientation Orientation
+
+Player
+    name String
+    colour Colour
+    civ Civ
+
+PlayerAction
+    
 |]

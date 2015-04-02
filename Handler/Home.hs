@@ -18,9 +18,17 @@ getHomeR = do
 
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
+
 		appdata <- getAppData
-		let tileids = map boardTileTileID (appDataTiles appdata)	
+		displaydata <- getDisplayData
+
+		let tileids = map boardTileTileID (appDataTiles appdata)
+
 		[whamlet|
 <h1>Civilization Boardgame
 #{show tileids}
 |]
+
+postPostR :: Handler Html
+postPostR = do
+	

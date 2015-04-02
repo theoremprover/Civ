@@ -8,6 +8,9 @@ import Model
 import DisplayData
 
 createNewGame name = do
+	playerids <- mapM insert [
+		Player "Spieler Rot" Red Russia,
+		Player "Spieler Blau" Blue America ]
 	tileids <- mapM insert [
 		BoardTile TileSpanish 0 0 True Southward,
 		BoardTile Tile1 4 0 True Eastward,
@@ -17,24 +20,34 @@ createNewGame name = do
 		BoardTile Tile5 4 8 True Northward,
 		BoardTile Tile6 0 12 True Westward,
 		BoardTile TileArabs 4 12 True Northward ]
-	insert $ Game name tileids
+	insert $ Game name tileids playerids
 
 getAppDataMVar = getYesod >>= return . appDataMVar
+getAppData = handlerToWidget getAppDataMVar >>= liftIO . readMVar
 
 getDisplayDataMVar = getYesod >>= return . appDisplayDataMVar
+getDisplayData = handlerToWidget getDisplayDataMVar >>= liftIO . readMVar
+
+selectFromIds field ids = runDB $ selectList [ field <-. ids ] []
+updateFromEntities entities = runDB $ forM entities $ \ (Entity eid val) -> replace eid val
 
 loadAppData gameid = do
-	Game appDataGameName tileids <- runDB $ get404 gameid
-	appDataTiles <- fmap (fmap entityVal) $ runDB $ selectList [ BoardTileId <-. tileids ] []
+	[appDataGame@(Entity _ (Game appDataGameName tileids playerids))] <- selectFromIds GameId [gameid]
+	appDataTiles <- selectFromIds BoardTileId tileids
+	appDataPlayers <- selectFromIds PlayerId playerids
+	
 	appdatamvar <- getAppDataMVar
 	liftIO $ putMVar appdatamvar $ AppData {..}
+
+{-
+saveAppData = do
+	(AppData game tiles players) <- getAppData
+	updateFromEntities [game]
+	updateFromEntities tiles
+	updateFromEntities players
+-}
 
 setDisplayData whoAmI displayScale = do
 	displaydatamvar <- getDisplayDataMVar
 	liftIO $ putMVar displaydatamvar $ DisplayData {..}
 
-getAppData = do
-	appdatamvar <- handlerToWidget getAppDataMVar
-	liftIO $ readMVar appdatamvar
-
-getDisplayData = handlerToWidget getDisplayDataMVar >>= liftIO . readMVar

@@ -25,3 +25,13 @@ data TileID =
 	TileRussia | TileSpanish | TileZulu
 	deriving (Show,Read,Eq)
 derivePersistField "TileID"
+
+data Civ =
+	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
+	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
+	deriving (Show,Read,Eq)
+derivePersistField "Civ"
+
+data Colour = Red | Green | Blue | Violet | Yellow
+	deriving (Show,Read,Eq)
+derivePersistField "Colour"
