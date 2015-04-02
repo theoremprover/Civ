@@ -12,6 +12,8 @@ type PlayerIndex = Int
 type XCoor = Int
 type YCoor = Int
 
+type Trade = Int
+
 data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Read,Eq,Ord,Ix.Ix,Bounded)
 derivePersistField "Orientation"
@@ -35,3 +37,8 @@ derivePersistField "Civ"
 data Colour = Red | Green | Blue | Violet | Yellow
 	deriving (Show,Read,Eq)
 derivePersistField "Colour"
+
+data PlayerAction =
+	ChangeTrade Trade Trade
+	deriving (Show,Read,Eq)
+derivePersistField "PlayerAction"
