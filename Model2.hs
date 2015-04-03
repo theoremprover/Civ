@@ -37,8 +37,3 @@ derivePersistField "Civ"
 data Colour = Red | Green | Blue | Violet | Yellow
 	deriving (Show,Read,Eq)
 derivePersistField "Colour"
-
-data PlayerAction =
-	ChangeTrade Trade Trade
-	deriving (Show,Read,Eq)
-derivePersistField "PlayerAction"

@@ -1,41 +1,19 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Model (
-	module Model,
-	module Model2
-	) where
+	module Entities,
+	module Model2,
+	module Model
+	)where
 
-import ClassyPrelude.Yesod
-import Database.Persist.Quasi
+import Database.Persist.TH
 
+import Prelude
+
+import Entities
 import Model2
 
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-
-User
-    ident Text
-    password Text Maybe
-    UniqueUser ident
-    deriving Typeable
-Email
-    email Text
-    user UserId Maybe
-    verkey Text Maybe
-    UniqueEmail email
-
-Game
-    name String
-    boardTiles [BoardTileId]
-    players [PlayerId]
-    UniqueGameName name
-
-BoardTile
-    tileID TileID
-    xcoor XCoor
-    ycoor YCoor
-    discovered Bool
-    orientation Orientation
-
-Player
-    name String
-    colour Colour
-    civ Civ
-|]
+data PlayerAction =
+	ChangeTrade PlayerId Trade Trade
+	deriving (Show,Read,Eq)
+derivePersistField "PlayerAction"

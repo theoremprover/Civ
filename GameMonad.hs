@@ -9,8 +9,8 @@ import DisplayData
 
 createNewGame name = do
 	playerids <- mapM insert [
-		Player "Spieler Rot" Red Russia,
-		Player "Spieler Blau" Blue America ]
+		Player "Spieler Rot" Red Russia 1,
+		Player "Spieler Blau" Blue America 2 ]
 	tileids <- mapM insert [
 		BoardTile TileSpanish 0 0 True Southward,
 		BoardTile Tile1 4 0 True Eastward,
