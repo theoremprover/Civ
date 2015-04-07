@@ -39,14 +39,6 @@ loadAppData gameid = do
 	appdatamvar <- getAppDataMVar
 	liftIO $ putMVar appdatamvar $ AppData {..}
 
-{-
-saveAppData = do
-	(AppData game tiles players) <- getAppData
-	updateFromEntities [game]
-	updateFromEntities tiles
-	updateFromEntities players
--}
-
 setDisplayData whoAmI displayScale = do
 	displaydatamvar <- getDisplayDataMVar
 	liftIO $ putMVar displaydatamvar $ DisplayData {..}

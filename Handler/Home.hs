@@ -1,13 +1,14 @@
 module Handler.Home where
 
 import Import
+import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
 import Data.Text(unpack)
-
 import Prelude(reads)
 
 import GameMonad
 import Model
+import ExecutePlayerAction
 
 playerActionField :: Field Handler PlayerAction
 playerActionField = Field {
@@ -45,7 +46,8 @@ getHomeR = do
 
 		let tileids = map boardTileTileID $ fmap entityVal (appDataTiles appdata)
 
-		let playeractionform playerid player = playerActionForm (ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
+		let playeractionform playerid player = playerActionForm
+			(ChangeTrade (fromSqlKey playerid) (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
 		[whamlet|
 <h1>Civilization Boardgame
 <p> #{show tileids}
@@ -59,6 +61,5 @@ getHomeR = do
 postHomeR :: Handler Html
 postHomeR = do
 	playeraction <- runInputPost $ ireq playerActionField "playeraction"
-	defaultLayout $ do
-		setTitle "postHomeR"
-		[whamlet| <p>#{show playeraction} |]
+	executePlayerAction playeraction
+	getHomeR

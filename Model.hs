@@ -9,11 +9,11 @@ module Model (
 import Database.Persist.TH
 
 import Prelude
-
+import Data.Int(Int64)
 import Entities
 import Model2
 
 data PlayerAction =
-	ChangeTrade PlayerId Trade Trade
+	ChangeTrade Int64 Trade Trade
 	deriving (Show,Read,Eq)
 derivePersistField "PlayerAction"

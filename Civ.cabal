@@ -27,6 +27,7 @@ library
                      AppData
                      DisplayData
                      GameMonad
+                     ExecutePlayerAction
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
