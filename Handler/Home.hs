@@ -8,6 +8,8 @@ import Prelude(reads)
 
 import GameMonad
 import Model
+import AppData
+import DisplayData
 import ExecutePlayerAction
 
 playerActionField :: Field Handler PlayerAction
@@ -26,6 +28,12 @@ playerActionForm playeraction buttonname = [whamlet|
   <button>#{buttonname}
 |]
 
+postHomeR :: Handler Html
+postHomeR = do
+	playeraction <- runInputPost $ ireq playerActionField "playeraction"
+	executePlayerAction playeraction
+	getHomeR
+
 getHomeR :: Handler Html
 getHomeR = do
 	let gamename = "testgame"
@@ -34,15 +42,12 @@ getHomeR = do
 		case mb_game of
 			Nothing -> createNewGame gamename
 			Just (Entity gameid game) -> return gameid
- 
-	loadAppData gameid
-	setDisplayData 0 1.0
+
+	appdata <- loadAppData gameid
+	displaydata <- loadDisplayData 0 1.0
 
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
-
-		appdata <- getAppData
-		displaydata <- getDisplayData
 
 		let tileids = map boardTileTileID $ fmap entityVal (appDataTiles appdata)
 
@@ -58,8 +63,3 @@ getHomeR = do
         ^{playeractionform playerid player}
 |]
 
-postHomeR :: Handler Html
-postHomeR = do
-	playeraction <- runInputPost $ ireq playerActionField "playeraction"
-	executePlayerAction playeraction
-	getHomeR
