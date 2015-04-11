@@ -8,9 +8,11 @@ import Model2
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
 User
-    ident Text
+    email Text
     password Text Maybe
-    UniqueUser ident
+    verkey Text Maybe
+    verified Bool
+    UniqueUser email
     deriving Typeable
 Email
     email Text

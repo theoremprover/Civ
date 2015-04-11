@@ -83,6 +83,8 @@ library
                  , wai-logger                    >= 2.2        && < 2.3
                  , file-embed
                  , safe
+                 , blaze-html
+                 , mime-mail
                  , unordered-containers
                  , containers
                  , vector

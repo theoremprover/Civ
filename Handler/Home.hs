@@ -30,12 +30,15 @@ playerActionForm playeraction buttonname = [whamlet|
 
 postHomeR :: Handler Html
 postHomeR = do
+	authid <- requireAuthId
 	playeraction <- runInputPost $ ireq playerActionField "playeraction"
 	executePlayerAction playeraction
 	getHomeR
 
 getHomeR :: Handler Html
 getHomeR = do
+	authid <- requireAuthId
+
 	let gamename = "testgame"
 	gameid <- runDB $ do
 		mb_game <- getBy $ UniqueGameName gamename
@@ -55,6 +58,7 @@ getHomeR = do
 			(ChangeTrade (fromSqlKey playerid) (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
 		[whamlet|
 <h1>Civilization Boardgame
+<p> AuthId: #{show authid}
 <p> #{show tileids}
 <ul>
   $forall (Entity playerid player) <- appDataPlayers appdata
