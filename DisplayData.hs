@@ -5,6 +5,6 @@ import Prelude
 import Model
 
 data DisplayData = DisplayData {
-	whoAmI :: PlayerIndex,
+	playerId :: PlayerId,
 	displayScale :: Double
 	}

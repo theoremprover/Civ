@@ -130,7 +130,7 @@ instance YesodAuth App where
     redirectToReferer _ = True
 
     getAuthId creds = runDB $ do
-        x <- insertBy $ User (credsIdent creds) Nothing Nothing False
+        x <- insertBy $ User (credsIdent creds) Nothing Nothing False Nothing Nothing
         return $ Just $
             case x of
                 Left (Entity userid _) -> userid -- newly added user
@@ -144,7 +144,7 @@ instance YesodAuth App where
 instance YesodAuthEmail App where
     type AuthEmailId App = UserId
     afterPasswordRoute _ = HomeR
-    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False
+    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False Nothing Nothing
     sendVerifyEmail email _ verurl =
         liftIO $ renderSendMail (emptyMail $ Address Nothing "noreply")
             { mailTo = [Address Nothing email]
@@ -222,3 +222,6 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Sending-email
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
+
+yesodError :: String -> a
+yesodError msg = error msg

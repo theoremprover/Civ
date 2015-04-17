@@ -12,8 +12,12 @@ User
     password Text Maybe
     verkey Text Maybe
     verified Bool
+    game GameId Maybe
+    player PlayerId Maybe
     UniqueUser email
     deriving Typeable
+    deriving Show
+
 Email
     email Text
     user UserId Maybe
@@ -38,4 +42,5 @@ Player
     colour Colour
     civ Civ
 	trade Trade
+	UniquePlayerName name
 |]

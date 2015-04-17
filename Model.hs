@@ -17,3 +17,4 @@ data PlayerAction =
 	ChangeTrade Int64 Trade Trade
 	deriving (Show,Read,Eq)
 derivePersistField "PlayerAction"
+
