@@ -45,7 +45,7 @@ getHomeR :: Handler Html
 getHomeR = do
 	(userid,user) <- getAuthenticatedUser
 
-	gameid <- case userGame user of
+	(gameid,playerid) <- case userGame user of
 		Nothing -> runDB $ do
 			let gamename = "testgame"
 			mb_game <- getBy $ UniqueGameName gamename
@@ -54,11 +54,11 @@ getHomeR = do
 				Just (Entity gid _) -> return gid
 			pid <- getBy $ UniquePlayerName "Spieler Blau"
 			update userid [ UserGame =. Just gid, UserPlayer =. pid ]
-			return gid
-		Just gameid -> return gameid
+			return (gid,pid)
+		Just gameid -> return (gameid
 
 	appdata <- loadAppData gameid
-	displaydata <- loadDisplayData 0 1.0
+	displaydata <- loadDisplayData playerid 1.0
 
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
