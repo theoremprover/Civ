@@ -4,7 +4,7 @@
 static-dir:     "_env:STATIC_DIR:static"
 host:           "_env:HOST:*4" # any IPv4 host
 port:           "_env:PORT:3000"
-approot:        "_env:APPROOT:civ.thinking-machines.net"
+approot:        "_env:APPROOT:http://civ.thinking-machines.net:3000"
 ip-from-header: "_env:IP_FROM_HEADER:false"
 
 # Optional values with the following production defaults.
@@ -20,7 +20,7 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 database:
   database: "_env:MYSQL_DATABASE:db47735"
   password: "_env:MYSQL_PASSWORD:grisdiC_"
-  host:     "_env:MYSQL_HOST:civ.thinking-machines.net"
+  host:     "_env:MYSQL_HOST:localhost"
   user:     "_env:MYSQL_USER:db47735"
   port:     "_env:MYSQL_PORT:3306"
   poolsize: "_env:MYSQL_POOLSIZE:10"
