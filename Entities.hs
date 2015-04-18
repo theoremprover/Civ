@@ -43,4 +43,5 @@ Player
     civ Civ
 	trade Trade
 	UniquePlayerName name
+	deriving Show
 |]

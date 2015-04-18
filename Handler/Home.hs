@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Handler.Home where
 
 import Import
@@ -45,21 +47,26 @@ getHomeR :: Handler Html
 getHomeR = do
 	(userid,user) <- getAuthenticatedUser
 
-	(gameid,playerid) <- case userGame user of
-		Nothing -> runDB $ do
+	let myplayer = UniquePlayerName "Spieler Blau"
+	(gameid,playerid :: PlayerId) <- runDB $ case userGame user of
+		Nothing -> do
 			let gamename = "testgame"
 			mb_game <- getBy $ UniqueGameName gamename
 			gid <- case mb_game of
 				Nothing -> createNewGame gamename
 				Just (Entity gid _) -> return gid
-			pid <- getBy $ UniquePlayerName "Spieler Blau"
-			update userid [ UserGame =. Just gid, UserPlayer =. pid ]
+			Entity pid _ <- getBy404 myplayer
+			update userid [ UserGame =. Just gid, UserPlayer =. Just pid ]
 			return (gid,pid)
-		Just gameid -> return (gameid
+		Just gameid -> do
+			Entity pid _ <- getBy404 myplayer
+			return (gameid,pid)
 
 	appdata <- loadAppData gameid
 	displaydata <- loadDisplayData playerid 1.0
 
+	player <- runDB $ get playerid
+	
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 
