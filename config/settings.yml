@@ -20,7 +20,7 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 database:
   database: "_env:MYSQL_DATABASE:db47735"
   password: "_env:MYSQL_PASSWORD:grisdiC_"
-  host:     "_env:MYSQL_HOST:mysql5.thinking-machines.net"
+  host:     "_env:MYSQL_HOST:127.0.0.1"
   user:     "_env:MYSQL_USER:db47735"
   port:     "_env:MYSQL_PORT:3306"
   poolsize: "_env:MYSQL_POOLSIZE:10"
