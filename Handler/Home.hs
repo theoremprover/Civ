@@ -77,6 +77,7 @@ getHomeR = do
 
 		[whamlet|
 <h1>Civilization Boardgame
+<p> Version: ?
 <p> User: #{show user}
 <p> Player: #{show player}
 <p> #{show tileids}
