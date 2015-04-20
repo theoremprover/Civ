@@ -73,7 +73,7 @@ getHomeR = do
 		let tileids = map boardTileTileID $ fmap entityVal (appDataTiles appdata)
 
 		let playeractionform playerid player = playerActionForm
-			(ChangeTrade (fromSqlKey playerid) (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
+			(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
 
 		[whamlet|
 <h1>Civilization Boardgame
