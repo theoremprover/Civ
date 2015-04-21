@@ -66,7 +66,9 @@ getHomeR = do
 	displaydata <- loadDisplayData playerid 1.0
 
 	player <- runDB $ get playerid
-	
+	let game = appDataGame appdata
+	let players = appDataPlayers appdata
+
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 

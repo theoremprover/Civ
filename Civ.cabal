@@ -28,6 +28,7 @@ library
                      DisplayData
                      GameMonad
                      ExecutePlayerAction
+                     Logic
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

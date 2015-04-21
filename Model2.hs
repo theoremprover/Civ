@@ -35,3 +35,26 @@ data TileID =
 	Tile Civ
 	deriving (Show,Read,Eq)
 derivePersistField "TileID"
+
+data Phase = StartOfTurn | Trade | CityManagement | Movement | Research
+	deriving (Show,Read,Eq,Ord,Enum)
+derivePersistField "Phase"
+
+data Tech =
+	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
+	HorsebackRiding | AnimalHusbandry | Philosophy | Navigation | Navy |
+	CivilService | Mysticism | MonarchyTech | DemocracyTech | Chivalry | Mathematics | Logistics |
+	PrintingPress | Sailing | Construction | Engineering | Irrigation | Bureaucracy |
+	Theology | CommunismTech | Gunpowder | Railroad | MetalCasting | Ecology | Biology |
+	SteamPower | Banking | MilitaryScience | Education |
+	Computers | MassMedia | Ballistics | ReplaceableParts | Flight | Plastics | Combustion | AtomicTheory |
+	SpaceFlight
+	deriving (Show,Read)
+derivePersistField "Tech"
+
+data Government =
+	Anarchy | Despotism | Monarchy | Democracy |
+	Fundamentalism | Republic | Feudalism | Communism
+	deriving (Show,Read)
+derivePersistField "Government"
+
