@@ -41,7 +41,17 @@ Player
     name String
     colour Colour
     civ Civ
+    government Government
 	trade Trade
+    culture Culture
+    techs [TechCardId]
 	UniquePlayerName name
 	deriving Show
+
+TechCard
+    tech Tech
+    level TechLevel
+    coins Coins
+    deriving Show
+
 |]

@@ -8,11 +8,13 @@ import Prelude
 
 import qualified Data.Ix as Ix
 
-type PlayerIndex = Int
-type XCoor = Int
-type YCoor = Int
+newtype PlayerIndex = PlayerIndex Int
+newtype XCoor = XCoor Int
+newtype YCoor = YCoor Int
 
-type Trade = Int
+newtype Trade = Trade Int
+newtype Coins = Coins Int
+newtype Culture = Culture Int
 
 data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Read,Eq,Ord,Ix.Ix,Bounded)
@@ -51,6 +53,13 @@ data Tech =
 	SpaceFlight
 	deriving (Show,Read)
 derivePersistField "Tech"
+
+data TechLevel =
+	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
+	deriving (Show,Read,Eq,Ord,Enum)
+derivePersistField "TechLevel"
+
+tech ´isTechLevel´ techlevel = 
 
 data Government =
 	Anarchy | Despotism | Monarchy | Democracy |
