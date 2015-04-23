@@ -44,6 +44,7 @@ Player
     government Government
 	trade Trade
     culture Culture
+    coins Coins
     techs [TechCardId]
 	UniquePlayerName name
 	deriving Show

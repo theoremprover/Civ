@@ -15,10 +15,27 @@ createNewGame name = do
 		TechCard Navigation TechLevelI (Coins 0),
 		TechCard Navy TechLevelI (Coins 0),
 		TechCard MonarchyTech TechLevelII (Coins 0) ]
-	techs2 <- mapM insert $ take 15 
+	techs2 <- mapM insert [
+		TechCard CodeOfLaws TechLevelI (Coins 1),
+		TechCard HorsebackRiding TechLevelI (Coins 0),
+		TechCard AnimalHusbandry TechLevelI (Coins 0),
+		TechCard Philosophy TechLevelI (Coins 0),
+		TechCard Navigation TechLevelI (Coins 0),
+		TechCard Navy TechLevelI (Coins 0),
+		TechCard MonarchyTech TechLevelII (Coins 0),
+		TechCard PrintingPress TechLevelII (Coins 0),
+		TechCard Sailing TechLevelII (Coins 0),
+		TechCard Construction TechLevelII (Coins 0),
+		TechCard Engineering TechLevelII (Coins 0),
+		TechCard SteamPower TechLevelIII (Coins 0),
+		TechCard Banking TechLevelIII (Coins 0),
+		TechCard MilitaryScience TechLevelIII (Coins 0),
+		TechCard Computers TechLevelIV (Coins 0),
+		TechCard MassMedia TechLevelIV (Coins 0),
+		TechCard SpaceFlight TechLevelV (Coins 0) ]
 	playerids <- mapM insert [
-		Player "Spieler Rot" Red Russia Despotism (Trade 1) (Culture 6) techs1,
-		Player "Spieler Blau" Blue America Democracy (Trade 2) (Culture 11) techs2 ]
+		Player "Spieler Rot" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) techs1,
+		Player "Spieler Blau" Blue America Democracy (Trade 2) (Culture 11) (Coins 3) techs2 ]
 	tileids <- mapM insert [
 		BoardTile (Tile Russia) 0 0 True Southward,
 		BoardTile Tile1 4 0 True Eastward,

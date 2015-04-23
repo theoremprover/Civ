@@ -15,5 +15,5 @@ import Model2
 
 data PlayerAction =
 	ChangeTrade PlayerId Trade Trade
-	deriving (Show,Read,Eq)
+	deriving (Show,Read)
 derivePersistField "PlayerAction"
