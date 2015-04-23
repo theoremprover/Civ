@@ -10,16 +10,14 @@ import qualified Data.Ix as Ix
 
 newtype PlayerIndex = PlayerIndex Int deriving (Show,Read)
 derivePersistField "PlayerIndex"
-newtype XCoor = XCoor Int deriving (Show,Read)
-derivePersistField "XCoor"
-newtype YCoor = YCoor Int deriving (Show,Read)
-derivePersistField "YCoor"
+data Coors = Coors Int Int deriving (Show,Read)
+derivePersistField "Coors"
 
-newtype Trade = Trade Int deriving (Show,Read)
+newtype Trade = Trade Int deriving (Show,Read,Num)
 derivePersistField "Trade"
-newtype Coins = Coins Int deriving (Show,Read)
+newtype Coins = Coins Int deriving (Show,Read,Num)
 derivePersistField "Coins"
-newtype Culture = Culture Int deriving (Show,Read)
+newtype Culture = Culture Int deriving (Show,Read,Num)
 derivePersistField "Culture"
 
 data Orientation = Northward | Eastward | Southward | Westward

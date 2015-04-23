@@ -37,14 +37,14 @@ createNewGame name = do
 		Player "Spieler Rot" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) techs1,
 		Player "Spieler Blau" Blue America Democracy (Trade 2) (Culture 11) (Coins 3) techs2 ]
 	tileids <- mapM insert [
-		BoardTile (Tile Russia) 0 0 True Southward,
-		BoardTile Tile1 4 0 True Eastward,
-		BoardTile Tile2 0 4 True Southward,
-		BoardTile Tile3 4 4 False Southward,
-		BoardTile Tile4 0 8 False Southward,
-		BoardTile Tile5 4 8 True Northward,
-		BoardTile Tile6 0 12 True Westward,
-		BoardTile (Tile America) 4 12 True Northward ]
+		BoardTile (Tile Russia) (Coors 0 0) True Southward,
+		BoardTile Tile1 (Coors 4 0) True Eastward,
+		BoardTile Tile2 (Coors 0 4) True Southward,
+		BoardTile Tile3 (Coors 4 4) False Southward,
+		BoardTile Tile4 (Coors 0 8) False Southward,
+		BoardTile Tile5 (Coors 4 8) True Northward,
+		BoardTile Tile6 (Coors 0 12) True Westward,
+		BoardTile (Tile America) (Coors 4 12) True Northward ]
 	insert $ Game name tileids playerids
 
 selectFromIds field ids = runDB $ selectList [ field <-. ids ] []

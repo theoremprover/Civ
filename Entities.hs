@@ -32,8 +32,7 @@ Game
 
 BoardTile
     tileID TileID
-    xcoor XCoor
-    ycoor YCoor
+    coors Coors
     discovered Bool
     orientation Orientation
 

@@ -76,8 +76,8 @@ getHomeR = do
 
 		let playeractionform playerid player = playerActionForm
 			(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
-
 		[whamlet|
+
 <h1>Civilization Boardgame
 <p> Version: ?
 <p> User: #{show user}
@@ -86,7 +86,7 @@ getHomeR = do
 <ul>
   $forall (Entity playerid player) <- appDataPlayers appdata
     <li>
-        Player #{playerName player}: #{playerTrade player} Trade
+        Player #{playerName player}: #{show (playerTrade player)} Trade
         ^{playeractionform playerid player}
 |]
 
