@@ -8,6 +8,8 @@ import Database.Persist.Sql(fromSqlKey,toSqlKey)
 import Data.Text(unpack)
 import Prelude(reads)
 
+import Version
+
 import GameMonad
 import Model
 import AppData
@@ -88,5 +90,11 @@ getHomeR = do
     <li>
         Player #{playerName player}: #{show (playerTrade player)} Trade
         ^{playeractionform playerid player}
+^{footer}
+|]
+
+footer = [hamlet|
+<footer>
+  <p>Version #{cabalVersion}, GIT hash #{gitHash}, Compiled #{dateString}
 |]
 
