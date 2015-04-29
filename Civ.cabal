@@ -30,6 +30,7 @@ library
                      ExecutePlayerAction
                      Logic
                      Version
+                     Paths_Civ
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

@@ -94,7 +94,8 @@ getHomeR = do
 |]
 
 footer = [hamlet|
+<hr>
 <footer>
-  <p>Version #{cabalVersion}, GIT hash #{gitHash}, Compiled #{dateString}
+  <small><p>Civ #{cabalVersion}, GIT hash #{gitHash}, Compiled #{dateString}
 |]
 
