@@ -6,10 +6,10 @@ import Paths_Civ (version)
 import Data.Version (showVersion)
 
 dateString :: String
-dateString = "Mo 27. Apr 18:54:03 CEST 2015"
+dateString = "Do 30. Apr 17:40:51 CEST 2015"
 
 gitHash :: String
-gitHash = "<GITHASH>"
+gitHash = "c6f8951"
 
 cabalVersion :: String
 cabalVersion = showVersion version
