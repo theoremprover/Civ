@@ -5,6 +5,6 @@ import System.Process
 main = defaultMainWithHooks $ simpleUserHooks {
 	preConf = preconf }
 
-preconf = args configflags = do
+preconf args configflags = do
 	system "./updateversion.sh"
 	return emptyHookedBuildInfo
