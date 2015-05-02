@@ -2,6 +2,7 @@
 
 module Handler.Home where
 
+import Settings.StaticFiles
 import Import
 import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
@@ -95,8 +96,10 @@ getHomeR = do
 footer = [hamlet|
 <hr>
 <footer>
-  <small><table border=0><tr>
-    <td align=left>Civ #{cabalVersion}, GIT hash #{gitHash}, compiled #{compilationDateString}
-    <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_png}>
+  <small><table border=0 width="100%"><tr>
+    <td align=left>Civ #{cabalVersion}
+    <td align=center>GIT hash #{gitHash}
+    <td align=center>compiled #{compilationDateString}
+    <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_gif}>
 |]
 
