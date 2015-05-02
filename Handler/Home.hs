@@ -81,7 +81,6 @@ getHomeR = do
 		[whamlet|
 
 <h1>Civilization Boardgame
-<p> Version: ?
 <p> User: #{show user}
 <p> Player: #{show player}
 <p> #{show tileids}
@@ -96,6 +95,8 @@ getHomeR = do
 footer = [hamlet|
 <hr>
 <footer>
-  <small><p>Civ #{cabalVersion}, GIT hash #{gitHash}, Compiled #{dateString}
+  <small><table border=0><tr>
+    <td align=left>Civ #{cabalVersion}, GIT hash #{gitHash}, compiled #{compilationDateString}
+    <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_png}>
 |]
 

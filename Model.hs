@@ -9,7 +9,7 @@ module Model (
 import Database.Persist.TH
 
 import Prelude
-import Data.Int(Int64)
+--import Data.Int(Int64)
 import Entities
 import Model2
 

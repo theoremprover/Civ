@@ -5,11 +5,11 @@ import Prelude
 import Paths_Civ (version)
 import Data.Version (showVersion)
 
-dateString :: String
-dateString = "Do 30. Apr 17:44:24 CEST 2015"
+compilationDateString :: String
+compilationDateString = "<compilationDateString>"
 
 gitHash :: String
-gitHash = "44ae07b"
+gitHash = "<gitHash>"
 
 cabalVersion :: String
 cabalVersion = showVersion version
