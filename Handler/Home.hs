@@ -94,7 +94,7 @@ getHomeR = do
 |]
 
 footer = [hamlet|
-<hr>
+<hr style="margin-bottom: 5px">
 <footer>
   <small><table border=0 width="100%"><tr>
     <td align=left>Civ #{cabalVersion}
