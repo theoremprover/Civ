@@ -1,9 +1,13 @@
+{-# LANGUAGE DeriveDataTypeable, TypeFamilies, TemplateHaskell #-}
+
 module Model where
 
 import Prelude
 import Data.IxSet
 import Data.Acid
 import Data.Data
+import Data.Typeable
+
 import Entities
 
 import qualified Data.Ix as Ix
@@ -12,6 +16,8 @@ data CivState = CivState {
 	civGames :: IxSet Game
 	}
 	deriving (Data,Typeable,SafeCopy)
+
+$(makeAcidic ''CivState ['incTradeBy])
 
 data Game = Game {
 	gameName :: String,

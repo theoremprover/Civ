@@ -50,6 +50,7 @@ getHomeR :: Handler Html
 getHomeR = do
 	(userid,user) <- getAuthenticatedUser
 
+{-
 	let myplayer = UniquePlayerName "Spieler Blau"
 	(gameid,playerid :: PlayerId) <- runDB $ case userGame user of
 		Nothing -> do
@@ -71,25 +72,17 @@ getHomeR = do
 	player <- runDB $ get playerid
 	let game = appDataGame appdata
 	let players = appDataPlayers appdata
-
+-}
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
-
-		let tileids = map boardTileTileID $ fmap entityVal (appDataTiles appdata)
-
+{-
 		let playeractionform playerid player = playerActionForm
 			(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
+-}
 		[whamlet|
 
 <h1>Civilization Boardgame
 <p> User: #{show user}
-<p> Player: #{show player}
-<p> #{show tileids}
-<ul>
-  $forall (Entity playerid player) <- appDataPlayers appdata
-    <li>
-        Player #{playerName player}: #{show (playerTrade player)} Trade
-        ^{playeractionform playerid player}
 ^{footer}
 |]
 

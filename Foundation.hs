@@ -15,6 +15,11 @@ import qualified Data.Text.Lazy.Encoding
 import Text.Shakespeare.Text (stext)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
+import Data.Acid
+--import Data.SafeCopy
+
+import Model
+
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
@@ -25,6 +30,7 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
+    , appCivAcid     :: AcidState CivState
     }
 
 instance HasHttpManager App where
