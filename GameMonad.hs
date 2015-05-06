@@ -3,11 +3,11 @@ module GameMonad where
 import Import
 
 import Model
-import AppData
 import DisplayData
 
-createNewGame name = do
-	techs1 <- mapM insert [
+newCivState = CivState { 
+	techs1 <- mapM insert
+		[
 		TechCard CodeOfLaws TechLevelI (Coins 2),
 		TechCard HorsebackRiding TechLevelI (Coins 0),
 		TechCard AnimalHusbandry TechLevelI (Coins 0),
@@ -47,6 +47,7 @@ createNewGame name = do
 		BoardTile (Tile America) (Coors 4 12) True Northward ]
 	insert $ Game name tileids playerids
 
+{-
 selectFromIds field ids = runDB $ selectList [ field <-. ids ] []
 
 loadAppData gameid = do
@@ -57,3 +58,4 @@ loadAppData gameid = do
 
 loadDisplayData playerid displayscale = do
 	return $ DisplayData playerid displayscale
+-}
