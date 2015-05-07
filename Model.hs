@@ -19,13 +19,15 @@ data CivState = CivState {
 
 $(makeAcidic ''CivState ['incTradeBy])
 
+$(deriveSafeCopy 1 'base ''CivState)
+
 data Game = Game {
 	gameName :: String,
 	gameBoardTiles :: [BoardTile],
-	gamePlayers :: [Player]
+	gamePlayers :: IxSet Player
 	}
 	deriving (Data,Typeable,SafeCopy)
-	
+
 data Player = Player {
 	playerName :: String,
 	playerColour :: Colour,
