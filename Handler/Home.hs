@@ -15,7 +15,6 @@ import Version
 
 import GameMonad
 import Model
-import AppData
 import DisplayData
 import ExecutePlayerAction
 
@@ -35,16 +34,13 @@ playerActionForm playeraction buttonname = [whamlet|
   <button>#{buttonname}
 |]
 
-getCivCredentials :: Handler (UserId,User)
+getCivCredentials :: Handler (Player,Game,User)
 getCivCredentials = do
 	userid <- requireAuthId
 	user <- runDB $ get404 userid
 	App {..} <- getYesod
-	civstate <- query' appCivAcid
-
-	let ((gamename,playername:_):_) = userParticipations user
-
-	game = civGames
+	let ((gamename,playername:_):_) = Data.Map.toList $ userParticipations user
+	(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
 	return (player,game,user)
 
 postHomeR :: Handler Html

@@ -18,13 +18,11 @@ library
                      Import
                      Import.NoFoundation
                      Model
-                     Model2
                      Entities
                      Settings
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
-                     AppData
                      DisplayData
                      GameMonad
                      ExecutePlayerAction
@@ -92,6 +90,10 @@ library
                  , containers
                  , vector
                  , time
+                 , acid-state
+                 , ixset
+                 , safecopy
+                 , mtl
 
 executable         Civ
     if flag(library-only)

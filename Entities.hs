@@ -2,6 +2,7 @@ module Entities where
 
 import ClassyPrelude.Yesod
 import Database.Persist.Quasi
+import Data.Map
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
@@ -11,7 +12,7 @@ User
     verkey Text Maybe
     verified Bool
     UniqueUser email
-    participations [(String,[String])]
+    participations (Map Text [Text])
     deriving Show
 
 Email
