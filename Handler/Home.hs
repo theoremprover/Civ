@@ -9,6 +9,8 @@ import Database.Persist.Sql(fromSqlKey,toSqlKey)
 import Data.Text(unpack)
 import Prelude(reads)
 
+import Data.Acid.Advanced
+
 import Version
 
 import GameMonad
@@ -33,11 +35,17 @@ playerActionForm playeraction buttonname = [whamlet|
   <button>#{buttonname}
 |]
 
-getAuthenticatedUser :: Handler (UserId,User)
-getAuthenticatedUser = do
+getCivCredentials :: Handler (UserId,User)
+getCivCredentials = do
 	userid <- requireAuthId
 	user <- runDB $ get404 userid
-	return (userid,user)
+	App {..} <- getYesod
+	civstate <- query' appCivAcid
+
+	let ((gamename,playername:_):_) = userParticipations user
+
+	game = civGames
+	return (player,game,user)
 
 postHomeR :: Handler Html
 postHomeR = do
@@ -48,7 +56,7 @@ postHomeR = do
 
 getHomeR :: Handler Html
 getHomeR = do
-	(userid,user) <- getAuthenticatedUser
+	(player,game,user) <- getCivCredentials
 
 {-
 	let myplayer = UniquePlayerName "Spieler Blau"
@@ -83,6 +91,8 @@ getHomeR = do
 
 <h1>Civilization Boardgame
 <p> User: #{show user}
+<p> User: #{show player}
+
 ^{footer}
 |]
 

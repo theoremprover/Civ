@@ -17,7 +17,14 @@ data CivState = CivState {
 	}
 	deriving (Data,Typeable,SafeCopy)
 
-$(makeAcidic ''CivState ['incTradeBy])
+getUsersGames :: User -> Query CivState [(String,[String])]
+getUsersGames user = do
+	CivState {..} <- ask
+	return 
+
+$(makeAcidic ''CivState [
+	'getGame
+	])
 
 $(deriveSafeCopy 1 'base ''CivState)
 
@@ -27,6 +34,10 @@ data Game = Game {
 	gamePlayers :: IxSet Player
 	}
 	deriving (Data,Typeable,SafeCopy)
+
+instance Indexable Game where
+	empty = ixSet
+		[ ixFun $ \ game -> [ gameName game ] ]
 
 data Player = Player {
 	playerName :: String,
@@ -39,6 +50,10 @@ data Player = Player {
 	playerTechs :: [TechCard]
 	}
 	deriving (Data,Typeable,SafeCopy)
+
+instance Indexable Player where
+	empty = ixSet
+		[ ixFun $ \ player -> [ playerName player ] ]
 
 data BoardTile = BoardTile {
 	boardTileId :: TileID,

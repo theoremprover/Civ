@@ -11,6 +11,7 @@ User
     verkey Text Maybe
     verified Bool
     UniqueUser email
+    participations [(String,[String])]
     deriving Show
 
 Email
