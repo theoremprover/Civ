@@ -5,7 +5,7 @@
 module Model where
 
 import Prelude
-import Data.IxSet ( Indexable(..), IxSet(..), (@=), ixFun, ixSet, toAscList, Proxy(..) )
+import Data.IxSet ( Indexable(..), IxSet(..), (@=), ixFun, ixSet, getOne, Proxy(..) )
 import Data.Acid
 import Data.Data
 import Data.Ord
@@ -18,7 +18,7 @@ import Entities
 import qualified Data.Ix as Ix
 
 --newtype PlayerIndex = PlayerIndex Int deriving (Show,Read)
-data Coors = Coors Int Int deriving (Show,Read,Data,Typeable)
+data Coors = Coors Int Int deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Coors)
 
 newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
@@ -63,7 +63,7 @@ data Tech =
 	SteamPower | Banking | MilitaryScience | Education |
 	Computers | MassMedia | Ballistics | ReplaceableParts | Flight | Plastics | Combustion | AtomicTheory |
 	SpaceFlight
-	deriving (Show,Read,Data,Typeable)
+	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Tech)
 
 data TechLevel =
@@ -74,7 +74,7 @@ $(deriveSafeCopy 0 'base ''TechLevel)
 data Government =
 	Anarchy | Despotism | Monarchy | Democracy |
 	Fundamentalism | Republic | Feudalism | Communism
-	deriving (Show,Read,Data,Typeable)
+	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Government)
 
 data BoardTile = BoardTile {
@@ -94,8 +94,11 @@ data TechCard = TechCard {
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''TechCard)
 
+newtype PlayerName = PlayerName String
+	deriving (Data,Typeable,Show,Eq,Ord)
+
 data Player = Player {
-	playerName :: String,
+	playerName :: PlayerName,
 	playerColour :: Colour,
 	playerCiv :: Civ,
 	playerGovernment :: Government,
@@ -111,8 +114,16 @@ instance Indexable Player where
 	empty = ixSet
 		[ ixFun $ \ player -> [ playerName player ] ]
 
+instance Ord Player where
+	compare = comparing playerName
+instance Eq Player where
+	p1 == p2 = playerName p1 == playerName p2
+
+newtype GameName = GameName String
+	deriving (Data,Typeable,Show,Eq,Ord)
+
 data Game = Game {
-	gameName :: String,
+	gameName :: GameName,
 	gameBoardTiles :: [BoardTile],
 	gamePlayers :: IxSet Player
 	}
@@ -123,6 +134,11 @@ instance Indexable Game where
 	empty = ixSet
 		[ ixFun $ \ game -> [ gameName game ] ]
 
+instance Ord Game where
+	compare = comparing gameName
+instance Eq Game where
+	g1 == g2 = gameName g1 == gameName g2
+
 data CivState = CivState {
 	civGames :: IxSet Game
 	}
@@ -131,14 +147,18 @@ $(deriveSafeCopy 0 'base ''CivState)
 
 --------------
 
-getPlayerGame :: String -> String -> Query CivState (Player,Game)
+getPlayerGame :: PlayerName -> GameName -> Query CivState (Player,Game)
 getPlayerGame playername gamename = do
 	CivState {..} <- ask
-	let game = myGetOne (Data.IxSet.Proxy :: Data.IxSet.Proxy String) $ civGames @= gamename
-	let player = myGetOne (Data.IxSet.Proxy :: Data.IxSet.Proxy String) $ (gamePlayers game) @= playername
+	let Just game = getOne $ civGames @= gamename
+	let Just player = getOne $ (gamePlayers game) @= playername
 	return (player,game)
-	where
-	myGetOne proxy = head . (toAscList proxy)
 
-$(makeAcidic ''CivState ['getPlayerGame])
+incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
+incTrade playername gamename trade = do
+	-- hier die Lens
+
+$(makeAcidic ''CivState [
+	'getPlayerGame,
+	'incTrade])
 

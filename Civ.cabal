@@ -23,7 +23,6 @@ library
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
-                     DisplayData
                      GameMonad
                      ExecutePlayerAction
                      Logic
@@ -94,6 +93,7 @@ library
                  , ixset
                  , safecopy
                  , mtl
+                 , data-lens-ixset
 
 executable         Civ
     if flag(library-only)

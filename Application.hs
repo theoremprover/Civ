@@ -52,7 +52,7 @@ emptyCivState = CivState
 		BoardTile Tile6 (Coors 0 12) True Westward,
 		BoardTile (Tile America) (Coors 4 12) True Northward ]
 		[
-			Player "Spieler Rot" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
+			Player (PlayerName "Spieler Rot") Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
 				TechCard CodeOfLaws TechLevelI (Coins 2),
 				TechCard HorsebackRiding TechLevelI (Coins 0),
 				TechCard AnimalHusbandry TechLevelI (Coins 0),
@@ -60,7 +60,7 @@ emptyCivState = CivState
 				TechCard Navigation TechLevelI (Coins 0),
 				TechCard Navy TechLevelI (Coins 0),
 				TechCard MonarchyTech TechLevelII (Coins 0) ],
-			Player "Spieler Blau" Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
+			Player (PlayerName "Spieler Blau") Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
 				TechCard CodeOfLaws TechLevelI (Coins 1),
 				TechCard HorsebackRiding TechLevelI (Coins 0),
 				TechCard AnimalHusbandry TechLevelI (Coins 0),

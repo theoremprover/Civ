@@ -11,8 +11,9 @@ User
     password Text Maybe
     verkey Text Maybe
     verified Bool
-    UniqueUser email
     participations (Map Text [Text])
+    UniqueUser email
+    deriving Typeable
     deriving Show
 
 Email

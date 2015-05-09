@@ -15,7 +15,6 @@ import Version
 
 import GameMonad
 import Model
-import DisplayData
 import ExecutePlayerAction
 
 playerActionField :: Field Handler PlayerAction

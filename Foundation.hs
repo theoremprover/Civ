@@ -14,11 +14,13 @@ import Network.Mail.Mime
 import qualified Data.Text.Lazy.Encoding
 import Text.Shakespeare.Text (stext)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
+import qualified Data.Map
 
-import Data.Acid
+import Data.Acid (AcidState(..))
 --import Data.SafeCopy
 
 import Model
+import Entities
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -136,7 +138,7 @@ instance YesodAuth App where
     redirectToReferer _ = True
 
     getAuthId creds = runDB $ do
-        x <- insertBy $ User (credsIdent creds) Nothing Nothing False Nothing Nothing
+        x <- insertBy $ User (credsIdent creds) Nothing Nothing False Data.Map.empty
         return $ Just $
             case x of
                 Left (Entity userid _) -> userid -- newly added user
@@ -150,7 +152,7 @@ instance YesodAuth App where
 instance YesodAuthEmail App where
     type AuthEmailId App = UserId
     afterPasswordRoute _ = HomeR
-    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False Nothing Nothing
+    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False Data.Map.empty
     sendVerifyEmail email _ verurl =
         liftIO $ renderSendMail (emptyMail $ Address Nothing "noreply")
             { mailTo = [Address Nothing email]
