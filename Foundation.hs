@@ -17,7 +17,6 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Data.Map
 
 import Data.Acid (AcidState(..))
---import Data.SafeCopy
 
 import Model
 import Entities

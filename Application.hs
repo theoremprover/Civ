@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Application
     ( getApplicationDev
     , appMain
@@ -28,21 +29,24 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
                                              toLogStr)
 
+import Data.Acid
+											 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Home
 
 import Model
+import Entities
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
 mkYesodDispatch "App" resourcesApp
 
-emptyCivState :: AcidState CivState
-emptyCivState = CivState
-	(Game "Testgame" [
+initialCivState :: CivState
+initialCivState = CivState [
+	Game (GameName "Testgame") [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -79,7 +83,7 @@ emptyCivState = CivState
 				TechCard MassMedia TechLevelIV (Coins 0),
 				TechCard SpaceFlight TechLevelV (Coins 0) ]
 			]
-		)
+		]
 
 -- | This function allocates resources (such as a database connection pool),
 -- performs initialization and return a foundation datatype value. This is also
@@ -95,7 +99,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
-	appCivAcid <- openLocalState emptyCivState
+    appCivAcid <- openLocalState initialCivState
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

@@ -90,10 +90,8 @@ library
                  , vector
                  , time
                  , acid-state
-                 , ixset
                  , safecopy
                  , mtl
-                 , data-lens-ixset
 
 executable         Civ
     if flag(library-only)

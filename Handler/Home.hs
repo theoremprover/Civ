@@ -8,6 +8,7 @@ import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
 import Data.Text(unpack)
 import Prelude(reads)
+import qualified Data.Map as Map
 
 import Data.Acid.Advanced
 
@@ -15,6 +16,9 @@ import Version
 
 import GameMonad
 import Model
+import Entities
+
+{-
 import ExecutePlayerAction
 
 playerActionField :: Field Handler PlayerAction
@@ -32,21 +36,24 @@ playerActionForm playeraction buttonname = [whamlet|
   <input type=hidden name=playeraction value="#{show playeraction}">
   <button>#{buttonname}
 |]
+-}
 
 getCivCredentials :: Handler (Player,Game,User)
 getCivCredentials = do
 	userid <- requireAuthId
 	user <- runDB $ get404 userid
 	App {..} <- getYesod
-	let ((gamename,playername:_):_) = Data.Map.toList $ userParticipations user
+	let ((gamename,playername:_):_) = Map.toList $ userParticipations user
 	(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
 	return (player,game,user)
 
 postHomeR :: Handler Html
 postHomeR = do
-	getAuthenticatedUser
+{-
+	requireAuthId
 	playeraction <- runInputPost $ ireq playerActionField "playeraction"
 	executePlayerAction playeraction
+-}
 	getHomeR
 
 getHomeR :: Handler Html

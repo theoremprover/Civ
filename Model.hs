@@ -5,13 +5,14 @@
 module Model where
 
 import Prelude
-import Data.IxSet ( Indexable(..), IxSet(..), (@=), ixFun, ixSet, getOne, Proxy(..) )
 import Data.Acid
 import Data.Data
-import Data.Ord
+import Data.Text (Text(..))
+--import Data.Ord
 import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 import Control.Monad.Reader
+import Data.List
 
 import Entities
 
@@ -80,10 +81,10 @@ $(deriveSafeCopy 0 'base ''Government)
 data BoardTile = BoardTile {
 	boardTileId :: TileID,
 	boardTileCoors :: Coors,
-	boardTileOrientation :: Orientation,
-	boardTileDiscovered :: Bool
+	boardTileDiscovered :: Bool,
+	boardTileOrientation :: Orientation
 	}
-	deriving (Data,Typeable)
+	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''BoardTile)
 
 data TechCard = TechCard {
@@ -91,11 +92,12 @@ data TechCard = TechCard {
 	techCardLevel :: TechLevel,
 	techCardCoins :: Coins
 	}
-	deriving (Data,Typeable)
+	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''TechCard)
 
-newtype PlayerName = PlayerName String
+newtype PlayerName = PlayerName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
+$(deriveSafeCopy 0 'base ''PlayerName)
 
 data Player = Player {
 	playerName :: PlayerName,
@@ -107,56 +109,54 @@ data Player = Player {
 	playerCoins :: Coins,
 	playerTechs :: [TechCard]
 	}
-	deriving (Data,Typeable)
+	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''Player)
 
-instance Indexable Player where
-	empty = ixSet
-		[ ixFun $ \ player -> [ playerName player ] ]
-
+{-
 instance Ord Player where
 	compare = comparing playerName
 instance Eq Player where
 	p1 == p2 = playerName p1 == playerName p2
+-}
 
-newtype GameName = GameName String
+newtype GameName = GameName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
+$(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
 	gameName :: GameName,
 	gameBoardTiles :: [BoardTile],
-	gamePlayers :: IxSet Player
+	gamePlayers :: [Player]
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
 
-instance Indexable Game where
-	empty = ixSet
-		[ ixFun $ \ game -> [ gameName game ] ]
-
+{-
 instance Ord Game where
 	compare = comparing gameName
 instance Eq Game where
 	g1 == g2 = gameName g1 == gameName g2
+-}
 
 data CivState = CivState {
-	civGames :: IxSet Game
+	civGames :: [Game]
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''CivState)
 
 --------------
 
-getPlayerGame :: PlayerName -> GameName -> Query CivState (Player,Game)
+getPlayerGame :: Text -> Text -> Query CivState (Player,Game)
 getPlayerGame playername gamename = do
 	CivState {..} <- ask
-	let Just game = getOne $ civGames @= gamename
-	let Just player = getOne $ (gamePlayers game) @= playername
+	let Just game = find ((==(GameName gamename)).gameName) civGames
+	let Just player = find ((==(PlayerName playername)).playerName) $ gamePlayers game
 	return (player,game)
 
-incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
+incTrade :: Text -> Text -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
 	-- hier die Lens
+	return ()
 
 $(makeAcidic ''CivState [
 	'getPlayerGame,
