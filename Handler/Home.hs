@@ -10,7 +10,7 @@ import Data.Text(unpack)
 import Prelude(reads)
 import qualified Data.Map as Map
 
-import Data.Acid.Advanced
+import Data.Acid
 
 import Version
 
@@ -38,27 +38,74 @@ playerActionForm playeraction buttonname = [whamlet|
 |]
 -}
 
-getCivCredentials :: Handler (Player,Game,User)
-getCivCredentials = do
+data UserSessionCredentials = UserSessionCredentials {
+	userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
+
+getUserSessionCredentials :: Handler UserSessionCredentials
+getUserSessionCredentials = do
 	userid <- requireAuthId
 	user <- runDB $ get404 userid
-	App {..} <- getYesod
-	let ((gamename,playername:_):_) = Map.toList $ userParticipations user
-	(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
-	return (player,game,user)
+	let mbgameplayer = case (lookupSession "game",lookupSession "player") of
+		(Just gamename,Just playername) -> Just (GameName gamename,PlayerName playername)
+		_ -> Nothing
+	return (userid,user,mbgameplayer)
 
+{-
+		[(gamename,[playername])] -> do
+			(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
+			return $ Just (player,game)
+	return (mbplayergame,user)
+-}
+
+{-
 postHomeR :: Handler Html
 postHomeR = do
-{-
 	requireAuthId
 	playeraction <- runInputPost $ ireq playerActionField "playeraction"
 	executePlayerAction playeraction
--}
 	getHomeR
+
+		App {..} <- getYesod
+-}
 
 getHomeR :: Handler Html
 getHomeR = do
-	(player,game,user) <- getCivCredentials
+	UserSessionCredentials {..} <- getUserSessionCredentials
+	App {..} <- getYesod
+	games <- query' appCivAcid GetGames
+
+	defaultLayout $ do
+		setTitle "Civ - Create, Join or Visit Game"
+		
+		[whamlet|
+<h1>Games
+  <table>
+    <tr>
+      <td>Name
+      <td>Status
+    $forall game <- games
+      
+|]
+
+postGameR :: Handler Html
+postGameR = do
+	UserSessionCredentials {..} <- getUserSessionCredentials
+	case mbplayergame of
+		Nothing -> getCreateJoinGameR
+		Just (player,game) -> do
+			defaultLayout $ do
+				setTitle "Civilization Boardgame"
+		{-
+				let playeractionform playerid player = playerActionForm
+					(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
+		-}
+				[whamlet|
+
+<h1>Civilization Boardgame
+<p> User: #{show user}
+<p> User: #{show player}
+|]
+
 
 {-
 	let myplayer = UniquePlayerName "Spieler Blau"
@@ -83,28 +130,3 @@ getHomeR = do
 	let game = appDataGame appdata
 	let players = appDataPlayers appdata
 -}
-	defaultLayout $ do
-		setTitle "Civilization Boardgame"
-{-
-		let playeractionform playerid player = playerActionForm
-			(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
--}
-		[whamlet|
-
-<h1>Civilization Boardgame
-<p> User: #{show user}
-<p> User: #{show player}
-
-^{footer}
-|]
-
-footer = [hamlet|
-<hr style="margin-bottom: 5px">
-<footer>
-  <small><table border=0 width="100%"><tr>
-    <td align=left>Civ #{cabalVersion}
-    <td align=center>GIT hash #{gitHash}
-    <td align=center>compiled #{compilationDateString}
-    <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_gif}>
-|]
-

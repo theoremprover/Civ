@@ -119,12 +119,17 @@ instance Eq Player where
 	p1 == p2 = playerName p1 == playerName p2
 -}
 
+data GameState = Waiting Int | Running | Finished
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy 0 'base ''GameState)
+
 newtype GameName = GameName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
 $(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
 	gameName :: GameName,
+	gameState :: GameState,
 	gameBoardTiles :: [BoardTile],
 	gamePlayers :: [Player]
 	}
@@ -146,7 +151,12 @@ $(deriveSafeCopy 0 'base ''CivState)
 
 --------------
 
-getPlayerGame :: Text -> Text -> Query CivState (Player,Game)
+getGames :: Query CivState [Game]
+getGames = do
+	CivState {..} <- ask
+	return civGames
+
+getPlayerGame :: Text -> Text -> Query CivState (Maybe (Player,Game))
 getPlayerGame playername gamename = do
 	CivState {..} <- ask
 	let Just game = find ((==(GameName gamename)).gameName) civGames
@@ -159,6 +169,7 @@ incTrade playername gamename trade = do
 	return ()
 
 $(makeAcidic ''CivState [
+	'getGames,
 	'getPlayerGame,
 	'incTrade])
 

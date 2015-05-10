@@ -46,7 +46,7 @@ mkYesodDispatch "App" resourcesApp
 
 initialCivState :: CivState
 initialCivState = CivState [
-	Game (GameName "Testgame") [
+	Game (GameName "Testgame") Running [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
