@@ -25,4 +25,3 @@
     <td align=center>GIT hash #{gitHash}
     <td align=center>compiled #{compilationDateString}
     <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_gif}>
-

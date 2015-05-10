@@ -156,12 +156,14 @@ getGames = do
 	CivState {..} <- ask
 	return civGames
 
+{-
 getPlayerGame :: Text -> Text -> Query CivState (Maybe (Player,Game))
 getPlayerGame playername gamename = do
 	CivState {..} <- ask
 	let Just game = find ((==(GameName gamename)).gameName) civGames
 	let Just player = find ((==(PlayerName playername)).playerName) $ gamePlayers game
-	return (player,game)
+	case return (player,game)
+-}
 
 incTrade :: Text -> Text -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
@@ -170,6 +172,5 @@ incTrade playername gamename trade = do
 
 $(makeAcidic ''CivState [
 	'getGames,
-	'getPlayerGame,
 	'incTrade])
 

@@ -38,18 +38,6 @@ playerActionForm playeraction buttonname = [whamlet|
 |]
 -}
 
-data UserSessionCredentials = UserSessionCredentials {
-	userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
-
-getUserSessionCredentials :: Handler UserSessionCredentials
-getUserSessionCredentials = do
-	userid <- requireAuthId
-	user <- runDB $ get404 userid
-	let mbgameplayer = case (lookupSession "game",lookupSession "player") of
-		(Just gamename,Just playername) -> Just (GameName gamename,PlayerName playername)
-		_ -> Nothing
-	return (userid,user,mbgameplayer)
-
 {-
 		[(gamename,[playername])] -> do
 			(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
@@ -70,7 +58,8 @@ postHomeR = do
 
 getHomeR :: Handler Html
 getHomeR = do
-	UserSessionCredentials {..} <- getUserSessionCredentials
+	requireAuthId
+
 	App {..} <- getYesod
 	games <- query' appCivAcid GetGames
 
@@ -82,9 +71,21 @@ getHomeR = do
   <table>
     <tr>
       <td>Name
-      <td>Status
+      <td>State
     $forall game <- games
-      
+      <tr>
+        <td>#{show (gameName game)}
+        <td>#{show (gameState game)}
+		<td>
+          $case gameState game
+            $of Waiting numplayers
+              $if (>) numplayers (length $ gamePlayers game)
+                Join game
+              $ else
+                Full
+			$of Running
+              Visit
+            $of Finished
 |]
 
 postGameR :: Handler Html

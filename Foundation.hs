@@ -18,6 +18,7 @@ import qualified Data.Map
 
 import Data.Acid (AcidState(..))
 
+import Version
 import Model
 import Entities
 
@@ -230,5 +231,17 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 
-yesodError :: String -> a
-yesodError msg = error msg
+-------------
+
+data UserSessionCredentials = UserSessionCredentials {
+	userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
+
+getUserSessionCredentials :: Handler UserSessionCredentials
+getUserSessionCredentials = do
+	mb_auth <- maybeAuth
+	return $ UserSessionCredentials $ case mb_auth of
+		Nothing -> Nothing
+		Just (Entity userid user) -> Just (userid,user,
+			case (lookupSession "game",lookupSession "player") of
+				(Just gamename,Just playername) -> Just (GameName gamename,PlayerName playername)
+				_ -> Nothing
