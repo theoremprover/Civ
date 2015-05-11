@@ -91,7 +91,6 @@ library
                  , time
                  , acid-state
                  , safecopy
-                 , lens
                  , mtl
 
 executable         Civ

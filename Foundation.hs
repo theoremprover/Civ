@@ -73,6 +73,8 @@ instance Yesod App where
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
+        UserSessionCredentials {..} <- getUserSessionCredentials
+
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
             $(widgetFile "default-layout")
@@ -234,14 +236,19 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -------------
 
 data UserSessionCredentials = UserSessionCredentials {
-	userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
+    userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
 
 getUserSessionCredentials :: Handler UserSessionCredentials
 getUserSessionCredentials = do
 	mb_auth <- maybeAuth
-	return $ UserSessionCredentials $ case mb_auth of
-		Nothing -> Nothing
-		Just (Entity userid user) -> Just (userid,user,
-			case (lookupSession "game",lookupSession "player") of
-				(Just gamename,Just playername) -> Just (GameName gamename,PlayerName playername)
-				_ -> Nothing
+	usercred <- case mb_auth of
+		Nothing -> return Nothing
+		Just (Entity userid user) -> do
+			mb_gamename <- lookupSession "game"
+			mb_playername <- lookupSession "player"
+			return $ Just (userid,user,
+				case (mb_gamename,mb_playername) of
+					(Just gamename,Just playername) ->
+						Just (GameName gamename,PlayerName playername)
+					_ -> Nothing)
+	return $ UserSessionCredentials usercred
