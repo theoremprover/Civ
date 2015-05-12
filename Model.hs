@@ -156,10 +156,6 @@ getGames = do
 	CivState {..} <- ask
 	return civGames
 
-getGamePlayer :: GameName -> PlayerName -> Query CivState (Game,Player)
-getGamePlayer gamename playername = do
-	
-
 {-
 getPlayerGame :: Text -> Text -> Query CivState (Maybe (Player,Game))
 getPlayerGame playername gamename = do

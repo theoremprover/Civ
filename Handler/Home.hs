@@ -13,6 +13,8 @@ import qualified Data.Map as Map
 import Data.Acid
 import Data.Acid.Advanced
 
+--import Yesod.Core.Handler
+
 import Version
 
 import GameMonad
@@ -94,8 +96,8 @@ postGameR = do
 	requireAuthId
 	usersessioncreds <- getUserSessionCredentials
 	case usersessioncreds of
-		Nothing -> redirect RedirectSeeOther $ AuthR LoginR
-		Just (_,_,Nothing) -> redirect RedirectSeeOther HomeR
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,_,Nothing) -> redirect HomeR
 		Just (userid,user,Just gameplayer) ->
 			defaultLayout $ do
 				setTitle "Civilization Boardgame"

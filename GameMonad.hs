@@ -3,6 +3,19 @@ module GameMonad where
 import Import
 
 import Model
+import Data.Acid
+import Data.Acid.Advanced
+
+getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
+getGamePlayer (gamename,playername) = do
+	App {..} <- getYesod
+	games <- query' appCivAcid getGames
+	case filter ((==gamename).gameName) games of
+		[game] -> case filter ((==playername).playerName) (gamePlayers game) of
+			[player] -> return $ Just (game,player)
+			_ -> return Nothing
+		_ -> return Nothing
+
 
 {-
 getGame :: User -> Handler Game
