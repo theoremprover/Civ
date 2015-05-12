@@ -9,7 +9,7 @@ import Data.Acid.Advanced
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do
 	App {..} <- getYesod
-	games <- query' appCivAcid getGames
+	games <- query' appCivAcid GetGames
 	case filter ((==gamename).gameName) games of
 		[game] -> case filter ((==playername).playerName) (gamePlayers game) of
 			[player] -> return $ Just (game,player)

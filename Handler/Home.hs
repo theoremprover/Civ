@@ -6,14 +6,13 @@ import Settings.StaticFiles
 import Import
 import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
-import Data.Text(unpack)
+import qualified Data.Text as Text
+
 import Prelude(reads)
 import qualified Data.Map as Map
 
 import Data.Acid
 import Data.Acid.Advanced
-
---import Yesod.Core.Handler
 
 import Version
 
@@ -46,18 +45,33 @@ playerActionForm playeraction buttonname = [whamlet|
 			(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
 			return $ Just (player,game)
 	return (mbplayergame,user)
--}
 
-{-
 postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
 	playeraction <- runInputPost $ ireq playerActionField "playeraction"
 	executePlayerAction playeraction
 	getHomeR
-
-		App {..} <- getYesod
 -}
+
+requireUserSessionCredentials :: Handler (UserId,User,Game,Player)
+requireUserSessionCredentials = do
+	requireAuthId
+	UserSessionCredentials creds <- getUserSessionCredentials
+	case creds of
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,_,Nothing) -> redirect HomeR
+		Just (userid,user,Just gameplayer) -> do
+			gp <- getGamePlayer gameplayer
+			case gp of
+				Nothing -> invalidArgs [Text.pack $ "Player/Game " ++ show gameplayer ++ " does not exist"]
+				Just (game,player) -> return (userid,user,game,player)
+
+
+postHomeR :: Handler Html
+postHomeR = do
+	(userid,user,game,player) <- requireUserSessionCredentials
+	
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -93,47 +107,12 @@ getHomeR = do
 
 postGameR :: Handler Html
 postGameR = do
-	requireAuthId
-	usersessioncreds <- getUserSessionCredentials
-	case usersessioncreds of
-		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing) -> redirect HomeR
-		Just (userid,user,Just gameplayer) ->
-			defaultLayout $ do
-				setTitle "Civilization Boardgame"
-				(game,player) <- getGamePlayer gameplayer
-		{-
-				let playeractionform playerid player = playerActionForm
-					(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"
-		-}
-				[whamlet|
+	(userid,user,game,player) <- requireUserSessionCredentials
+	defaultlayout $ do
+		setTitle "Civilization Boardgame"
+		[whamlet|
 
 <h1>Civilization Boardgame
 <p> User: #{show user}
 <p> User: #{show player}
 |]
-
-
-{-
-	let myplayer = UniquePlayerName "Spieler Blau"
-	(gameid,playerid :: PlayerId) <- runDB $ case userGame user of
-		Nothing -> do
-			let gamename = "testgame"
-			mb_game <- getBy $ UniqueGameName gamename
-			gid <- case mb_game of
-				Nothing -> createNewGame gamename
-				Just (Entity gid _) -> return gid
-			Entity pid _ <- getBy404 myplayer
-			update userid [ UserGame =. Just gid, UserPlayer =. Just pid ]
-			return (gid,pid)
-		Just gameid -> do
-			Entity pid _ <- getBy404 myplayer
-			return (gameid,pid)
-
-	appdata <- loadAppData gameid
-	displaydata <- loadDisplayData playerid 1.0
-
-	player <- runDB $ get playerid
-	let game = appDataGame appdata
-	let players = appDataPlayers appdata
--}
