@@ -71,7 +71,7 @@ requireUserSessionCredentials = do
 postHomeR :: Handler Html
 postHomeR = do
 	(userid,user,game,player) <- requireUserSessionCredentials
-	
+	requireJsonBody
 
 getHomeR :: Handler Html
 getHomeR = do
