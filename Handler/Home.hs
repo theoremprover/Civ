@@ -11,6 +11,7 @@ import Prelude(reads)
 import qualified Data.Map as Map
 
 import Data.Acid
+import Data.Acid.Advanced
 
 import Version
 
@@ -76,26 +77,29 @@ getHomeR = do
       <tr>
         <td>#{show (gameName game)}
         <td>#{show (gameState game)}
-		<td>
+        <td>
           $case gameState game
             $of Waiting numplayers
               $if (>) numplayers (length $ gamePlayers game)
                 Join game
-              $ else
+              $else
                 Full
-			$of Running
+            $of Running
               Visit
             $of Finished
 |]
 
 postGameR :: Handler Html
 postGameR = do
-	UserSessionCredentials {..} <- getUserSessionCredentials
-	case mbplayergame of
-		Nothing -> getCreateJoinGameR
-		Just (player,game) -> do
+	requireAuthId
+	usersessioncreds <- getUserSessionCredentials
+	case usersessioncreds of
+		Nothing -> redirect RedirectSeeOther $ AuthR LoginR
+		Just (_,_,Nothing) -> redirect RedirectSeeOther HomeR
+		Just (userid,user,Just gameplayer) ->
 			defaultLayout $ do
 				setTitle "Civilization Boardgame"
+				(game,player) <- getGamePlayer gameplayer
 		{-
 				let playeractionform playerid player = playerActionForm
 					(ChangeTrade playerid (playerTrade player) (playerTrade player + 5)) "Add 5 Trade"

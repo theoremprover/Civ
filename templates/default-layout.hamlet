@@ -9,7 +9,7 @@
     <td align=right>
       $case userSessionCredentials
         $of Nothing
-          <a href=@{AuthR}>Login
+          <a href=@{AuthR LoginR}>Login
         $of Just (_,user,_)
           Logged in as #{userEmail user}
 
