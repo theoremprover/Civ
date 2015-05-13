@@ -73,10 +73,11 @@ requireUserSessionCredentials = do
 postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
-	gameadminaction <- requireJsonBody
-	case gameadminaction of
-		CreateGame -> 
-		JoinGame ->
+	gameadminaction :: GameAdminAction <- requireJsonBody
+	defaultLayout $ do
+		[whamlet|
+<h1>#{show gameadminaction}
+|]
 
 getHomeR :: Handler Html
 getHomeR = do

@@ -13,6 +13,7 @@ import Data.Acid.Advanced
 data GameAdminAction =
 	CreateGame |
 	JoinGame
+	deriving Show
 
 $(deriveJSON id ''GameAdminAction)
 
