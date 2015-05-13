@@ -1,10 +1,20 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module GameMonad where
+
+import Data.Aeson.TH
 
 import Import
 
 import Model
 import Data.Acid
 import Data.Acid.Advanced
+
+data GameAdminAction =
+	CreateGame |
+	JoinGame
+
+$(deriveJSON id ''GameAdminAction)
 
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do

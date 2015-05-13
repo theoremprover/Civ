@@ -2,6 +2,8 @@
 
 module Handler.Home where
 
+import Data.Aeson
+
 import Settings.StaticFiles
 import Import
 import Database.Persist.Sql(fromSqlKey,toSqlKey)
@@ -70,8 +72,11 @@ requireUserSessionCredentials = do
 
 postHomeR :: Handler Html
 postHomeR = do
-	(userid,user,game,player) <- requireUserSessionCredentials
-	requireJsonBody
+	requireAuthId
+	gameadminaction <- requireJsonBody
+	case gameadminaction of
+		CreateGame -> 
+		JoinGame ->
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -108,7 +113,7 @@ getHomeR = do
 postGameR :: Handler Html
 postGameR = do
 	(userid,user,game,player) <- requireUserSessionCredentials
-	defaultlayout $ do
+	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		[whamlet|
 
