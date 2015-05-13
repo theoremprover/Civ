@@ -37,5 +37,5 @@ preConfHook args configflags = do
 	return emptyHookedBuildInfo
 
 postBuildHook args buildflags packagedesc localbuildinfo = do
-	ExitSuccess <- system "rm -rf state/CivState"
+	ExitSuccess <- system "rm -f state/CivState/open.lock"
 	return ()
