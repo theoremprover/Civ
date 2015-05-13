@@ -1,27 +1,32 @@
-<header>
-  <small><table border=0 width="100%"><tr>
-    <td align=left>Civilization Boardgame
-    <td align=center>
-      $case userSessionCredentials
-        $of Just (_,_,Just (gamename,playername))
-          #{show gamename}, #{show playername}
-        $of Nothing
-    <td align=right>
-      $case userSessionCredentials
-        $of Nothing
-          <a href=@{AuthR LoginR}>Login
-        $of Just (_,user,_)
-          Logged in as #{userEmail user}
+<table border=0 width="100%">
+  <tr>
+    <td>
+      <small><table border=0 width="100%"><tr>
+        <td align=left>Civilization Boardgame
+        <td align=center>
+          $case userSessionCredentials
+            $of Just (_,_,Just (gamename,playername))
+              #{show gamename}, #{show playername}
+            $of _
+        <td align=right>
+          $case userSessionCredentials
+            $of Nothing
+              <a href=@{AuthR LoginR}>Login
+            $of Just (_,user,_)
+              Logged in as #{userEmail user}
 
-<hr style="margin-top: 5px">
+  <tr><td><hr style="margin-top: 5px" width="100%">
 
-^{widget}
+  <tr>
+    <td>
+      ^{widget}
 
-<hr style="margin-bottom: 5px">
+  <tr>
+    <td>
+      <hr style="margin-bottom: 5px" width="100%">
 
-<footer>
-  <small><table border=0 width="100%"><tr>
-    <td align=left>Civ #{cabalVersion}
-    <td align=center>GIT hash #{gitHash}
-    <td align=center>compiled #{compilationDateString}
-    <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_gif}>
+      <small><table border=0 width="100%"><tr>
+        <td align=left>Civ #{cabalVersion}
+        <td align=center>GIT hash #{gitHash}
+        <td align=center>compiled #{compilationDateString}
+        <td align=right>Powered by Haskell Yesod <img src=@{StaticR _Yesod_gif}>

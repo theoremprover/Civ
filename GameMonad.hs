@@ -15,7 +15,7 @@ data GameAdminAction =
 	JoinGame
 	deriving Show
 
-$(deriveJSON id ''GameAdminAction)
+deriveJSON defaultOptions ''GameAdminAction
 
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do

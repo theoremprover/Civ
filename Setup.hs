@@ -1,14 +1,16 @@
 import Distribution.Simple
 import Distribution.Simple.Utils (info)
 import Distribution.Simple.PreProcess
---import Distribution.PackageDescription (emptyHookedBuildInfo)
+import Distribution.PackageDescription (emptyHookedBuildInfo)
 import Data.List.Utils
 import Data.Time
 import System.Exit
 import System.Process
 
 main = defaultMainWithHooks $ simpleUserHooks {
-	hookedPreProcessors = [("preversion",preversionPreprocessor)] }
+	hookedPreProcessors = [("preversion",preversionPreprocessor)],
+	preConf = preConfHook,
+	postBuild = postBuildHook }
 
 preversionPreprocessor buildinfo localbuildinfo = PreProcessor {
 	platformIndependent = True,
@@ -29,3 +31,11 @@ preprocessPreversion infile outfile = do
 	writeFile outfile $ foldl (\ s (old,new) -> replace old new s) file0 $ [
 		("<compilationDateString>",show compdate),
 		("<gitHash>",head $ lines githash) ]
+
+preConfHook args configflags = do
+	ExitSuccess <- system "touch Version.preversion"
+	return emptyHookedBuildInfo
+
+postBuildHook args buildflags packagedesc localbuildinfo = do
+	ExitSuccess <- system "rm -rf state/CivState"
+	return ()

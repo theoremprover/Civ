@@ -91,24 +91,31 @@ getHomeR = do
 		
 		[whamlet|
 <h1>Games
-  <table>
+<table border=1 cellspacing=10>
+  $forall game <- games
     <tr>
-      <td>Name
-      <td>State
-    $forall game <- games
-      <tr>
-        <td>#{show (gameName game)}
-        <td>#{show (gameState game)}
-        <td>
-          $case gameState game
-            $of Waiting numplayers
-              $if (>) numplayers (length $ gamePlayers game)
-                Join game
-              $else
-                Full
-            $of Running
-              Visit
-            $of Finished
+      <td>#{show (gameName game)}
+      <td>#{show (gameState game)}
+      <td>
+        $case gameState game
+          $of Waiting numplayers
+            $if (>) numplayers (length $ gamePlayers game)
+              <button onclick="joinGame('#{show $ gameName game}')">Join game
+            $else
+              Full
+          $of Running
+            <button onclick="visitGame('#{show $ gameName game}')">Visit
+          $of Finished
+|]
+		toWidget [julius|
+function joinGame(gamename)
+{
+  alert("join "+gamename);
+}
+function visitGame(gamename)
+{
+  alert("visit "+gamename);
+}
 |]
 
 postGameR :: Handler Html
