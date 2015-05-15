@@ -83,8 +83,9 @@ getHomeR :: Handler Html
 getHomeR = do
 	requireAuthId
 
-	App {..} <- getYesod
+	app@(App {..}) <- getYesod
 	games <- query' appCivAcid GetGames
+	let baseurl = approot app
 
 	defaultLayout $ do
 		setTitle "Civ - Create, Join or Visit Game"
@@ -100,21 +101,21 @@ getHomeR = do
         $case gameState game
           $of Waiting numplayers
             $if (>) numplayers (length $ gamePlayers game)
-              <button onclick="joinGame('#{show $ gameName game}')">Join game
+              <button onclick="sgaa('#{toJSON $ JoinGame (gameName game)}')">Join game
             $else
               Full
           $of Running
-            <button onclick="visitGame('#{show $ gameName game}')">Visit
+            <button onclick="">Visit
           $of Finished
 |]
 		toWidget [julius|
-function joinGame(gamename)
+
+function sgaa(gameadminaction_str)
 {
-  alert("join "+gamename);
-}
-function visitGame(gamename)
-{
-  alert("visit "+gamename);
+  xmlhttp = new XMLHttpRequest();
+  xmlhttp.open("POST",@{HomeR}, true);
+  xmlhttp.setRequestHeader("Content-type","application/json");
+  xmlhttp.send(gameadminaction_str);
 }
 |]
 

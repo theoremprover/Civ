@@ -11,8 +11,8 @@ import Data.Acid
 import Data.Acid.Advanced
 
 data GameAdminAction =
-	CreateGame |
-	JoinGame
+	CreateGame GameName |
+	JoinGame GameName
 	deriving Show
 
 deriveJSON defaultOptions ''GameAdminAction
