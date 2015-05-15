@@ -119,7 +119,7 @@ instance Eq Player where
 	p1 == p2 = playerName p1 == playerName p2
 -}
 
-data GameState = Waiting Int | Running | Finished
+data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy 0 'base ''GameState)
 
@@ -135,6 +135,8 @@ data Game = Game {
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
+
+emptyGame = Game (GameName "<No Name>") Waiting [] []
 
 {-
 instance Ord Game where

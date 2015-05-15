@@ -31,7 +31,7 @@ library
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
-        ghc-options:   -w -O0
+        ghc-options:   -w -O0 
     else
         ghc-options:   -w -O2
 
@@ -138,3 +138,7 @@ test-suite test
                  , hspec >= 2.0.0
                  , classy-prelude
                  , classy-prelude-yesod
+
+source-repository head
+    type: git
+    location: git://github.com/theoremprover/Civ.git

@@ -22,40 +22,6 @@ import GameMonad
 import Model
 import Entities
 
-{-
-import ExecutePlayerAction
-
-playerActionField :: Field Handler PlayerAction
-playerActionField = Field {
-	fieldParse = \ raws _fileVals -> return $ case Prelude.reads (concatMap Data.Text.unpack raws) of
-		[(playeraction,_)] -> Right $ Just playeraction
-		_ -> Left $ fromString ("Could not parse as PlayerAction: " ++ show raws),
-	fieldView = undefined,
-	fieldEnctype = UrlEncoded
-	}
-
-playerActionForm :: PlayerAction -> String -> Widget
-playerActionForm playeraction buttonname = [whamlet|
-<form action=@{HomeR} method=post>
-  <input type=hidden name=playeraction value="#{show playeraction}">
-  <button>#{buttonname}
-|]
--}
-
-{-
-		[(gamename,[playername])] -> do
-			(player,game) <- query' appCivAcid (GetPlayerGame gamename playername)
-			return $ Just (player,game)
-	return (mbplayergame,user)
-
-postHomeR :: Handler Html
-postHomeR = do
-	requireAuthId
-	playeraction <- runInputPost $ ireq playerActionField "playeraction"
-	executePlayerAction playeraction
-	getHomeR
--}
-
 requireUserSessionCredentials :: Handler (UserId,User,Game,Player)
 requireUserSessionCredentials = do
 	requireAuthId
@@ -68,7 +34,6 @@ requireUserSessionCredentials = do
 			case gp of
 				Nothing -> invalidArgs [Text.pack $ "Player/Game " ++ show gameplayer ++ " does not exist"]
 				Just (game,player) -> return (userid,user,game,player)
-
 
 postHomeR :: Handler Html
 postHomeR = do
@@ -83,9 +48,8 @@ getHomeR :: Handler Html
 getHomeR = do
 	requireAuthId
 
-	app@(App {..}) <- getYesod
+	App {..} <- getYesod
 	games <- query' appCivAcid GetGames
-	let baseurl = approot app
 
 	defaultLayout $ do
 		setTitle "Civ - Create, Join or Visit Game"
@@ -99,11 +63,8 @@ getHomeR = do
       <td>#{show (gameState game)}
       <td>
         $case gameState game
-          $of Waiting numplayers
-            $if (>) numplayers (length $ gamePlayers game)
-              <button onclick="sgaa('#{toJSON $ JoinGame (gameName game)}')">Join game
-            $else
-              Full
+          $of Waiting
+            <button onclick="sgaa(#{show $ encode $ JoinGame (gameName game)})">Join game
           $of Running
             <button onclick="">Visit
           $of Finished
@@ -113,7 +74,7 @@ getHomeR = do
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
-  xmlhttp.open("POST",@{HomeR}, true);
+  xmlhttp.open("POST",'@{HomeR}', true);
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.send(gameadminaction_str);
 }
