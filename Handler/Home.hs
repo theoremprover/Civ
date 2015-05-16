@@ -76,6 +76,11 @@ function sgaa(gameadminaction_str)
   xmlhttp = new XMLHttpRequest();
   xmlhttp.open("POST",'@{HomeR}', true);
   xmlhttp.setRequestHeader("Content-type","application/json");
+  xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    {
+        ;
+    }
   xmlhttp.send(gameadminaction_str);
 }
 |]

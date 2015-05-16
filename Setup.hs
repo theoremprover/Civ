@@ -9,7 +9,7 @@ import System.Process
 
 main = defaultMainWithHooks $ simpleUserHooks {
 	hookedPreProcessors = [("preversion",preversionPreprocessor)],
-	preConf = preConfHook,
+	preBuild = preBuildHook,
 	postBuild = postBuildHook }
 
 preversionPreprocessor buildinfo localbuildinfo = PreProcessor {
@@ -32,7 +32,7 @@ preprocessPreversion infile outfile = do
 		("<compilationDateString>",show compdate),
 		("<gitHash>",head $ lines githash) ]
 
-preConfHook args configflags = do
+preBuildHook args configflags = do
 	ExitSuccess <- system "touch Version.preversion"
 	return emptyHookedBuildInfo
 
