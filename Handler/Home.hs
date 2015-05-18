@@ -69,8 +69,8 @@ getHomeR = do
             <button onclick="">Visit
           $of Finished
 |]
-		toWidget [julius|
 
+		toWidget [julius|
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
@@ -79,8 +79,9 @@ function sgaa(gameadminaction_str)
   xmlhttp.onreadystatechange = function() {
     if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
     {
-        ;
+      document.write(xmlhttp.responseText);
     }
+  }
   xmlhttp.send(gameadminaction_str);
 }
 |]
