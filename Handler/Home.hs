@@ -46,7 +46,7 @@ postHomeR = do
 
 getHomeR :: Handler Html
 getHomeR = do
-	usersesscred <- getUserSessionCredentials
+	UserSessionCredentials usersesscred <- getUserSessionCredentials
 	case usersesscred of
 		Nothing -> redirect $ AuthR LoginR
 		Just (_,user,_) -> do
