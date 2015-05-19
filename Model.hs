@@ -8,7 +8,6 @@ import Prelude
 import Data.Acid
 import Data.Data
 import Data.Text (Text(..))
---import Data.Ord
 import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 import Control.Monad.Reader
@@ -18,7 +17,6 @@ import Entities
 
 import qualified Data.Ix as Ix
 
---newtype PlayerIndex = PlayerIndex Int deriving (Show,Read)
 data Coors = Coors Int Int deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Coors)
 
@@ -128,6 +126,7 @@ newtype GameName = GameName Text
 $(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
+	gameCreator :: Maybe UserName,
 	gameName :: GameName,
 	gameState :: GameState,
 	gameBoardTiles :: [BoardTile],
@@ -136,7 +135,7 @@ data Game = Game {
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
 
-emptyGame = Game (GameName "<No Name>") Waiting [] []
+emptyGame = Game Nothing (GameName "<No Name>") Waiting [] []
 
 {-
 instance Ord Game where

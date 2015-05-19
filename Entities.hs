@@ -4,10 +4,12 @@ import ClassyPrelude.Yesod
 import Database.Persist.Quasi
 import Data.Map
 
+type UserName = Text
+
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
 User
-    email Text
+    email UserName
     password Text Maybe
     verkey Text Maybe
     verified Bool

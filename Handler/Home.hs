@@ -46,15 +46,20 @@ postHomeR = do
 
 getHomeR :: Handler Html
 getHomeR = do
-	requireAuthId
+	usersesscred <- getUserSessionCredentials
+	case usersesscred of
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,user,_) -> do
+			let username = emailUser user
 
-	App {..} <- getYesod
-	games <- query' appCivAcid GetGames
+			App {..} <- getYesod
+			games <- query' appCivAcid GetGames
 
-	defaultLayout $ do
-		setTitle "Civ - Create, Join or Visit Game"
-		
-		[whamlet|
+			defaultLayout $ do
+				setTitle "Civ - Create, Join or Visit Game"
+				
+				sendJSONJulius HomeR
+				[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
   $forall game <- games
@@ -66,15 +71,19 @@ getHomeR = do
           $of Waiting
             <button onclick="sgaa(#{show $ encode $ JoinGame (gameName game)})">Join game
           $of Running
-            <button onclick="">Visit
+            <button onclick="sgaa(#{show $ encode $ VisitGame (gameName game)})">Visit
           $of Finished
+      <td>
+        $if gameCreator game == username
+          <button onclick="sgaa(#{show $ encode $ StartGame (gameName game)})">Start Game
+        $else
 |]
 
-		toWidget [julius|
+sendJSONJulius target = toWidget [julius|
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
-  xmlhttp.open("POST",'@{HomeR}', true);
+  xmlhttp.open("POST",'@{target}', true);
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.onreadystatechange = function() {
     if (xmlhttp.readyState == 4 && xmlhttp.status == 200)

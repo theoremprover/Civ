@@ -12,7 +12,9 @@ import Data.Acid.Advanced
 
 data GameAdminAction =
 	CreateGame GameName |
-	JoinGame GameName
+	JoinGame GameName |
+	VisitGame GameName |
+	StartGame GameName
 	deriving Show
 
 deriveJSON defaultOptions ''GameAdminAction
@@ -33,7 +35,7 @@ getGamePlayer (gamename,playername) = do
 
 initialCivState :: CivState
 initialCivState = CivState [
-	Game (GameName "Testgame") Running [
+	Game Nothing (GameName "Testgame") Running [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -71,7 +73,7 @@ initialCivState = CivState [
 				TechCard SpaceFlight TechLevelV (Coins 0) ]
 			],
 
-	Game (GameName "Testgame 2") Waiting [
+	Game (Just "public@thinking-machines.net") (GameName "Testgame 2") Waiting [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
