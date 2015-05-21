@@ -50,7 +50,7 @@ getHomeR = do
 	case usersesscred of
 		Nothing -> redirect $ AuthR LoginR
 		Just (_,user,_) -> do
-			let username = emailUser user
+			let email = userEmail user
 
 			App {..} <- getYesod
 			games <- query' appCivAcid GetGames
@@ -69,15 +69,19 @@ getHomeR = do
       <td>
         $case gameState game
           $of Waiting
-            <button onclick="sgaa(#{show $ encode $ JoinGame (gameName game)})">Join game
+            <button onclick=#{onclickHandler $ JoinGame (gameName game)}>Join game
           $of Running
-            <button onclick="sgaa(#{show $ encode $ VisitGame (gameName game)})">Visit
+            <button onclick=#{onclickHandler $ VisitGame (gameName game)}>Visit
           $of Finished
       <td>
-        $if gameCreator game == username
-          <button onclick="sgaa(#{show $ encode $ StartGame (gameName game)})">Start Game
+        $if gameCreator game == Just email
+          <button onclick=#{onclickHandler $ StartGame (gameName game)}>Start Game
         $else
 |]
+
+onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
+
+toJSONString jsonobject = show $ encode jsonobject
 
 sendJSONJulius target = toWidget [julius|
 function sgaa(gameadminaction_str)
@@ -90,6 +94,7 @@ function sgaa(gameadminaction_str)
     {
       document.write(xmlhttp.responseText);
     }
+	else alert("readyState="+xmlhttp.readyState+", status="+xmlhttp.status);
   }
   xmlhttp.send(gameadminaction_str);
 }
