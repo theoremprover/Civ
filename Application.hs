@@ -21,7 +21,7 @@ import Language.Haskell.TH.Syntax           (qLocation)
 import Network.Wai.Handler.Warp             (Settings, defaultSettings,
                                              defaultShouldDisplayException,
                                              runSettings, setHost,
-                                             setOnException, setPort, getPort)
+                                             setOnException, setPort, getPort, setInstallShutdownHandler)
 import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              IPAddrSource (..),
                                              OutputFormat (..), destination,
@@ -30,7 +30,8 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
                                              toLogStr)
 
 import Data.Acid
-											 
+import System.Posix.Signals (installHandler,Handler(..),sigINT,sigTERM)
+			 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
@@ -102,9 +103,10 @@ makeApplication foundation = do
 -- | Warp settings for the given foundation value.
 warpSettings :: App -> Settings
 warpSettings foundation =
-      setPort (appPort $ appSettings foundation)
-    $ setHost (appHost $ appSettings foundation)
-    $ setOnException (\_req e ->
+    setInstallShutdownHandler (warpShutdownHandler foundation) $
+    setPort (appPort $ appSettings foundation) $
+    setHost (appHost $ appSettings foundation) $
+    setOnException (\_req e ->
         when (defaultShouldDisplayException e) $ messageLoggerSource
             foundation
             (appLogger foundation)
@@ -113,6 +115,17 @@ warpSettings foundation =
             LevelError
             (toLogStr $ "Exception from Warp: " ++ show e))
       defaultSettings
+
+warpShutdownHandler :: App -> IO () -> IO ()
+warpShutdownHandler app shutdownaction = do
+	forM [sigINT,sigTERM] $ \ sig -> do
+		installHandler sig (Catch checkpoint_handler) Nothing
+	return ()
+	where
+	checkpoint_handler = do
+		putStrLn "checkpoint_handler"
+		createCheckpoint $ appCivAcid app
+		shutdownaction
 
 -- | For yesod devel, return the Warp settings and WAI Application.
 getApplicationDev :: IO (Settings, Application)
@@ -171,7 +184,7 @@ shutdownApp _ = return ()
 ---------------------------------------------
 
 -- | Run a handler
-handler :: Handler a -> IO a
+handler :: Import.Handler a -> IO a
 handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
 
 -- | Run DB queries
