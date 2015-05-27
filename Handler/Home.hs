@@ -38,11 +38,8 @@ requireUserSessionCredentials = do
 postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
-	gameadminaction :: GameAdminAction <- requireJsonBody
-	defaultLayout $ do
-		[whamlet|
-<h1>#{show gameadminaction}
-|]
+	requireJsonBody >>= executeGameAdminAction
+	postGameR
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -77,6 +74,11 @@ getHomeR = do
         $if gameCreator game == Just email
           <button onclick=#{onclickHandler $ StartGame (gameName game)}>Start Game
         $else
+
+  <table>
+    <tr>
+      <td><input id="newgamename" type=text size=20>
+      <td><button onclick="createGame()">Create game
 |]
 
 onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
@@ -98,10 +100,22 @@ function sgaa(gameadminaction_str)
   }
   xmlhttp.send(gameadminaction_str);
 }
+
+function createGame()
+{
+  var gamename = document.getElementById("newgamename").value; 
+  var cga = {"tag":"CreateGame","contents":gamename};
+  sgaa(JSON.stringify(cga));
+}
+
 |]
 
 postGameR :: Handler Html
 postGameR = do
+	displayGame
+
+displayGame :: Handler Html
+displayGame = do
 	(userid,user,game,player) <- requireUserSessionCredentials
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
@@ -111,6 +125,6 @@ postGameR = do
 <p> User: #{show user}
 <p> Player: #{show player}
 <ul>
-  $forall p <- gamePlayers players
-    <li>#{p.playerName}: #{show (playerTrade p)}
+  $forall p <- gamePlayers game
+    <li>#{show $ playerName p}: #{show $ playerTrade p}
 |]

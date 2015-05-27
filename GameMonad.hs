@@ -93,3 +93,17 @@ initialCivState = CivState [
 			]
 
 		]
+
+-----
+
+executeGameAdminAction :: GameAdminAction -> Handler ()
+executeGameAdminAction gaa = do
+	case gaa of
+		CreateGame gamename -> do
+			return ()
+		JoinGame gamename -> do
+			return ()
+		VisitGame gamename -> do
+			return ()
+		StartGame gamename -> do
+			return ()
