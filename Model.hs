@@ -137,13 +137,6 @@ $(deriveSafeCopy 0 'base ''Game)
 
 emptyGame = Game Nothing (GameName "<No Name>") Waiting [] []
 
-{-
-instance Ord Game where
-	compare = comparing gameName
-instance Eq Game where
-	g1 == g2 = gameName g1 == gameName g2
--}
-
 data CivState = CivState {
 	civGames :: [Game]
 	}

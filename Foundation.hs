@@ -235,13 +235,6 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
 -------------
 
-{-
-getCivAcid :: Handler (AcidState CivState)
-getCivAcid = do
-	App {..} <- getYesod
-	return appCivAcid
--}
-
 data UserSessionCredentials = UserSessionCredentials {
     userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
 

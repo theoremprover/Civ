@@ -109,5 +109,8 @@ postGameR = do
 
 <h1>Civilization Boardgame
 <p> User: #{show user}
-<p> User: #{show player}
+<p> Player: #{show player}
+<ul>
+  $forall p <- gamePlayers players
+    <li>#{p.playerName}: #{show (playerTrade p)}
 |]

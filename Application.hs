@@ -123,9 +123,12 @@ warpShutdownHandler app shutdownaction = do
 	return ()
 	where
 	checkpoint_handler = do
-		putStrLn "checkpoint_handler"
-		createCheckpoint $ appCivAcid app
+		warpShutdownAction app
 		shutdownaction
+
+warpShutdownAction app = do
+	putStrLn "warpShutdownAction"
+	createCheckpoint $ appCivAcid app
 
 -- | For yesod devel, return the Warp settings and WAI Application.
 getApplicationDev :: IO (Settings, Application)
@@ -163,6 +166,7 @@ appMain = do
     -- Run the application with Warp
     runSettings (warpSettings foundation) app
 
+    warpShutdownAction foundation
 
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)
@@ -176,7 +180,9 @@ getApplicationRepl = do
     return (getPort wsettings, foundation, app1)
 
 shutdownApp :: App -> IO ()
-shutdownApp _ = return ()
+shutdownApp app = do
+	warpShutdownAction app
+	return ()
 
 
 ---------------------------------------------
