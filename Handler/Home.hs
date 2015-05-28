@@ -39,7 +39,7 @@ postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
 	requireJsonBody >>= executeGameAdminAction
-	postGameR
+	displayGame
 
 getHomeR :: Handler Html
 getHomeR = do
