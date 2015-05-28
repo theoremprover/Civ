@@ -56,6 +56,7 @@ getHomeR = do
 				setTitle "Civ - Create, Join or Visit Game"
 				
 				sendJSONJulius HomeR
+
 				[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
@@ -86,6 +87,7 @@ onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
 toJSONString jsonobject = show $ encode jsonobject
 
 sendJSONJulius target = toWidget [julius|
+
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
@@ -96,7 +98,6 @@ function sgaa(gameadminaction_str)
     {
       document.write(xmlhttp.responseText);
     }
-	else alert("readyState="+xmlhttp.readyState+", status="+xmlhttp.status);
   }
   xmlhttp.send(gameadminaction_str);
 }
@@ -120,7 +121,6 @@ displayGame = do
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		[whamlet|
-
 <h1>Civilization Boardgame
 <p> User: #{show user}
 <p> Player: #{show player}
