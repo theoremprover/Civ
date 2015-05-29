@@ -38,7 +38,7 @@ requireUserSessionCredentials = do
 postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
-	requireJsonBody >>= executeGameAdminAction
+--	requireJsonBody >>= executeGameAdminAction
 	displayGame
 
 getHomeR :: Handler Html
@@ -94,8 +94,10 @@ function sgaa(gameadminaction_str)
   xmlhttp.open("POST",'@{target}', true);
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    //alert("readyState="+xmlhttp.readyState+", status="+xmlhttp.status);
+    if (xmlhttp.readyState == XMLHttpRequest.DONE && xmlhttp.status == 200)
     {
+      alert(xmlhttp.responseText);
       document.write(xmlhttp.responseText);
     }
   }
