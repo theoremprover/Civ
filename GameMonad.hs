@@ -33,9 +33,12 @@ getGamePlayer (gamename,playername) = do
 
 --------
 
+newGame :: Game
+newGame creator name = Game creator name Waiting Nothing []
+
 initialCivState :: CivState
 initialCivState = CivState [
-	Game Nothing (GameName "Testgame") Running [
+	Game "public@thinking-machines.net" (GameName "Testgame") Running [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -73,7 +76,7 @@ initialCivState = CivState [
 				TechCard SpaceFlight TechLevelV (Coins 0) ]
 			],
 
-	Game (Just "public@thinking-machines.net") (GameName "Testgame 2") Waiting [
+	Game "public@thinking-machines.net" (GameName "Testgame 2") Waiting [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -93,8 +96,6 @@ initialCivState = CivState [
 			]
 
 		]
-
------
 
 executeGameAdminAction :: GameAdminAction -> Handler ()
 executeGameAdminAction gaa = do
