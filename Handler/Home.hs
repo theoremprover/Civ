@@ -13,9 +13,6 @@ import qualified Data.Text as Text
 import Prelude(reads)
 import qualified Data.Map as Map
 
-import Data.Acid
-import Data.Acid.Advanced
-
 import Version
 
 import GameMonad
@@ -50,8 +47,7 @@ getHomeR = do
 		Just (_,user,_) -> do
 			let email = userEmail user
 
-			App {..} <- getYesod
-			games <- query' appCivAcid GetGames
+			games <- queryCiv GetGames
 
 			defaultLayout $ do
 				setTitle "Civ - Create, Join or Visit Game"

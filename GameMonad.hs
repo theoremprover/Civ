@@ -33,6 +33,16 @@ getGamePlayer (gamename,playername) = do
 
 --------
 
+queryCiv event = do
+	app <- getYesod
+	query' (appCivAcid app) event
+
+updateCiv event = do
+	app <- getYesod
+	update' (appCivAcid app) event
+
+--------
+
 newGame :: Game
 newGame creator name = Game creator name Waiting Nothing []
 
@@ -97,10 +107,19 @@ initialCivState = CivState [
 
 		]
 
-executeGameAdminAction :: GameAdminAction -> Handler ()
+requireLoggedIn :: Handler UserName
+requireLoggedIn = do
+	Entity userid user <- requireAuth
+	return user
+
+executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
+	user <- requireLoggedIn
 	case gaa of
 		CreateGame gamename -> do
+			ret <- updateCiv $ CreateNewGame gamename user
+			case ret of
+			
 			return ()
 		JoinGame gamename -> do
 			return ()

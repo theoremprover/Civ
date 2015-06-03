@@ -9,7 +9,7 @@ type UserName = Text
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 
 User
-    email UserName
+    email Text
     password Text Maybe
     verkey Text Maybe
     verified Bool

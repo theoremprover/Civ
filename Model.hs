@@ -11,7 +11,9 @@ import Data.Text (Text(..))
 import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.List
+import Control.Lens
 
 import Entities
 
@@ -84,6 +86,7 @@ data BoardTile = BoardTile {
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''BoardTile)
+makeLenses ''BoardTile
 
 data TechCard = TechCard {
 	techCardTechId :: Tech,
@@ -109,6 +112,7 @@ data Player = Player {
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''Player)
+makeLenses ''Player
 
 {-
 instance Ord Player where
@@ -126,22 +130,22 @@ newtype GameName = GameName Text
 $(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
-	gameCreator :: Maybe UserName,
+	gameCreator :: UserName,
 	gameName :: GameName,
 	gameState :: GameState,
-	gameBoardTiles :: [BoardTile],
+	gameBoardTiles :: Maybe [BoardTile],
 	gamePlayers :: [Player]
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
-
-emptyGame = Game Nothing (GameName "<No Name>") Waiting [] []
+makeLenses ''Game
 
 data CivState = CivState {
 	civGames :: [Game]
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''CivState)
+makeLenses ''CivState
 
 --------------
 
@@ -150,12 +154,17 @@ getGames = do
 	CivState {..} <- ask
 	return civGames
 
-incTrade :: Text -> Text -> Trade -> Update CivState ()
+incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
 	-- hier die Lens
 	return ()
 
+createNewGame :: GameName -> UserName -> Update CivState Bool
+createNewGame gamename username = do
+	modify $ 
+
 $(makeAcidic ''CivState [
 	'getGames,
-	'incTrade])
+	'createNewGame,
+	'incTrade ])
 
