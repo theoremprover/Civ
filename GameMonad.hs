@@ -44,8 +44,8 @@ updateCiv event = do
 --------
 
 initialCivState :: CivState
-initialCivState = CivState [
-	Game "public@thinking-machines.net" (GameName "Testgame") Running [
+initialCivState = CivState $ Map.fromList [
+	(GameName "testgame",Game "public@thinking-machines.net" Running [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -81,9 +81,9 @@ initialCivState = CivState [
 				TechCard Computers TechLevelIV (Coins 0),
 				TechCard MassMedia TechLevelIV (Coins 0),
 				TechCard SpaceFlight TechLevelV (Coins 0) ]
-			],
+			]),
 
-	Game "public@thinking-machines.net" (GameName "Testgame 2") Waiting [
+	(GameName "Testgame 2", Game "public@thinking-machines.net" Waiting [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -101,8 +101,8 @@ initialCivState = CivState [
 				TechCard Navigation TechLevelI (Coins 0),
 				TechCard Navy TechLevelI (Coins 0) ]
 			]
-
-		]
+		)
+	]
 
 requireLoggedIn :: Handler UserName
 requireLoggedIn = do

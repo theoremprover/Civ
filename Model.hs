@@ -140,13 +140,13 @@ data Game = Game {
 $(deriveSafeCopy 0 'base ''Game)
 makeLenses ''Game
 
-newGame :: Game
-newGame creator name = Game creator name Waiting Nothing []
+newGame :: UserName -> Game
+newGame creator = Game creator Waiting Nothing []
 
 type Games = Map.Map GameName Game
 
 data CivState = CivState {
-	civGames :: Games
+	_civGames :: Games
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''CivState)
@@ -156,8 +156,7 @@ makeLenses ''CivState
 
 getGames :: Query CivState Games
 getGames = do
-	CivState {..} <- ask
-	return civGames
+	asks $ view civGames
 
 incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
@@ -166,11 +165,11 @@ incTrade playername gamename trade = do
 
 createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
 createNewGame gamename username = do
-	games <- gets civGames
-	case Map.lookup gamename games of
+	civstate <- get
+	case view (civGames .(at gamename)) civstate of
 		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
 		Nothing -> do
-			modify $ over civGames $ Map.insert (newGame username gamename)
+--			modify $ gamesL . (at gamename .~ (Just $ newGame username))
 			return Nothing
 
 $(makeAcidic ''CivState [
