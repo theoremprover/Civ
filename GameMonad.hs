@@ -43,9 +43,6 @@ updateCiv event = do
 
 --------
 
-newGame :: Game
-newGame creator name = Game creator name Waiting Nothing []
-
 initialCivState :: CivState
 initialCivState = CivState [
 	Game "public@thinking-machines.net" (GameName "Testgame") Running [
@@ -117,9 +114,7 @@ executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
 		CreateGame gamename -> do
-			ret <- updateCiv $ CreateNewGame gamename user
-			case ret of
-			
+			updateCiv $ CreateNewGame gamename user
 			return ()
 		JoinGame gamename -> do
 			return ()

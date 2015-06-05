@@ -14,6 +14,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.List
 import Control.Lens
+import qualified Data.Map as Map
 
 import Entities
 
@@ -131,7 +132,6 @@ $(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
 	gameCreator :: UserName,
-	gameName :: GameName,
 	gameState :: GameState,
 	gameBoardTiles :: Maybe [BoardTile],
 	gamePlayers :: [Player]
@@ -140,8 +140,13 @@ data Game = Game {
 $(deriveSafeCopy 0 'base ''Game)
 makeLenses ''Game
 
+newGame :: Game
+newGame creator name = Game creator name Waiting Nothing []
+
+type Games = Map.Map GameName Game
+
 data CivState = CivState {
-	civGames :: [Game]
+	civGames :: Games
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''CivState)
@@ -149,7 +154,7 @@ makeLenses ''CivState
 
 --------------
 
-getGames :: Query CivState [Game]
+getGames :: Query CivState Games
 getGames = do
 	CivState {..} <- ask
 	return civGames
@@ -159,9 +164,14 @@ incTrade playername gamename trade = do
 	-- hier die Lens
 	return ()
 
-createNewGame :: GameName -> UserName -> Update CivState Bool
+createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
 createNewGame gamename username = do
-	modify $ 
+	games <- gets civGames
+	case Map.lookup gamename games of
+		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
+		Nothing -> do
+			modify $ over civGames $ Map.insert (newGame username gamename)
+			return Nothing
 
 $(makeAcidic ''CivState [
 	'getGames,

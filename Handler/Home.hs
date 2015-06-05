@@ -57,20 +57,20 @@ getHomeR = do
 				[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
-  $forall game <- games
+  $forall (gamename,game) <- Map.toList games
     <tr>
-      <td>#{show (gameName game)}
+      <td>#{show gamename}
       <td>#{show (gameState game)}
       <td>
         $case gameState game
           $of Waiting
-            <button onclick=#{onclickHandler $ JoinGame (gameName game)}>Join game
+            <button onclick=#{onclickHandler $ JoinGame gamename}>Join game
           $of Running
-            <button onclick=#{onclickHandler $ VisitGame (gameName game)}>Visit
+            <button onclick=#{onclickHandler $ VisitGame gamename}>Visit
           $of Finished
       <td>
         $if gameCreator game == email
-          <button onclick=#{onclickHandler $ StartGame (gameName game)}>Start Game
+          <button onclick=#{onclickHandler $ StartGame gamename}>Start Game
         $else
 
   <table>
