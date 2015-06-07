@@ -102,7 +102,6 @@ newtype PlayerName = PlayerName Text
 $(deriveSafeCopy 0 'base ''PlayerName)
 
 data Player = Player {
-	playerName :: PlayerName,
 	playerColour :: Colour,
 	playerCiv :: Civ,
 	playerGovernment :: Government,
@@ -134,14 +133,14 @@ data Game = Game {
 	gameCreator :: UserName,
 	gameState :: GameState,
 	gameBoardTiles :: Maybe [BoardTile],
-	gamePlayers :: [Player]
+	gamePlayers :: Map.Map PlayerName Player
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
 makeLenses ''Game
 
 newGame :: UserName -> Game
-newGame creator = Game creator Waiting Nothing []
+newGame creator = Game creator Waiting Nothing Map.empty
 
 type Games = Map.Map GameName Game
 
@@ -154,9 +153,11 @@ makeLenses ''CivState
 
 --------------
 
+getCivState :: Query CivState CivState
+getCivState = ask
+
 getGames :: Query CivState Games
-getGames = do
-	asks $ view civGames
+getGames = asks $ view civGames
 
 incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
@@ -173,7 +174,7 @@ createNewGame gamename username = do
 			return Nothing
 
 $(makeAcidic ''CivState [
-	'getGames,
+	'getCivState,
 	'createNewGame,
 	'incTrade ])
 

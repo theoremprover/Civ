@@ -36,8 +36,11 @@ postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
 	gameadminaction :: GameAdminAction <- requireJsonBody
-	executeGameAdminAction gameadminaction
-	displayGame
+	res <- executeGameAdminAction gameadminaction
+	case res of
+		Nothing -> return ()
+		Just msg -> setMessage $ toHtml msg
+	getHomeR
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -49,12 +52,17 @@ getHomeR = do
 
 			games <- queryCiv GetGames
 
+			mb_msg <- getMessage
+			
 			defaultLayout $ do
 				setTitle "Civ - Create, Join or Visit Game"
 				
 				sendJSONJulius HomeR
 
 				[whamlet|
+$maybe msg <- mb_msg
+  <div #message>#{msg}
+
 <h1>Games
 <table border=1 cellspacing=10>
   $forall (gamename,game) <- Map.toList games
