@@ -38,8 +38,7 @@ getGamePlayer (gamename,playername) = do
 	case mb_game of
 		Nothing -> return Nothing
 		Just game -> do
-			mb_player <- Map.lookup playername (gamePlayers game)
-			case mb_player of
+			case Map.lookup playername (gamePlayers game) of
 				Nothing -> return Nothing
 				Just player -> return $ Just (game,player)
 
@@ -52,6 +51,10 @@ queryCiv event = do
 updateCiv event = do
 	app <- getYesod
 	update' (appCivAcid app) event
+
+queryCivLens lens = do
+	civstate <- queryCiv GetCivState
+	return $ view lens civstate
 
 --------
 

@@ -156,9 +156,6 @@ makeLenses ''CivState
 getCivState :: Query CivState CivState
 getCivState = ask
 
-getGames :: Query CivState Games
-getGames = asks $ view civGames
-
 incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
 incTrade playername gamename trade = do
 	-- hier die Lens
@@ -170,7 +167,7 @@ createNewGame gamename username = do
 	case view (civGames .(at gamename)) civstate of
 		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
 		Nothing -> do
---			modify $ gamesL . (at gamename .~ (Just $ newGame username))
+			modify $ civGames `over` (at gamename .~ (Just $ newGame username))
 			return Nothing
 
 $(makeAcidic ''CivState [

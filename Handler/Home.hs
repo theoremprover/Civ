@@ -50,7 +50,7 @@ getHomeR = do
 		Just (_,user,_) -> do
 			let email = userEmail user
 
-			games <- queryCiv GetGames
+			civstate <- queryCiv GetCivState
 
 			mb_msg <- getMessage
 			
@@ -65,7 +65,7 @@ $maybe msg <- mb_msg
 
 <h1>Games
 <table border=1 cellspacing=10>
-  $forall (gamename,game) <- Map.toList games
+  $forall (gamename,game) <- Map.toList (_civGames civstate)
     <tr>
       <td>#{show gamename}
       <td>#{show (gameState game)}
@@ -77,14 +77,16 @@ $maybe msg <- mb_msg
             <button onclick=#{onclickHandler $ VisitGame gamename}>Visit
           $of Finished
       <td>
-        $if gameCreator game == email
+        $if (&&) (gameCreator game == email) (gameState game == Waiting)
           <button onclick=#{onclickHandler $ StartGame gamename}>Start Game
         $else
 
-  <table>
-    <tr>
-      <td><input id="newgamename" type=text size=20>
-      <td><button onclick="createGame()">Create game
+  <tr>
+    <td>
+      GameName
+      <input id="newgamename" type=text size=20>
+    <td>
+    <td><button onclick="createGame()">Create game
 |]
 
 onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
