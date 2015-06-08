@@ -7,6 +7,8 @@ import Data.Aeson.TH
 import Import
 
 import Model
+import Entities
+
 import Data.Acid
 import Data.Acid.Advanced
 
@@ -33,6 +35,13 @@ viewCiv lens = do
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do
 	mb_game <- viewCiv $ civGames . (at gamename)
+	case mb_game of
+		Nothing -> return Nothing
+		Just game -> do
+			mb_player <- Map.lookup playername (gamePlayers game)
+			case mb_player of
+				Nothing -> return Nothing
+				Just player -> return (game,player)
 
 --------
 
@@ -57,7 +66,7 @@ initialCivState = CivState $ Map.fromList [
 		BoardTile Tile5 (Coors 4 8) True Northward,
 		BoardTile Tile6 (Coors 0 12) True Westward,
 		BoardTile (Tile America) (Coors 4 12) True Northward ]
-		Map.fromList [
+		(Map.fromList [
 			(PlayerName "Spieler Rot", Player Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
 				TechCard CodeOfLaws TechLevelI (Coins 2),
 				TechCard HorsebackRiding TechLevelI (Coins 0),
@@ -84,7 +93,7 @@ initialCivState = CivState $ Map.fromList [
 				TechCard Computers TechLevelIV (Coins 0),
 				TechCard MassMedia TechLevelIV (Coins 0),
 				TechCard SpaceFlight TechLevelV (Coins 0) ])
-			]),
+			])),
 
 	(GameName "Testgame 2", Game "public@thinking-machines.net" Waiting [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
@@ -95,7 +104,7 @@ initialCivState = CivState $ Map.fromList [
 		BoardTile Tile5 (Coors 4 8) True Northward,
 		BoardTile Tile6 (Coors 0 12) True Westward,
 		BoardTile (Tile America) (Coors 4 12) True Northward ]
-		Map.fromList [
+		(Map.fromList [
 			(PlayerName "Spieler Blau", Player Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
 				TechCard CodeOfLaws TechLevelI (Coins 1),
 				TechCard HorsebackRiding TechLevelI (Coins 0),
@@ -103,14 +112,14 @@ initialCivState = CivState $ Map.fromList [
 				TechCard Philosophy TechLevelI (Coins 0),
 				TechCard Navigation TechLevelI (Coins 0),
 				TechCard Navy TechLevelI (Coins 0) ])
-			]
+			])
 		)
 	]
 
 requireLoggedIn :: Handler UserName
 requireLoggedIn = do
 	Entity userid user <- requireAuth
-	return user
+	return $ userEmail user
 
 executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
