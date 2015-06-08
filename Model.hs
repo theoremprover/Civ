@@ -5,13 +5,10 @@
 module Model where
 
 import Prelude
-import Data.Acid
 import Data.Data
 import Data.Text (Text(..))
 import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
-import Control.Monad.Reader
-import Control.Monad.State
 import Data.List
 import Control.Lens
 import qualified Data.Map as Map
@@ -114,13 +111,6 @@ data Player = Player {
 $(deriveSafeCopy 0 'base ''Player)
 makeLenses ''Player
 
-{-
-instance Ord Player where
-	compare = comparing playerName
-instance Eq Player where
-	p1 == p2 = playerName p1 == playerName p2
--}
-
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy 0 'base ''GameState)
@@ -150,28 +140,4 @@ data CivState = CivState {
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''CivState)
 makeLenses ''CivState
-
---------------
-
-getCivState :: Query CivState CivState
-getCivState = ask
-
-incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
-incTrade playername gamename trade = do
-	-- hier die Lens
-	return ()
-
-createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
-createNewGame gamename username = do
-	civstate <- get
-	case view (civGames .(at gamename)) civstate of
-		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
-		Nothing -> do
-			modify $ civGames `over` (at gamename .~ (Just $ newGame username))
-			return Nothing
-
-$(makeAcidic ''CivState [
-	'getCivState,
-	'createNewGame,
-	'incTrade ])
 

@@ -4,7 +4,8 @@ module GameMonad where
 
 import Data.Aeson.TH
 
-import Import
+import Import (Handler,Entity(..),requireAuth,getYesod,App(..))
+import Prelude
 
 import Model
 import Entities
@@ -14,12 +15,55 @@ import Data.Acid.Advanced
 
 import Control.Lens
 import qualified Data.Map as Map
+import Control.Monad.Reader
+import Control.Monad.State
+
+-- Lenses
+
+civStateLens = id
+civGameLens gamename = civStateLens . civGames . (at gamename)
+
+-- In Update monad
+
+updateCivLensU lens val = do
+	modify $ set lens val
+
+--------------
+
+getCivState :: Query CivState CivState
+getCivState = ask
+
+incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
+incTrade playername gamename trade = do
+	-- hier die Lens
+	return ()
+
+createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
+createNewGame gamename username = do
+	civstate <- get
+	case view (civGameLens gamename) civstate of
+		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
+		Nothing -> do
+			updateCivLensU (civGameLens gamename) (Just $ newGame username)
+			return Nothing
+
+deleteGame :: GameName -> Update CivState (Maybe String)
+deleteGame gamename = do
+	updateCivLensU (civGameLens gamename) Nothing
+	return Nothing
+
+$(makeAcidic ''CivState [
+	'getCivState,
+	'createNewGame,
+	'deleteGame,
+	'incTrade ])
 
 data GameAdminAction =
-	CreateGame GameName |
-	JoinGame GameName |
-	VisitGame GameName |
-	StartGame GameName
+	CreateGameGAA GameName |
+	JoinGameGAA GameName |
+	VisitGameGAA GameName |
+	StartGameGAA GameName |
+	DeleteGameGAA GameName
 	deriving Show
 
 deriveJSON defaultOptions ''GameAdminAction
@@ -27,34 +71,15 @@ deriveJSON defaultOptions ''GameAdminAction
 deriveJSON defaultOptions ''GameName
 
 
-viewCiv lens = do
-	App {..} <- getYesod
-	civstate <- query' appCivAcid GetCivState
-	return $ view lens civstate
-
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do
-	(mb_game :: Maybe Game) <- viewCiv $ civGames . (at gamename)
+	mb_game <- queryCivLensH $ civGameLens gamename
 	case mb_game of
 		Nothing -> return Nothing
 		Just game -> do
 			case Map.lookup playername (gamePlayers game) of
 				Nothing -> return Nothing
 				Just player -> return $ Just (game,player)
-
---------
-
-queryCiv event = do
-	app <- getYesod
-	query' (appCivAcid app) event
-
-updateCiv event = do
-	app <- getYesod
-	update' (appCivAcid app) event
-
-queryCivLens lens = do
-	civstate <- queryCiv GetCivState
-	return $ view lens civstate
 
 --------
 
@@ -114,11 +139,28 @@ executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
-		CreateGame gamename -> do
-			updateCiv $ CreateNewGame gamename user
-		JoinGame gamename -> do
+		CreateGameGAA gamename -> do
+			updateCivH $ CreateNewGame gamename user
+		JoinGameGAA gamename -> do
 			return Nothing
-		VisitGame gamename -> do
+		VisitGameGAA gamename -> do
 			return Nothing
-		StartGame gamename -> do
+		StartGameGAA gamename -> do
 			return Nothing
+		DeleteGameGAA gamename ->
+			updateCivH $ DeleteGame gamename
+
+----
+			
+-- In Handler monad
+
+updateCivH event = do
+	app <- getYesod
+	update' (appCivAcid app) event
+
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ view lens civstate
+
+

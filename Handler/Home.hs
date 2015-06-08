@@ -50,7 +50,7 @@ getHomeR = do
 		Just (_,user,_) -> do
 			let email = userEmail user
 
-			civstate <- queryCiv GetCivState
+			civstate <- queryCivLensH civStateLens
 
 			mb_msg <- getMessage
 			
@@ -72,15 +72,17 @@ $maybe msg <- mb_msg
       <td>
         $case gameState game
           $of Waiting
-            <button onclick=#{onclickHandler $ JoinGame gamename}>Join game
+            <button onclick=#{onclickHandler $ JoinGameGAA gamename}>Join game
           $of Running
-            <button onclick=#{onclickHandler $ VisitGame gamename}>Visit
+            <button onclick=#{onclickHandler $ VisitGameGAA gamename}>Visit
           $of Finished
       <td>
         $if (&&) (gameCreator game == email) (gameState game == Waiting)
-          <button onclick=#{onclickHandler $ StartGame gamename}>Start Game
+          <button onclick=#{onclickHandler $ StartGameGAA gamename}>Start Game
         $else
-
+      <td>
+        $if (&&) (gameCreator game == email) (gameState game /= Running)
+          <button onclick=#{onclickHandler $ DeleteGameGAA gamename}>Delete Game
   <tr>
     <td>
       GameName
