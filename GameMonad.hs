@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell,ScopedTypeVariables #-}
 
 module GameMonad where
 
@@ -34,14 +34,14 @@ viewCiv lens = do
 
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
 getGamePlayer (gamename,playername) = do
-	mb_game <- viewCiv $ civGames . (at gamename)
+	(mb_game :: Maybe Game) <- viewCiv $ civGames . (at gamename)
 	case mb_game of
 		Nothing -> return Nothing
 		Just game -> do
 			mb_player <- Map.lookup playername (gamePlayers game)
 			case mb_player of
 				Nothing -> return Nothing
-				Just player -> return (game,player)
+				Just player -> return $ Just (game,player)
 
 --------
 
@@ -57,7 +57,7 @@ updateCiv event = do
 
 initialCivState :: CivState
 initialCivState = CivState $ Map.fromList [
-	(GameName "testgame",Game "public@thinking-machines.net" Running [
+	(GameName "testgame",Game "public@thinking-machines.net" Running (Just [
 		BoardTile (Tile Russia) (Coors 0 0) True Southward,
 		BoardTile Tile1 (Coors 4 0) True Eastward,
 		BoardTile Tile2 (Coors 0 4) True Southward,
@@ -65,7 +65,7 @@ initialCivState = CivState $ Map.fromList [
 		BoardTile Tile4 (Coors 0 8) False Southward,
 		BoardTile Tile5 (Coors 4 8) True Northward,
 		BoardTile Tile6 (Coors 0 12) True Westward,
-		BoardTile (Tile America) (Coors 4 12) True Northward ]
+		BoardTile (Tile America) (Coors 4 12) True Northward ])
 		(Map.fromList [
 			(PlayerName "Spieler Rot", Player Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
 				TechCard CodeOfLaws TechLevelI (Coins 2),
@@ -95,23 +95,9 @@ initialCivState = CivState $ Map.fromList [
 				TechCard SpaceFlight TechLevelV (Coins 0) ])
 			])),
 
-	(GameName "Testgame 2", Game "public@thinking-machines.net" Waiting [
-		BoardTile (Tile Russia) (Coors 0 0) True Southward,
-		BoardTile Tile1 (Coors 4 0) True Eastward,
-		BoardTile Tile2 (Coors 0 4) True Southward,
-		BoardTile Tile3 (Coors 4 4) False Southward,
-		BoardTile Tile4 (Coors 0 8) False Southward,
-		BoardTile Tile5 (Coors 4 8) True Northward,
-		BoardTile Tile6 (Coors 0 12) True Westward,
-		BoardTile (Tile America) (Coors 4 12) True Northward ]
+	(GameName "Testgame 2", Game "public@thinking-machines.net" Waiting Nothing
 		(Map.fromList [
-			(PlayerName "Spieler Blau", Player Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
-				TechCard CodeOfLaws TechLevelI (Coins 1),
-				TechCard HorsebackRiding TechLevelI (Coins 0),
-				TechCard AnimalHusbandry TechLevelI (Coins 0),
-				TechCard Philosophy TechLevelI (Coins 0),
-				TechCard Navigation TechLevelI (Coins 0),
-				TechCard Navy TechLevelI (Coins 0) ])
+			(PlayerName "Spieler Blau", Player Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
 			])
 		)
 	]
