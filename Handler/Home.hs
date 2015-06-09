@@ -115,7 +115,7 @@ function sgaa(gameadminaction_str)
 function createGame()
 {
   var gamename = document.getElementById("newgamename").value; 
-  var cga = {"tag":"CreateGame","contents":gamename};
+  var cga = {"tag":"CreateGameGAA","contents":gamename};
   sgaa(JSON.stringify(cga));
 }
 
