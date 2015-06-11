@@ -1,6 +1,10 @@
 SET WORKDIR=%~dp0
 cd %WORKDIR%
-if errorlevel 1 goto :err
+
+where plink.exe > tmpFile
+set /p GIT_SSH= < tmpFile
+del tmpFile
+
 git commit -m "No Message"
 if errorlevel 1 goto :err
 git push
