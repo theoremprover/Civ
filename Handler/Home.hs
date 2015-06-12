@@ -42,7 +42,7 @@ postHomeR = do
 			setMessage $ toHtml msg
 			getHomeR
 		Nothing -> do
---			setMessage $ toHtml (show gameadminaction)
+			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
 				VisitGameGAA _ -> displayGame
 				JoinGameGAA _ _ -> displayGame

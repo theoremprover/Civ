@@ -5,7 +5,7 @@ where plink.exe > tmpFile
 set /p GIT_SSH= < tmpFile
 del tmpFile
 
-git commit -m "No Message"
+git commit -a -m "No Message"
 if errorlevel 1 goto :err
 git push origin master:master
 if errorlevel 1 goto :err
