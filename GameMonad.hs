@@ -25,7 +25,7 @@ civGameLens gamename = civStateLens . civGames . (at gamename)
 
 -- In Update monad
 
-updateCivLensU lens val = do
+updateCivLensU val lens = do
 	modify $ set lens val
 
 --------------
@@ -44,17 +44,22 @@ createNewGame gamename username = do
 	case view (civGameLens gamename) civstate of
 		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
 		Nothing -> do
-			updateCivLensU (civGameLens gamename) (Just $ newGame username)
+			updateCivLensU (Just $ newGame username) $ civGameLens gamename
 			return Nothing
 
 deleteGame :: GameName -> Update CivState (Maybe String)
 deleteGame gamename = do
-	updateCivLensU (civGameLens gamename) Nothing
+	updateCivLensU Nothing $ civGameLens gamename
 	return Nothing
+
+joinGame :: GameName -> PlayerName -> Update CivState (Maybe String)
+joinGame gamename playername = do
+	return Nothing --updateCivLensU () $ civGameLens gamename . 
 
 $(makeAcidic ''CivState [
 	'getCivState,
 	'createNewGame,
+	'joinGame,
 	'deleteGame,
 	'incTrade ])
 
@@ -78,7 +83,7 @@ getGamePlayer (gamename,playername) = do
 	case mb_game of
 		Nothing -> return Nothing
 		Just game -> do
-			case Map.lookup playername (gamePlayers game) of
+			case Map.lookup playername (_gamePlayers game) of
 				Nothing -> return Nothing
 				Just player -> return $ Just (game,player)
 
@@ -143,6 +148,7 @@ executeGameAdminAction gaa = do
 		CreateGameGAA gamename -> do
 			updateCivH $ CreateNewGame gamename user
 		JoinGameGAA gamename playername -> do
+			updateCivH $ JoinGame gamename playername
 			return Nothing
 		VisitGameGAA gamename -> do
 			return Nothing

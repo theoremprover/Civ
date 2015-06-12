@@ -74,31 +74,31 @@ $maybe msg <- mb_msg
   $forall (gamename,game) <- Map.toList (_civGames civstate)
     <tr>
       <td>#{show gamename}
-      <td>#{show (gameState game)}
-      $case gameState game
+      <td>#{show (_gameState game)}
+      $case _gameState game
         $of Waiting
-          <td><input id="newgamename" type=text size=20>
-          <td><button onclick="joinGame(#{show gamename})" width=100%>Join game
+          <td><input id="joinplayername" type=text size=20>
+          <td><button type=button onclick="joinGame(#{show gamename})" style="min-width: 100%">Join game
         $of Running
           <td>
-          <td><button onclick=#{onclickHandler $ VisitGameGAA gamename}>Visit
+          <td><button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit
         $of Finished
           <td>
           <td>
       <td>
-        $if (&&) (gameCreator game == email) (gameState game == Waiting)
-          <button onclick=#{onclickHandler $ StartGameGAA gamename} width=100%>Start Game
+        $if (&&) (_gameCreator game == email) (_gameState game == Waiting)
+          <button type=button onclick=#{onclickHandler $ StartGameGAA gamename} style="min-width: 100%">Start Game
         $else
       <td>
-        $if (&&) (gameCreator game == email) (gameState game /= Running)
-          <button onclick=#{onclickHandler $ DeleteGameGAA gamename} width=100%>Delete Game
+        $if (&&) (_gameCreator game == email) (_gameState game /= Running)
+          <button type=button onclick=#{onclickHandler $ DeleteGameGAA gamename} style="min-width: 100%">Delete Game
   <tr>
     <td>
       GameName
       <input id="newgamename" type=text size=20>
     <td>
     <td>
-    <td><button onclick="createGame()" width=100%>Create game
+    <td><button type=button onclick="createGame()" style="min-width: 100%">Create game
 |]
 
 onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
@@ -152,6 +152,6 @@ displayGame = do
 <p> User: #{show user}
 <p> Player: #{show playername}
 <ul>
-  $forall (pn,p) <- Map.toList (gamePlayers game)
-    <li>#{show pn}: #{show $ playerTrade p}
+  $forall (pn,p) <- Map.toList (_gamePlayers game)
+    <li>#{show pn}: #{show $ _playerTrade p}
 |]

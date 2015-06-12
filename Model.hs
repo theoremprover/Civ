@@ -77,35 +77,36 @@ data Government =
 $(deriveSafeCopy 0 'base ''Government)
 
 data BoardTile = BoardTile {
-	boardTileId :: TileID,
-	boardTileCoors :: Coors,
-	boardTileDiscovered :: Bool,
-	boardTileOrientation :: Orientation
+	_boardTileId :: TileID,
+	_boardTileCoors :: Coors,
+	_boardTileDiscovered :: Bool,
+	_boardTileOrientation :: Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''BoardTile)
 makeLenses ''BoardTile
 
 data TechCard = TechCard {
-	techCardTechId :: Tech,
-	techCardLevel :: TechLevel,
-	techCardCoins :: Coins
+	_techCardTechId :: Tech,
+	_techCardLevel :: TechLevel,
+	_techCardCoins :: Coins
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''TechCard)
+makeLenses ''TechCard
 
 newtype PlayerName = PlayerName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
 $(deriveSafeCopy 0 'base ''PlayerName)
 
 data Player = Player {
-	playerColour :: Colour,
-	playerCiv :: Civ,
-	playerGovernment :: Government,
-	playerTrade :: Trade,
-	playerCulture :: Culture,
-	playerCoins :: Coins,
-	playerTechs :: [TechCard]
+	_playerColour :: Colour,
+	_playerCiv :: Civ,
+	_playerGovernment :: Government,
+	_playerTrade :: Trade,
+	_playerCulture :: Culture,
+	_playerCoins :: Coins,
+	_playerTechs :: [TechCard]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''Player)
@@ -120,10 +121,10 @@ newtype GameName = GameName Text
 $(deriveSafeCopy 0 'base ''GameName)
 
 data Game = Game {
-	gameCreator :: UserName,
-	gameState :: GameState,
-	gameBoardTiles :: Maybe [BoardTile],
-	gamePlayers :: Map.Map PlayerName Player
+	_gameCreator :: UserName,
+	_gameState :: GameState,
+	_gameBoardTiles :: Maybe [BoardTile],
+	_gamePlayers :: Map.Map PlayerName Player
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
