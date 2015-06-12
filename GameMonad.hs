@@ -60,7 +60,7 @@ $(makeAcidic ''CivState [
 
 data GameAdminAction =
 	CreateGameGAA GameName |
-	JoinGameGAA GameName |
+	JoinGameGAA GameName PlayerName |
 	VisitGameGAA GameName |
 	StartGameGAA GameName |
 	DeleteGameGAA GameName
@@ -69,6 +69,7 @@ data GameAdminAction =
 deriveJSON defaultOptions ''GameAdminAction
 
 deriveJSON defaultOptions ''GameName
+deriveJSON defaultOptions ''PlayerName
 
 
 getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
@@ -141,7 +142,7 @@ executeGameAdminAction gaa = do
 	case gaa of
 		CreateGameGAA gamename -> do
 			updateCivH $ CreateNewGame gamename user
-		JoinGameGAA gamename -> do
+		JoinGameGAA gamename playername -> do
 			return Nothing
 		VisitGameGAA gamename -> do
 			return Nothing

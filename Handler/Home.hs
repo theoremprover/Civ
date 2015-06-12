@@ -19,18 +19,18 @@ import GameMonad
 import Model
 import Entities
 
-requireUserSessionCredentials :: Handler (UserId,User,Game,Player)
+requireUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
 requireUserSessionCredentials = do
 	requireAuthId
 	UserSessionCredentials creds <- getUserSessionCredentials
 	case creds of
 		Nothing -> redirect $ AuthR LoginR
 		Just (_,_,Nothing) -> redirect HomeR
-		Just (userid,user,Just gameplayer) -> do
+		Just (userid,user,Just gameplayer@(gamename,playername)) -> do
 			gp <- getGamePlayer gameplayer
 			case gp of
 				Nothing -> invalidArgs [Text.pack $ "Player/Game " ++ show gameplayer ++ " does not exist"]
-				Just (game,player) -> return (userid,user,game,player)
+				Just (game,player) -> return (userid,user,gamename,game,playername,player)
 
 postHomeR :: Handler Html
 postHomeR = do
@@ -38,9 +38,15 @@ postHomeR = do
 	gameadminaction :: GameAdminAction <- requireJsonBody
 	res <- executeGameAdminAction gameadminaction
 	case res of
-		Nothing -> return ()
-		Just msg -> setMessage $ toHtml msg
-	getHomeR
+		Just msg -> do
+			setMessage $ toHtml msg
+			getHomeR
+		Nothing -> do
+--			setMessage $ toHtml (show gameadminaction)
+			case gameadminaction of
+				VisitGameGAA _ -> displayGame
+				JoinGameGAA _ _ -> displayGame
+				_ -> getHomeR
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -69,26 +75,30 @@ $maybe msg <- mb_msg
     <tr>
       <td>#{show gamename}
       <td>#{show (gameState game)}
-      <td>
-        $case gameState game
-          $of Waiting
-            <button onclick=#{onclickHandler $ JoinGameGAA gamename}>Join game
-          $of Running
-            <button onclick=#{onclickHandler $ VisitGameGAA gamename}>Visit
-          $of Finished
+      $case gameState game
+        $of Waiting
+          <td><input id="newgamename" type=text size=20>
+          <td><button onclick="joinGame(#{show gamename})" width=100%>Join game
+        $of Running
+          <td>
+          <td><button onclick=#{onclickHandler $ VisitGameGAA gamename}>Visit
+        $of Finished
+          <td>
+          <td>
       <td>
         $if (&&) (gameCreator game == email) (gameState game == Waiting)
-          <button onclick=#{onclickHandler $ StartGameGAA gamename}>Start Game
+          <button onclick=#{onclickHandler $ StartGameGAA gamename} width=100%>Start Game
         $else
       <td>
         $if (&&) (gameCreator game == email) (gameState game /= Running)
-          <button onclick=#{onclickHandler $ DeleteGameGAA gamename}>Delete Game
+          <button onclick=#{onclickHandler $ DeleteGameGAA gamename} width=100%>Delete Game
   <tr>
     <td>
       GameName
       <input id="newgamename" type=text size=20>
     <td>
-    <td><button onclick="createGame()">Create game
+    <td>
+    <td><button onclick="createGame()" width=100%>Create game
 |]
 
 onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
@@ -119,6 +129,12 @@ function createGame()
   sgaa(JSON.stringify(cga));
 }
 
+function joinGame(gamename_str)
+{
+  var playername = document.getElementById("joinplayername").value; 
+  var cga = {"tag":"JoinGameGAA","contents":gamename_str,"contents":playername};
+  sgaa(JSON.stringify(cga));
+}
 |]
 
 postGameR :: Handler Html
@@ -128,19 +144,14 @@ postGameR = do
 displayGame :: Handler Html
 displayGame = do
 	requireAuthId
-	UserSessionCredentials creds <- getUserSessionCredentials
---	(userid,user,game,player) <- requireUserSessionCredentials
+	(userid,user,gamename,game,playername,player) <- requireUserSessionCredentials
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		[whamlet|
-<h1>#{show creds}
-|]
-{-
 <h1>Civilization Boardgame
 <p> User: #{show user}
-<p> Player: #{show player}
+<p> Player: #{show playername}
 <ul>
-  $forall p <- gamePlayers game
-    <li>#{show $ playerName p}: #{show $ playerTrade p}
+  $forall (pn,p) <- Map.toList (gamePlayers game)
+    <li>#{show pn}: #{show $ playerTrade p}
 |]
--}
