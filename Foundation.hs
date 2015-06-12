@@ -236,19 +236,16 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -------------
 
 data UserSessionCredentials = UserSessionCredentials {
-    userSessionCredentials :: Maybe (UserId,User,Maybe (GameName,PlayerName)) }
+    userSessionCredentials :: Maybe (UserId,User,Maybe GameName,Maybe PlayerName) }
 
 getUserSessionCredentials :: Handler UserSessionCredentials
 getUserSessionCredentials = do
 	mb_auth <- maybeAuth
-	usercred <- case mb_auth of
-		Nothing -> return Nothing
+	case mb_auth of
+		Nothing -> return $ UserSessionCredentials Nothing
 		Just (Entity userid user) -> do
 			mb_gamename <- lookupSession "game"
 			mb_playername <- lookupSession "player"
-			return $ Just (userid,user,
-				case (mb_gamename,mb_playername) of
-					(Just gamename,Just playername) ->
-						Just (GameName gamename,PlayerName playername)
-					_ -> Nothing)
-	return $ UserSessionCredentials usercred
+			return $ UserSessionCredentials $ Just (userid,user,
+				map GameName mb_gamename,
+				map PlayerName mb_playername)

@@ -76,16 +76,14 @@ deriveJSON defaultOptions ''GameAdminAction
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 
+getGame gamename = queryCivLensH $ civGameLens gamename
 
-getGamePlayer :: (GameName,PlayerName) -> Handler (Maybe (Game,Player))
-getGamePlayer (gamename,playername) = do
-	mb_game <- queryCivLensH $ civGameLens gamename
-	case mb_game of
-		Nothing -> return Nothing
-		Just game -> do
-			case Map.lookup playername (_gamePlayers game) of
-				Nothing -> return Nothing
-				Just player -> return $ Just (game,player)
+getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
+getGamePlayer gamename playername = do
+	mb_game <- getGame gamename
+	return $ case mb_game of
+		Nothing -> Nothing
+		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
 
 --------
 

@@ -19,18 +19,31 @@ import GameMonad
 import Model
 import Entities
 
-requireUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
-requireUserSessionCredentials = do
-	requireAuthId
+maybeVisitorUserSessionCredentials :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
+maybeVisitorUserSessionCredentials = do
 	UserSessionCredentials creds <- getUserSessionCredentials
 	case creds of
 		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing) -> redirect HomeR
-		Just (userid,user,Just gameplayer@(gamename,playername)) -> do
-			gp <- getGamePlayer gameplayer
-			case gp of
-				Nothing -> invalidArgs [Text.pack $ "Player/Game " ++ show gameplayer ++ " does not exist"]
-				Just (game,player) -> return (userid,user,gamename,game,playername,player)
+		Just (_,_,Nothing,_) -> do
+			setMessage $ toHtml $ ("gamename not set in this session" :: String)
+			redirect HomeR
+		Just (userid,user,Just gamename,mb_playername) -> do
+			mb_game <- getGame gamename
+			case mb_game of
+				Nothing -> do
+					setMessage $ toHtml $ ("There is no game " ++ show gamename :: String)
+					redirect HomeR
+				Just game -> case mb_playername of
+					Nothing -> return (userid,user,gamename,game,Nothing)
+					Just playername -> do
+						mb_gameplayer <- getGamePlayer gamename playername
+						case mb_gameplayer of
+							Nothing -> do
+								setMessage $ toHtml $ "There is no player " ++ show playername ++ " in game " ++ show gamename
+								redirect HomeR
+							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
+								Nothing -> Nothing
+								Just player -> Just (playername,player) )
 
 postHomeR :: Handler Html
 postHomeR = do
@@ -53,7 +66,7 @@ getHomeR = do
 	UserSessionCredentials usersesscred <- getUserSessionCredentials
 	case usersesscred of
 		Nothing -> redirect $ AuthR LoginR
-		Just (_,user,_) -> do
+		Just (_,user,_,_) -> do
 			let email = userEmail user
 
 			civstate <- queryCivLensH civStateLens
@@ -144,13 +157,21 @@ postGameR = do
 displayGame :: Handler Html
 displayGame = do
 	requireAuthId
-	(userid,user,gamename,game,playername,player) <- requireUserSessionCredentials
+	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+	mb_msg <- getMessage
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		[whamlet|
 <h1>Civilization Boardgame
-<p> User: #{show user}
-<p> Player: #{show playername}
+$maybe msg <- mb_msg
+  <div #message>#{msg}
+<p>User: #{show user}
+$case mb_player
+  $of Nothing
+    <p>Visitor
+  $of Just (playername,player)
+    <p>#{show playername}
+    <p>#{show player}
 <ul>
   $forall (pn,p) <- Map.toList (_gamePlayers game)
     <li>#{show pn}: #{show $ _playerTrade p}

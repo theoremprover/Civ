@@ -7,14 +7,14 @@
             <td align=left>Civilization Boardgame
             <td align=center>
               $case userSessionCredentials
-                $of Just (_,_,Just (gamename,playername))
+                $of Just (_,_,Just gamename,Just playername)
                   #{show gamename}, #{show playername}
                 $of _
             <td align=right>
               $case userSessionCredentials
                 $of Nothing
                   <a href=@{AuthR LoginR}>Login
-                $of Just (_,user,_)
+                $of Just (_,user,_,_)
                   Logged in as #{userEmail user}
 
   <tr><td colspan=3><hr style="margin-top: 5px" width="100%">
