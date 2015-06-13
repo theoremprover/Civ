@@ -12,6 +12,7 @@ import qualified Data.Text as Text
 
 import Prelude(reads)
 import qualified Data.Map as Map
+import Data.Ix
 
 import Version
 
@@ -58,8 +59,39 @@ postHomeR = do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
 				VisitGameGAA _ -> displayGame
-				JoinGameGAA _ _ -> displayGame
+				JoinGameGAA _ _ _ _ -> displayGame
+				CreatePlayerGAA gamename -> createPlayer gamename
 				_ -> getHomeR
+
+createPlayer :: GameName -> Handler Html
+createPlayer gamename = do
+	defaultLayout $ do
+		setTitle "Civ - Create A Player"
+		[whamlet|
+<h1>Create A Player
+<form action=@{HomeR} enctype='application/json' method=POST>
+  <input name="gamename" type=hidden>
+  <table>
+    <tr>
+      <td>Player Name:
+      <td><input name="playername" type=text size=20>
+    <tr>
+      <td>Colour:
+      <td>^{enumToSelect "colour" Red}
+    <tr>
+      <td>Civilization:
+      <td>^{enumToSelect "civ" America}
+  <button type="submit">Join The Game
+|]
+
+enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) => String -> o -> WidgetT site m ()
+enumToSelect name defaultoption = do
+	let vals = map (\ v -> (v==defaultoption,v)) $ range (minBound,maxBound)
+	[whamlet|
+<select name=#{name}>
+  $forall (defopt,val) <- vals
+    <option #{if defopt then "selected" else ""}>#{show val}
+|]
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -77,6 +109,7 @@ getHomeR = do
 				setTitle "Civ - Create, Join or Visit Game"
 				
 				sendJSONJulius HomeR
+				createGameJulius
 
 				[whamlet|
 $maybe msg <- mb_msg
@@ -88,16 +121,13 @@ $maybe msg <- mb_msg
     <tr>
       <td>#{show gamename}
       <td>#{show (_gameState game)}
-      $case _gameState game
-        $of Waiting
-          <td><input id="joinplayername" type=text size=20>
-          <td><button type=button onclick="joinGame(#{show gamename})" style="min-width: 100%">Join game
-        $of Running
-          <td>
-          <td><button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit
-        $of Finished
-          <td>
-          <td>
+      <td>
+        $case _gameState game
+          $of Waiting
+            <button type=button onclick=#{onclickHandler $ CreatePlayerGAA gamename} style="min-width: 100%">Join game
+          $of Running
+            <button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit
+          $of Finished
       <td>
         $if (&&) (_gameCreator game == email) (_gameState game == Waiting)
           <button type=button onclick=#{onclickHandler $ StartGameGAA gamename} style="min-width: 100%">Start Game
@@ -110,7 +140,6 @@ $maybe msg <- mb_msg
       GameName
       <input id="newgamename" type=text size=20>
     <td>
-    <td>
     <td><button type=button onclick="createGame()" style="min-width: 100%">Create game
 |]
 
@@ -119,7 +148,6 @@ onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
 toJSONString jsonobject = show $ encode jsonobject
 
 sendJSONJulius target = toWidget [julius|
-
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
@@ -134,18 +162,13 @@ function sgaa(gameadminaction_str)
   }
   xmlhttp.send(gameadminaction_str);
 }
+|]
 
+createGameJulius = toWidget [julius|
 function createGame()
 {
   var gamename = document.getElementById("newgamename").value; 
   var cga = {"tag":"CreateGameGAA","contents":gamename};
-  sgaa(JSON.stringify(cga));
-}
-
-function joinGame(gamename_str)
-{
-  var playername = document.getElementById("joinplayername").value; 
-  var cga = {"tag":"JoinGameGAA","contents":gamename_str,"contents":playername};
   sgaa(JSON.stringify(cga));
 }
 |]

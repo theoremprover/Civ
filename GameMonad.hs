@@ -4,7 +4,7 @@ module GameMonad where
 
 import Data.Aeson.TH
 
-import Import (Handler,Entity(..),requireAuth,getYesod,App(..))
+import Import (Handler,Entity(..),requireAuth,getYesod,App(..),setSession,deleteSession)
 import Prelude
 
 import Model
@@ -52,9 +52,11 @@ deleteGame gamename = do
 	updateCivLensU Nothing $ civGameLens gamename
 	return Nothing
 
-joinGame :: GameName -> PlayerName -> Update CivState (Maybe String)
-joinGame gamename playername = do
-	return Nothing --updateCivLensU () $ civGameLens gamename . 
+joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState (Maybe String)
+joinGame gamename playername colour civ = do
+	updateCivLensU (Just $ makePlayer colour civ) $
+		civGameLens gamename . _Just . gamePlayers . at playername
+	return Nothing
 
 $(makeAcidic ''CivState [
 	'getCivState,
@@ -65,7 +67,8 @@ $(makeAcidic ''CivState [
 
 data GameAdminAction =
 	CreateGameGAA GameName |
-	JoinGameGAA GameName PlayerName |
+	CreatePlayerGAA GameName |
+	JoinGameGAA GameName PlayerName Colour Civ |
 	VisitGameGAA GameName |
 	StartGameGAA GameName |
 	DeleteGameGAA GameName
@@ -75,6 +78,8 @@ deriveJSON defaultOptions ''GameAdminAction
 
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
+deriveJSON defaultOptions ''Civ
+deriveJSON defaultOptions ''Colour
 
 getGame gamename = queryCivLensH $ civGameLens gamename
 
@@ -145,10 +150,14 @@ executeGameAdminAction gaa = do
 	case gaa of
 		CreateGameGAA gamename -> do
 			updateCivH $ CreateNewGame gamename user
-		JoinGameGAA gamename playername -> do
-			updateCivH $ JoinGame gamename playername
-			return Nothing
-		VisitGameGAA gamename -> do
+		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
+			setSession "game" gn
+			setSession "player" pn
+			updateCivH $ JoinGame gamename playername colour civ
+		CreatePlayerGAA _ -> return Nothing
+		VisitGameGAA gamename@(GameName gn) -> do
+			setSession "game" gn
+			deleteSession "player"
 			return Nothing
 		StartGameGAA gamename -> do
 			return Nothing

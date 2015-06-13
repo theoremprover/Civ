@@ -6,6 +6,7 @@ module Model where
 
 import Prelude
 import Data.Data
+import Data.Ix
 import Data.Text (Text(..))
 import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
@@ -32,13 +33,13 @@ data Orientation = Northward | Eastward | Southward | Westward
 $(deriveSafeCopy 0 'base ''Orientation)
 
 data Colour = Red | Green | Blue | Violet | Yellow
-	deriving (Show,Read,Eq,Data,Typeable)
+	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy 0 'base ''Colour)
 
 data Civ =
 	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
 	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
-	deriving (Show,Read,Eq,Data,Typeable)
+	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy 0 'base ''Civ)
 
 data TileID =
@@ -111,6 +112,8 @@ data Player = Player {
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''Player)
 makeLenses ''Player
+
+makePlayer colour civ = Player colour civ Anarchy (Trade 0) (Culture 0) (Coins 0) []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

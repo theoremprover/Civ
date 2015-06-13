@@ -31,7 +31,7 @@
     <td colspan=3>
       <small><table border=0 width="100%"><tr>
         <td align=left valign=top>Civ #{cabalVersion}
-        <td align=center valign=top>GIT hash #{gitHash}
+        <td align=center valign=top>GIT commit #{gitHash}
         <td align=center valign=top>compiled #{compilationDateString}
         <td align=right valign=top>Powered by Haskell Yesod
         <td align=right valign=top width=1%><img src=@{StaticR _Yesod_gif}>
