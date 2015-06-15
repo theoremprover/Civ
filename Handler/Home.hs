@@ -20,28 +20,29 @@ import GameMonad
 import Model
 import Entities
 
+errRedirect :: String -> Handler a
+errRedirect s = do
+	setMessage $ toHtml s
+	redirect HomeR
+
 maybeVisitorUserSessionCredentials :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
 maybeVisitorUserSessionCredentials = do
 	UserSessionCredentials creds <- getUserSessionCredentials
 	case creds of
 		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing,_) -> do
-			setMessage $ toHtml $ ("gamename not set in this session" :: String)
-			redirect HomeR
+		Just (_,_,Nothing,_) -> errRedirect "gamename not set in this session"
 		Just (userid,user,Just gamename,mb_playername) -> do
 			mb_game <- getGame gamename
 			case mb_game of
 				Nothing -> do
-					setMessage $ toHtml $ ("There is no game " ++ show gamename :: String)
-					redirect HomeR
+					errRedirect $ "There is no game " ++ show gamename
 				Just game -> case mb_playername of
 					Nothing -> return (userid,user,gamename,game,Nothing)
 					Just playername -> do
 						mb_gameplayer <- getGamePlayer gamename playername
 						case mb_gameplayer of
 							Nothing -> do
-								setMessage $ toHtml $ "There is no player " ++ show playername ++ " in game " ++ show gamename
-								redirect HomeR
+								errRedirect $ "There is no player " ++ show playername ++ " in game " ++ show gamename
 							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
 								Nothing -> Nothing
 								Just player -> Just (playername,player) )
@@ -67,20 +68,21 @@ createPlayer :: GameName -> Handler Html
 createPlayer gamename = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
+		sendJSONJulius HomeR
 		[whamlet|
 <h1>Create A Player
-<form action=@{HomeR} enctype='application/json' method=POST>
-  <input name="gamename" type=hidden>
-  <table>
-    <tr>
-      <td>Player Name:
-      <td><input name="playername" type=text size=20>
-    <tr>
-      <td>Colour:
-      <td>^{enumToSelect "colour" Red}
-    <tr>
-      <td>Civilization:
-      <td>^{enumToSelect "civ" America}
+<input name="tag" value="JoinGameGAA" type=hidden>
+<input name="contents[0]" value=#{show gamename} type=hidden>
+<table>
+  <tr>
+    <td>Player Name:
+    <td><input name="contents[1]" type=text size=20>
+  <tr>
+    <td>Colour:
+    <td>^{enumToSelect "contents[2]" Red}
+  <tr>
+    <td>Civilization:
+    <td>^{enumToSelect "contents[3]" America}
   <button type="submit">Join The Game
 |]
 
@@ -109,7 +111,6 @@ getHomeR = do
 				setTitle "Civ - Create, Join or Visit Game"
 				
 				sendJSONJulius HomeR
-				createGameJulius
 
 				[whamlet|
 $maybe msg <- mb_msg
@@ -142,6 +143,14 @@ $maybe msg <- mb_msg
     <td>
     <td><button type=button onclick="createGame()" style="min-width: 100%">Create game
 |]
+				toWidget [julius|
+function createGame()
+{
+  var gamename = document.getElementById("newgamename").value; 
+  var cga = {"tag":"CreateGameGAA","contents":gamename};
+  sgaa(JSON.stringify(cga));
+}
+|]
 
 onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
 
@@ -161,15 +170,6 @@ function sgaa(gameadminaction_str)
     }
   }
   xmlhttp.send(gameadminaction_str);
-}
-|]
-
-createGameJulius = toWidget [julius|
-function createGame()
-{
-  var gamename = document.getElementById("newgamename").value; 
-  var cga = {"tag":"CreateGameGAA","contents":gamename};
-  sgaa(JSON.stringify(cga));
 }
 |]
 
