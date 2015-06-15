@@ -65,32 +65,43 @@ postHomeR = do
 				_ -> getHomeR
 
 createPlayer :: GameName -> Handler Html
-createPlayer gamename = do
+createPlayer gamename@(GameName gn) = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		sendJSONJulius HomeR
 		[whamlet|
 <h1>Create A Player
-<input name="tag" value="JoinGameGAA" type=hidden>
-<input name="contents[0]" value=#{show gamename} type=hidden>
 <table>
   <tr>
     <td>Player Name:
-    <td><input name="contents[1]" type=text size=20>
+    <td><input id="playername" type=text size=20>
   <tr>
     <td>Colour:
-    <td>^{enumToSelect "contents[2]" Red}
+    <td>^{enumToSelect "colour" Red}
   <tr>
     <td>Civilization:
-    <td>^{enumToSelect "contents[3]" America}
-  <button type="submit">Join The Game
+    <td>^{enumToSelect "civ" America}
+  <tr>
+    <td><button type=button onclick="joinGame(#{show gn})">Join The Game
+|]
+		toWidget [julius|
+function joinGame(gamename_str)
+{
+  var playername = document.getElementById("playername").value; 
+  sgaa(JSON.stringify({"tag":"JoinGameGAA",
+    "contents":[
+      gamename_str,
+      document.getElementById("playername").value,
+      document.getElementById("colour").value,
+      document.getElementById("civ").value ]}));
+}
 |]
 
 enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) => String -> o -> WidgetT site m ()
 enumToSelect name defaultoption = do
 	let vals = map (\ v -> (v==defaultoption,v)) $ range (minBound,maxBound)
 	[whamlet|
-<select name=#{name}>
+<select id=#{name}>
   $forall (defopt,val) <- vals
     <option #{if defopt then "selected" else ""}>#{show val}
 |]
