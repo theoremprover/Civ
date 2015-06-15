@@ -69,6 +69,26 @@ createPlayer gamename@(GameName gn) = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		sendJSONJulius HomeR
+{-
+		[whamlet|
+<h1>Create A Player
+<form action=@{HomeR} enctype='application/json' method=post>
+  <input name="tag" type=hidden value="JoinGameGAA">
+  <input name="contents[0]" type=hidden value="#{gn}">
+  <table>
+    <tr>
+      <td>Player Name:
+      <td><input name="contents[1]" type=text value="New Player">
+    <tr>
+      <td>Colour:
+      <td>^{enumToSelect "contents[2]" Red}
+    <tr>
+      <td>Civilization:
+      <td>^{enumToSelect "contents[3]" Russia}
+    <tr>
+      <td><button type=submit>Join The Game
+|]
+-}
 		[whamlet|
 <h1>Create A Player
 <table>
@@ -80,7 +100,7 @@ createPlayer gamename@(GameName gn) = do
     <td>^{enumToSelect "colour" Red}
   <tr>
     <td>Civilization:
-    <td>^{enumToSelect "civ" America}
+    <td>^{enumToSelect "civ" Russia}
   <tr>
     <td><button type=button onclick="joinGame(#{show gn})">Join The Game
 |]
@@ -99,11 +119,15 @@ function joinGame(gamename_str)
 
 enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) => String -> o -> WidgetT site m ()
 enumToSelect name defaultoption = do
-	let vals = map (\ v -> (v==defaultoption,v)) $ range (minBound,maxBound)
+	let vals = range (minBound,maxBound)
 	[whamlet|
-<select id=#{name}>
-  $forall (defopt,val) <- vals
-    <option #{if defopt then "selected" else ""}>#{show val}
+<select id=#{name} name=#{name}>
+  $forall val <- vals
+    $case (==) val defaultoption
+      $of True
+        <option selected="selected">#{show val}
+      $of False
+        <option>#{show val}
 |]
 
 getHomeR :: Handler Html
