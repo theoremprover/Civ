@@ -21,21 +21,24 @@ import Control.Monad.State
 -- Lenses
 
 civStateLens = id
-civGameLens gamename = civStateLens . civGames . (at gamename)
+civGameLens gamename = civStateLens . civGames . at gamename
+
+civPlayerLens gamename playername =
+	civGameLens gamename . _Just . gamePlayers . at playername . _Just
 
 -- In Update monad
 
-updateCivLensU val lens = do
-	modify $ set lens val
+updateCivLensU fval lens = do
+	modify (over lens fval)
 
 --------------
 
 getCivState :: Query CivState CivState
 getCivState = ask
 
-incTrade :: PlayerName -> GameName -> Trade -> Update CivState ()
-incTrade playername gamename trade = do
-	-- hier die Lens
+incTrade :: GameName -> PlayerName -> Trade -> Update CivState ()
+incTrade gamename playername trade = do
+	updateCivLensU (+trade) $ civPlayerLens gamename playername . playerTrade
 	return ()
 
 createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
@@ -44,17 +47,17 @@ createNewGame gamename username = do
 	case view (civGameLens gamename) civstate of
 		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
 		Nothing -> do
-			updateCivLensU (Just $ newGame username) $ civGameLens gamename
+			updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
 			return Nothing
 
 deleteGame :: GameName -> Update CivState (Maybe String)
 deleteGame gamename = do
-	updateCivLensU Nothing $ civGameLens gamename
+	updateCivLensU (\_-> Nothing) $ civGameLens gamename
 	return Nothing
 
 joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState (Maybe String)
 joinGame gamename playername colour civ = do
-	updateCivLensU (Just $ makePlayer colour civ) $
+	updateCivLensU (\_-> Just $ makePlayer colour civ) $
 		civGameLens gamename . _Just . gamePlayers . at playername
 	return Nothing
 
@@ -63,7 +66,8 @@ $(makeAcidic ''CivState [
 	'createNewGame,
 	'joinGame,
 	'deleteGame,
-	'incTrade ])
+	'incTrade
+	])
 
 data GameAdminAction =
 	CreateGameGAA GameName |
@@ -73,8 +77,13 @@ data GameAdminAction =
 	StartGameGAA GameName |
 	DeleteGameGAA GameName
 	deriving Show
-
 deriveJSON defaultOptions ''GameAdminAction
+
+data GameAction =
+	IncTradeGA Trade
+	deriving Show
+deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''GameAction
 
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
@@ -163,6 +172,12 @@ executeGameAdminAction gaa = do
 			return Nothing
 		DeleteGameGAA gamename ->
 			updateCivH $ DeleteGame gamename
+
+executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
+executeGameAction gamename playername gameaction = do
+	case gameaction of
+		IncTradeGA trade -> updateCivH $ IncTrade gamename playername trade
+	return Nothing
 
 ----
 			

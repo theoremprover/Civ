@@ -47,6 +47,13 @@ maybeVisitorUserSessionCredentials = do
 								Nothing -> Nothing
 								Just player -> Just (playername,player) )
 
+requirePlayerUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
+requirePlayerUserSessionCredentials = do
+	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+	case mb_player of
+		Nothing -> errRedirect "You are not a player in this game"
+		Just (playername,player) -> return (userid,user,gamename,game,playername,player)
+
 postHomeR :: Handler Html
 postHomeR = do
 	requireAuthId
@@ -59,8 +66,8 @@ postHomeR = do
 		Nothing -> do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
-				VisitGameGAA _ -> displayGame
-				JoinGameGAA _ _ _ _ -> displayGame
+				VisitGameGAA _ -> redirect GameR
+				JoinGameGAA _ _ _ _ -> redirect GameR
 				CreatePlayerGAA gamename -> createPlayer gamename
 				_ -> getHomeR
 
@@ -208,14 +215,36 @@ function sgaa(gameadminaction_str)
 }
 |]
 
+getGameR :: Handler Html
+getGameR = do
+	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+	case mb_player of
+		Nothing -> visitGame (userid,user,gamename,game)
+		Just (playername,player) -> displayGame (userid,user,gamename,game,playername,player)
+
 postGameR :: Handler Html
 postGameR = do
-	displayGame
+	(userid,user,gamename,game,playername,player) <- requirePlayerUserSessionCredentials
+	gameaction :: GameAction <- requireJsonBody
+	res <- executeGameAction gamename playername gameaction
+	case res of
+		Just msg -> do
+			setMessage $ toHtml msg
+		Nothing -> do
+			setMessage $ toHtml $ show gameaction
+	displayGame (userid,user,gamename,game,playername,player)
 
-displayGame :: Handler Html
-displayGame = do
-	requireAuthId
-	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+visitGame :: (UserId,User,GameName,Game) -> Handler Html
+visitGame (userid,user,gamename,game) = do
+	defaultLayout $ do
+		setTitle "Civilization Boardgame"
+		[whamlet|
+<h1>Civilization Boardgame
+<p>Visitor not implemented yet.
+|]
+
+displayGame :: (UserId,User,GameName,Game,PlayerName,Player) -> Handler Html
+displayGame (userid,user,gamename,game,playername,player) = do
 	mb_msg <- getMessage
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
@@ -225,15 +254,11 @@ displayGame = do
 $maybe msg <- mb_msg
   <div #message>#{msg}
 <p>User: #{show user}
-$case mb_player
-  $of Nothing
-    <p>Visitor
-  $of Just (playername,player)
-    <p>#{show playername}
-    <p>#{show player}
+<p>#{show playername}
+<p>#{show player}
 <ul>
   $forall (pn,p) <- Map.toList (_gamePlayers game)
     <li>
       #{show pn}: #{show $ _playerTrade p}
-      <button type=button onclick=#{onclickHandler $ IncTrade gamename myplayername 1}>IncTrade
+<button type=button onclick=#{onclickHandler $ IncTradeGA (Trade 1)}>IncTrade
 |]

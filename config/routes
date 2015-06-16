@@ -5,4 +5,4 @@
 /robots.txt RobotsR GET
 
 /     HomeR GET POST
-/game GameR POST
+/game GameR GET POST
