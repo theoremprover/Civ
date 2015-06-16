@@ -219,6 +219,7 @@ displayGame = do
 	mb_msg <- getMessage
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
+		sendJSONJulius GameR
 		[whamlet|
 <h1>Civilization Boardgame
 $maybe msg <- mb_msg
@@ -232,5 +233,7 @@ $case mb_player
     <p>#{show player}
 <ul>
   $forall (pn,p) <- Map.toList (_gamePlayers game)
-    <li>#{show pn}: #{show $ _playerTrade p}
+    <li>
+      #{show pn}: #{show $ _playerTrade p}
+      <button type=button onclick=#{onclickHandler $ IncTrade gamename myplayername 1}>IncTrade
 |]
