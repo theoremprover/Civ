@@ -137,8 +137,10 @@ enumToSelect name defaultoption = do
         <option>#{show val}
 |]
 
-serverCallbackJulius = toWidget [julius|
-function 
+serverPushJulius = toWidget [julius|
+function serverPush()
+{
+}
 |]
 
 getHomeR :: Handler Html
