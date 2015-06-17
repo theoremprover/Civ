@@ -101,7 +101,7 @@ createPlayer gamename@(GameName gn) = do
 <table>
   <tr>
     <td>Player Name:
-    <td><input id="playername" type=text size=20>
+    <td><input id="playername" type=text size=20 value="New Player">
   <tr>
     <td>Colour:
     <td>^{enumToSelect "colour" Red}
@@ -135,6 +135,10 @@ enumToSelect name defaultoption = do
         <option selected="selected">#{show val}
       $of False
         <option>#{show val}
+|]
+
+serverCallbackJulius = toWidget [julius|
+function 
 |]
 
 getHomeR :: Handler Html
