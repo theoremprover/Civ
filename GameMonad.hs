@@ -70,6 +70,7 @@ $(makeAcidic ''CivState [
 	])
 
 data GameAdminAction =
+	LongPollGAA |
 	CreateGameGAA GameName |
 	CreatePlayerGAA GameName |
 	JoinGameGAA GameName PlayerName Colour Civ |
@@ -80,6 +81,7 @@ data GameAdminAction =
 deriveJSON defaultOptions ''GameAdminAction
 
 data GameAction =
+	LongPollGA |
 	IncTradeGA Trade
 	deriving Show
 
@@ -161,6 +163,8 @@ executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
+		LongPollGAA -> do
+			waitLongPoll
 		CreateGameGAA gamename -> do
 			updateCivH AllGames $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
@@ -187,12 +191,16 @@ executeGameAction gamename playername gameaction = do
 			
 -- In Handler monad
 
-notifyClients 
+waitLongPoll = do
+	
+
+respondPolling affectedgames = do
+	
 
 updateCivH affectedgames event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	notifyClients affectedgames
+	respondPolling affectedgames
 	return res
 
 queryCivLensH lens = do

@@ -32,7 +32,8 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appCivAcid     :: AcidState CivState
+    , appCivAcid     :: AcidState CivState,
+    , appGameUpdates :: 
     }
 
 instance HasHttpManager App where

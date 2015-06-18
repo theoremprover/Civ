@@ -76,26 +76,6 @@ createPlayer gamename@(GameName gn) = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		sendJSONJulius HomeR
-{-
-		[whamlet|
-<h1>Create A Player
-<form action=@{HomeR} enctype='application/json' method=post>
-  <input name="tag" type=hidden value="JoinGameGAA">
-  <input name="contents[0]" type=hidden value="#{gn}">
-  <table>
-    <tr>
-      <td>Player Name:
-      <td><input name="contents[1]" type=text value="New Player">
-    <tr>
-      <td>Colour:
-      <td>^{enumToSelect "contents[2]" Red}
-    <tr>
-      <td>Civilization:
-      <td>^{enumToSelect "contents[3]" Russia}
-    <tr>
-      <td><button type=submit>Join The Game
-|]
--}
 		[whamlet|
 <h1>Create A Player
 <table>
