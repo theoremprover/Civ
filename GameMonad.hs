@@ -82,6 +82,7 @@ deriveJSON defaultOptions ''GameAdminAction
 data GameAction =
 	IncTradeGA Trade
 	deriving Show
+
 deriveJSON defaultOptions ''Trade
 deriveJSON defaultOptions ''GameAction
 
@@ -153,16 +154,19 @@ requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return $ userEmail user
 
+data AffectedGames = NoGames | AllGames | Games [GameName]
+	deriving Show
+
 executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
 		CreateGameGAA gamename -> do
-			updateCivH $ CreateNewGame gamename user
+			updateCivH AllGames $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
 			setSession "game" gn
 			setSession "player" pn
-			updateCivH $ JoinGame gamename playername colour civ
+			updateCivH AllGames $ JoinGame gamename playername colour civ
 		CreatePlayerGAA _ -> return Nothing
 		VisitGameGAA gamename@(GameName gn) -> do
 			setSession "game" gn
@@ -171,21 +175,25 @@ executeGameAdminAction gaa = do
 		StartGameGAA gamename -> do
 			return Nothing
 		DeleteGameGAA gamename ->
-			updateCivH $ DeleteGame gamename
+			updateCivH AllGames $ DeleteGame gamename
 
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
 executeGameAction gamename playername gameaction = do
 	case gameaction of
-		IncTradeGA trade -> updateCivH $ IncTrade gamename playername trade
+		IncTradeGA trade -> updateCivH (Games [gamename]) $ IncTrade gamename playername trade
 	return Nothing
 
 ----
 			
 -- In Handler monad
 
-updateCivH event = do
+notifyClients 
+
+updateCivH affectedgames event = do
 	app <- getYesod
-	update' (appCivAcid app) event
+	res <- update' (appCivAcid app) event
+	notifyClients affectedgames
+	return res
 
 queryCivLensH lens = do
 	app <- getYesod
