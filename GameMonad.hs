@@ -7,7 +7,7 @@ import Data.Aeson.TH
 import Import (
 	Handler,Entity(..),requireAuth,getYesod,App(..),
 	setSession,deleteSession,
-	AffectedGames(..),Notification(..))
+	AffectedGames(..),Notification(..),Polls)
 
 import Prelude
 
@@ -42,10 +42,10 @@ updateCivLensU fval lens = do
 getCivState :: Query CivState CivState
 getCivState = ask
 
-incTrade :: GameName -> PlayerName -> Trade -> Update CivState ()
+incTrade :: GameName -> PlayerName -> Trade -> Update CivState (Maybe String)
 incTrade gamename playername trade = do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . playerTrade
-	return ()
+	return Nothing
 
 createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
 createNewGame gamename username = do
@@ -166,7 +166,8 @@ executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
-		LongPollGAA -> waitLongPoll GameAdmin
+		LongPollGAA -> do
+			waitLongPoll GameAdmin
 		CreateGameGAA gamename -> do
 			updateCivH GameAdmin $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
@@ -188,24 +189,24 @@ executeGameAction gamename playername gameaction = do
 	case gameaction of
 		LongPollGA -> waitLongPoll $ GameGame gamename
 		IncTradeGA trade -> updateCivH (GameGame gamename) $ IncTrade gamename playername trade
-	return Nothing
 
 ----
 
 -- In Handler monad
 
-getPollsMVar :: Handler a -> MVar [(AffectedGames,MVar Notification)]
+getPollsMVar :: Handler Polls
 getPollsMVar = getYesod >>= (return . appLongPolls)
 
-waitLongPoll :: AffectedGames -> Handler ()
+waitLongPoll :: AffectedGames -> Handler (Maybe String)
 waitLongPoll affectedgames = do
 	mvar <- liftIO $ newEmptyMVar 
 	pollsmvar <- getPollsMVar
 	liftIO $ do
-		modifyMVar pollsmvar ((affectedgames,mvar):)
+		modifyMVar_ pollsmvar $ return . ((affectedgames,mvar):)
 		Notification <- takeMVar mvar
-		return ()
+		return Nothing
 
+notifyLongPoll :: AffectedGames -> Handler ()
 notifyLongPoll affectedgames = do
 	pollsmvar <- getPollsMVar
 	liftIO $ do
@@ -213,7 +214,10 @@ notifyLongPoll affectedgames = do
 		forM_ (filter ((==affectedgames) . fst) polls) $ \ (_,mvar) -> do
 			putMVar mvar Notification
 		putMVar pollsmvar (filter ((/=affectedgames) . fst) polls)
+	return ()
 
+updateCivH :: (UpdateEvent event,MethodState event ~ CivState, MethodResult event ~ (Maybe String)) =>
+	AffectedGames -> event -> Handler (Maybe String) 
 updateCivH affectedgames event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event

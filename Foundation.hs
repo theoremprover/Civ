@@ -35,8 +35,10 @@ data App = App
     , appHttpManager :: Manager
     , appLogger      :: Logger
     , appCivAcid     :: AcidState CivState
-    , appLongPolls   :: MVar [(AffectedGames,MVar Notification)]
+    , appLongPolls   :: Polls
     }
+
+type Polls = MVar [(AffectedGames,MVar Notification)]
 
 data Notification = Notification
 	deriving Show

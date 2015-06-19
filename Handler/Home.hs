@@ -9,6 +9,7 @@ import Import
 import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
 import qualified Data.Text as Text
+import Text.Julius(rawJS)
 
 import Prelude(reads)
 import qualified Data.Map as Map
@@ -66,7 +67,9 @@ postHomeR = do
 		Nothing -> do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
-				LongPollGAA -> waitLongPoll GameAdmin
+				LongPollGAA -> do
+					waitLongPoll GameAdmin
+					getHomeR
 				VisitGameGAA _ -> redirect GameR
 				JoinGameGAA _ _ _ _ -> redirect GameR
 				CreatePlayerGAA gamename -> createPlayer gamename
@@ -118,9 +121,10 @@ enumToSelect name defaultoption = do
         <option>#{show val}
 |]
 
-serverPushJulius = toWidget [julius|
-function serverPush()
+longPollingJulius action = toWidget [julius|
+function longPoll()
 {
+  sgaa(#{rawJS $ toJSONString action});
 }
 |]
 
@@ -140,6 +144,7 @@ getHomeR = do
 				setTitle "Civ - Create, Join or Visit Game"
 				
 				sendJSONJulius HomeR
+				longPollingJulius LongPollGAA
 
 				[whamlet|
 $maybe msg <- mb_msg
@@ -189,15 +194,22 @@ sendJSONJulius target = toWidget [julius|
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
+  xmlhttp.timeout = 1000*60*10;
   xmlhttp.open("POST",'@{target}', true);
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == XMLHttpRequest.DONE && xmlhttp.status == 200)
+    if (xmlhttp.readyState == XMLHttpRequest.DONE)
     {
-      document.write(xmlhttp.responseText);
-      document.close();
+      if(xmlhttp.status == 200)
+      {
+        document.write(xmlhttp.responseText);
+        document.close();
+      }
     }
   }
+  xmlhttp.ontimeout = function() { sgaa(gameadminaction_str); }
+  xmlhttp.onerror = function() { sgaa(gameadminaction_str); }
+  xmlhttp.onabort = function() { sgaa(gameadminaction_str); }
   xmlhttp.send(gameadminaction_str);
 }
 |]
@@ -236,6 +248,7 @@ displayGame (userid,user,gamename,game,playername,player) = do
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius GameR
+		longPollingJulius LongPollGA
 		[whamlet|
 <h1>Civilization Boardgame
 $maybe msg <- mb_msg
