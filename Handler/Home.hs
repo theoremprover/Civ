@@ -80,6 +80,7 @@ createPlayer gamename@(GameName gn) = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		sendJSONJulius HomeR
+		noPolling
 		[whamlet|
 <h1>Create A Player
 <table>
@@ -119,6 +120,10 @@ enumToSelect name defaultoption = do
         <option selected="selected">#{show val}
       $of False
         <option>#{show val}
+|]
+
+noPolling = toWidget [julius|
+function longPoll() {}
 |]
 
 longPollingJulius action = toWidget [julius|
@@ -253,7 +258,6 @@ displayGame (userid,user,gamename,game,playername,player) = do
 <h1>Civilization Boardgame
 $maybe msg <- mb_msg
   <div #message>#{msg}
-<p>User: #{show user}
 <p>#{show playername}
 <p>#{show player}
 <ul>
