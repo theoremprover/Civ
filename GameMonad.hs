@@ -4,7 +4,11 @@ module GameMonad where
 
 import Data.Aeson.TH
 
-import Import (Handler,Entity(..),requireAuth,getYesod,App(..),setSession,deleteSession)
+import Import (
+	Handler,Entity(..),requireAuth,getYesod,App(..),
+	setSession,deleteSession,
+	AffectedGames(..),Notification(..))
+
 import Prelude
 
 import Model
@@ -12,6 +16,8 @@ import Entities
 
 import Data.Acid
 import Data.Acid.Advanced
+
+import Control.Concurrent.MVar
 
 import Control.Lens
 import qualified Data.Map as Map
@@ -156,20 +162,17 @@ requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return $ userEmail user
 
-data AffectedGames = GameAdmin | AllGames | Games [GameName]
-	deriving Show
-
 executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
 		LongPollGAA -> waitLongPoll GameAdmin
 		CreateGameGAA gamename -> do
-			updateCivH AllGames $ CreateNewGame gamename user
+			updateCivH GameAdmin $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
 			setSession "game" gn
 			setSession "player" pn
-			updateCivH AllGames $ JoinGame gamename playername colour civ
+			updateCivH GameAdmin $ JoinGame gamename playername colour civ
 		CreatePlayerGAA _ -> return Nothing
 		VisitGameGAA gamename@(GameName gn) -> do
 			setSession "game" gn
@@ -178,33 +181,43 @@ executeGameAdminAction gaa = do
 		StartGameGAA gamename -> do
 			return Nothing
 		DeleteGameGAA gamename ->
-			updateCivH AllGames $ DeleteGame gamename
+			updateCivH GameAdmin $ DeleteGame gamename
 
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
 executeGameAction gamename playername gameaction = do
 	case gameaction of
-		LongPollGA -> waitLongPoll $ Games [gamename]
-		IncTradeGA trade -> updateCivH (Games [gamename]) $ IncTrade gamename playername trade
+		LongPollGA -> waitLongPoll $ GameGame gamename
+		IncTradeGA trade -> updateCivH (GameGame gamename) $ IncTrade gamename playername trade
 	return Nothing
 
 ----
 
-data Notify = Notify
-	deriving Show
-
 -- In Handler monad
 
-waitLongPoll affectedGames = do
-	mvar <- newEmptyMVar 
-	app <- getYesod
+getPollsMVar :: Handler a -> MVar [(AffectedGames,MVar Notification)]
+getPollsMVar = getYesod >>= (return . appLongPolls)
 
-notifyLongPoll affectedGames = do
-	
+waitLongPoll :: AffectedGames -> Handler ()
+waitLongPoll affectedgames = do
+	mvar <- liftIO $ newEmptyMVar 
+	pollsmvar <- getPollsMVar
+	liftIO $ do
+		modifyMVar pollsmvar ((affectedgames,mvar):)
+		Notification <- takeMVar mvar
+		return ()
+
+notifyLongPoll affectedgames = do
+	pollsmvar <- getPollsMVar
+	liftIO $ do
+		polls <- takeMVar pollsmvar
+		forM_ (filter ((==affectedgames) . fst) polls) $ \ (_,mvar) -> do
+			putMVar mvar Notification
+		putMVar pollsmvar (filter ((/=affectedgames) . fst) polls)
 
 updateCivH affectedgames event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	respondPolling affectedgames
+	notifyLongPoll affectedgames
 	return res
 
 queryCivLensH lens = do

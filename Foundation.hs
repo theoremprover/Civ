@@ -22,6 +22,8 @@ import Version
 import Model
 import Entities
 
+import Control.Concurrent.MVar
+
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
@@ -32,9 +34,15 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appCivAcid     :: AcidState CivState,
-    , appLongPolls   :: [(,AffectedGames,MVar ())]
+    , appCivAcid     :: AcidState CivState
+    , appLongPolls   :: MVar [(AffectedGames,MVar Notification)]
     }
+
+data Notification = Notification
+	deriving Show
+
+data AffectedGames = GameAdmin | GameGame GameName
+	deriving (Eq,Show)
 
 instance HasHttpManager App where
     getHttpManager = appHttpManager
