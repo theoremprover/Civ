@@ -66,6 +66,7 @@ postHomeR = do
 		Nothing -> do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
+				LongPollGAA -> waitLongPoll GameAdmin
 				VisitGameGAA _ -> redirect GameR
 				JoinGameGAA _ _ _ _ -> redirect GameR
 				CreatePlayerGAA gamename -> createPlayer gamename

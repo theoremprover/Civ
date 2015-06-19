@@ -33,7 +33,7 @@ data App = App
     , appHttpManager :: Manager
     , appLogger      :: Logger
     , appCivAcid     :: AcidState CivState,
-    , appGameUpdates :: Map GameName [MVar ()]
+    , appLongPolls   :: [(,AffectedGames,MVar ())]
     }
 
 instance HasHttpManager App where

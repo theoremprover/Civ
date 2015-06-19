@@ -156,15 +156,14 @@ requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return $ userEmail user
 
-data AffectedGames = NoGames | AllGames | Games [GameName]
+data AffectedGames = GameAdmin | AllGames | Games [GameName]
 	deriving Show
 
 executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
-		LongPollGAA -> do
-			waitLongPoll
+		LongPollGAA -> waitLongPoll GameAdmin
 		CreateGameGAA gamename -> do
 			updateCivH AllGames $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
@@ -184,17 +183,22 @@ executeGameAdminAction gaa = do
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
 executeGameAction gamename playername gameaction = do
 	case gameaction of
+		LongPollGA -> waitLongPoll $ Games [gamename]
 		IncTradeGA trade -> updateCivH (Games [gamename]) $ IncTrade gamename playername trade
 	return Nothing
 
 ----
-			
+
+data Notify = Notify
+	deriving Show
+
 -- In Handler monad
 
-waitLongPoll = do
-	
+waitLongPoll affectedGames = do
+	mvar <- newEmptyMVar 
+	app <- getYesod
 
-respondPolling affectedgames = do
+notifyLongPoll affectedGames = do
 	
 
 updateCivH affectedgames event = do
