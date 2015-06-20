@@ -169,11 +169,11 @@ executeGameAdminAction gaa = do
 		LongPollGAA -> do
 			waitLongPoll GameAdmin
 		CreateGameGAA gamename -> do
-			updateCivH GameAdmin $ CreateNewGame gamename user
+			updateCivH [GameAdmin] $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
 			setSession "game" gn
 			setSession "player" pn
-			updateCivH GameAdmin $ JoinGame gamename playername colour civ
+			updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
 		CreatePlayerGAA _ -> return Nothing
 		VisitGameGAA gamename@(GameName gn) -> do
 			setSession "game" gn
@@ -182,13 +182,13 @@ executeGameAdminAction gaa = do
 		StartGameGAA gamename -> do
 			return Nothing
 		DeleteGameGAA gamename ->
-			updateCivH GameAdmin $ DeleteGame gamename
+			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
 
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
 executeGameAction gamename playername gameaction = do
 	case gameaction of
 		LongPollGA -> waitLongPoll $ GameGame gamename
-		IncTradeGA trade -> updateCivH (GameGame gamename) $ IncTrade gamename playername trade
+		IncTradeGA trade -> updateCivH [GameGame gamename] $ IncTrade gamename playername trade
 
 ----
 
@@ -206,22 +206,22 @@ waitLongPoll affectedgames = do
 		Notification <- takeMVar mvar
 		return Nothing
 
-notifyLongPoll :: AffectedGames -> Handler ()
-notifyLongPoll affectedgames = do
+notifyLongPoll :: [AffectedGames] -> Handler ()
+notifyLongPoll affectedgamess = do
 	pollsmvar <- getPollsMVar
 	liftIO $ do
 		polls <- takeMVar pollsmvar
-		forM_ (filter ((==affectedgames) . fst) polls) $ \ (_,mvar) -> do
+		forM_ (filter ((`elem` affectedgamess) . fst) polls) $ \ (_,mvar) -> do
 			putMVar mvar Notification
-		putMVar pollsmvar (filter ((/=affectedgames) . fst) polls)
+		putMVar pollsmvar (filter ((`notElem` affectedgamess) . fst) polls)
 	return ()
 
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState, MethodResult event ~ (Maybe String)) =>
-	AffectedGames -> event -> Handler (Maybe String) 
-updateCivH affectedgames event = do
+	[AffectedGames] -> event -> Handler (Maybe String) 
+updateCivH affectedgamess event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	notifyLongPoll affectedgames
+	notifyLongPoll affectedgamess
 	return res
 
 queryCivLensH lens = do

@@ -199,8 +199,8 @@ sendJSONJulius target = toWidget [julius|
 function sgaa(gameadminaction_str)
 {
   xmlhttp = new XMLHttpRequest();
-  xmlhttp.timeout = 1000*60*10;
   xmlhttp.open("POST",'@{target}', true);
+  xmlhttp.timeout = 1000*60*10;
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.onreadystatechange = function() {
     if (xmlhttp.readyState == XMLHttpRequest.DONE)
