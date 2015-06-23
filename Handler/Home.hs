@@ -20,6 +20,7 @@ import Version
 import GameMonad
 import Model
 import Entities
+import Display
 
 errRedirect :: String -> Handler a
 errRedirect s = do
@@ -61,10 +62,10 @@ postHomeR = do
 	gameadminaction :: GameAdminAction <- requireJsonBody
 	res <- executeGameAdminAction gameadminaction
 	case res of
-		Just msg -> do
+		Left msg -> do
 			setMessage $ toHtml msg
 			getHomeR
-		Nothing -> do
+		Right _ -> do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
 				LongPollGAA -> do
@@ -79,21 +80,22 @@ createPlayer :: GameName -> Handler Html
 createPlayer gamename@(GameName gn) = do
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
+		Just game <- getGame gamename
 		sendJSONJulius HomeR
 		noPolling
 		[whamlet|
-<h1>Create A Player
+<h1>Create A Player For Game #{show gn}
 <table>
+  $forall (PlayerName pn,player) <- Map.toList (_gamePlayers game)
+    <tr>
+      <td>#{show pn}
+      <td bgcolor=#{colour2html $ _playerColour player}>#{show $ _playerColour player}
+      <td>#{show $ _playerCiv player}
+
   <tr>
-    <td>Player Name:
     <td><input id="playername" type=text size=20 value="New Player">
-  <tr>
-    <td>Colour:
     <td>^{enumToSelect "colour" Red}
-  <tr>
-    <td>Civilization:
     <td>^{enumToSelect "civ" Russia}
-  <tr>
     <td><button type=button onclick="joinGame(#{show gn})">Join The Game
 |]
 		toWidget [julius|
@@ -232,9 +234,9 @@ postGameR = do
 	gameaction :: GameAction <- requireJsonBody
 	res <- executeGameAction gamename playername gameaction
 	case res of
-		Just msg -> do
+		Left msg -> do
 			setMessage $ toHtml msg
-		Nothing -> do
+		Right _ -> do
 			setMessage $ toHtml $ show gameaction
 	displayGame (userid,user,gamename,game,playername,player)
 

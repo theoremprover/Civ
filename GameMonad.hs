@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell,ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell,ScopedTypeVariables,LambdaCase,Rank2Types #-}
 
 module GameMonad where
 
@@ -24,48 +24,68 @@ import qualified Data.Map as Map
 import Control.Monad.Reader
 import Control.Monad.State
 
+import Data.Maybe
+import Data.Either
+
 -- Lenses
 
 civStateLens = id
 civGameLens gamename = civStateLens . civGames . at gamename
 
 civPlayerLens gamename playername =
-	civGameLens gamename . _Just . gamePlayers . at playername . _Just
+	civPlayersLens gamename . at playername -- . _Just
+
+civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
 -- In Update monad
 
 updateCivLensU fval lens = do
 	modify (over lens fval)
+	return oK
+
+queryCivLensU lens = gets lens
+
+-------------- Conditions
+
+--checkCondition :: (MonadState CivState m) => String -> Lens' CivState a -> (a -> Bool) -> m UpdateResult
+checkCondition errmsg lens f = do
+	civstate <- get
+	case f (preview lens civstate) of
+		False -> return $ eRR errmsg
+		True -> return oK
 
 --------------
+
+oK = Right ()
+eRR errmsg = Left errmsg
+
+type UpdateResult = Either String ()
 
 getCivState :: Query CivState CivState
 getCivState = ask
 
-incTrade :: GameName -> PlayerName -> Trade -> Update CivState (Maybe String)
+incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = do
-	updateCivLensU (+trade) $ civPlayerLens gamename playername . playerTrade
-	return Nothing
+	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
-createNewGame :: GameName -> UserName -> Update CivState (Maybe String)
+createNewGame :: GameName -> UserName -> Update CivState UpdateResult
 createNewGame gamename username = do
-	civstate <- get
-	case view (civGameLens gamename) civstate of
-		Just _ -> return $ Just $ "Cannot create " ++ show gamename ++ ": it already exists!"
-		Nothing -> do
-			updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
-			return Nothing
+	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
+		(civGameLens gamename) isNothing
+	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
 
-deleteGame :: GameName -> Update CivState (Maybe String)
+deleteGame :: GameName -> Update CivState UpdateResult
 deleteGame gamename = do
 	updateCivLensU (\_-> Nothing) $ civGameLens gamename
-	return Nothing
 
-joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState (Maybe String)
+joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState UpdateResult
 joinGame gamename playername colour civ = do
-	updateCivLensU (\_-> Just $ makePlayer colour civ) $
+	checkCondition (show playername ++ " already exists in " ++ show gamename)
+		(civPlayerLens gamename playername) isNothing
+	checkCondition (show colour ++ " already taken in " ++ show gamename)
+		(civGameLens gamename . _Just . gamePlayers) ((elem colour) . (map _playerColour) . Map.elems . fromJust)
+	updateCivLensU (\ _ -> Just $ makePlayer colour civ) $
 		civGameLens gamename . _Just . gamePlayers . at playername
-	return Nothing
 
 $(makeAcidic ''CivState [
 	'getCivState,
@@ -108,61 +128,12 @@ getGamePlayer gamename playername = do
 		Nothing -> Nothing
 		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
 
---------
-
-initialCivState :: CivState
-initialCivState = CivState $ Map.fromList [
-	(GameName "testgame",Game "public@thinking-machines.net" Running (Just [
-		BoardTile (Tile Russia) (Coors 0 0) True Southward,
-		BoardTile Tile1 (Coors 4 0) True Eastward,
-		BoardTile Tile2 (Coors 0 4) True Southward,
-		BoardTile Tile3 (Coors 4 4) False Southward,
-		BoardTile Tile4 (Coors 0 8) False Southward,
-		BoardTile Tile5 (Coors 4 8) True Northward,
-		BoardTile Tile6 (Coors 0 12) True Westward,
-		BoardTile (Tile America) (Coors 4 12) True Northward ])
-		(Map.fromList [
-			(PlayerName "Spieler Rot", Player Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
-				TechCard CodeOfLaws TechLevelI (Coins 2),
-				TechCard HorsebackRiding TechLevelI (Coins 0),
-				TechCard AnimalHusbandry TechLevelI (Coins 0),
-				TechCard Philosophy TechLevelI (Coins 0),
-				TechCard Navigation TechLevelI (Coins 0),
-				TechCard Navy TechLevelI (Coins 0),
-				TechCard MonarchyTech TechLevelII (Coins 0) ]),
-			(PlayerName "Spieler Blau", Player Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
-				TechCard CodeOfLaws TechLevelI (Coins 1),
-				TechCard HorsebackRiding TechLevelI (Coins 0),
-				TechCard AnimalHusbandry TechLevelI (Coins 0),
-				TechCard Philosophy TechLevelI (Coins 0),
-				TechCard Navigation TechLevelI (Coins 0),
-				TechCard Navy TechLevelI (Coins 0),
-				TechCard MonarchyTech TechLevelII (Coins 0),
-				TechCard PrintingPress TechLevelII (Coins 0),
-				TechCard Sailing TechLevelII (Coins 0),
-				TechCard Construction TechLevelII (Coins 0),
-				TechCard Engineering TechLevelII (Coins 0),
-				TechCard SteamPower TechLevelIII (Coins 0),
-				TechCard Banking TechLevelIII (Coins 0),
-				TechCard MilitaryScience TechLevelIII (Coins 0),
-				TechCard Computers TechLevelIV (Coins 0),
-				TechCard MassMedia TechLevelIV (Coins 0),
-				TechCard SpaceFlight TechLevelV (Coins 0) ])
-			])),
-
-	(GameName "Testgame 2", Game "public@thinking-machines.net" Waiting Nothing
-		(Map.fromList [
-			(PlayerName "Spieler Blau", Player Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
-			])
-		)
-	]
-
 requireLoggedIn :: Handler UserName
 requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return $ userEmail user
 
-executeGameAdminAction :: GameAdminAction -> Handler (Maybe String)
+executeGameAdminAction :: GameAdminAction -> Handler UpdateResult
 executeGameAdminAction gaa = do
 	user <- requireLoggedIn
 	case gaa of
@@ -171,20 +142,26 @@ executeGameAdminAction gaa = do
 		CreateGameGAA gamename -> do
 			updateCivH [GameAdmin] $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
-			setSession "game" gn
-			setSession "player" pn
-			updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
-		CreatePlayerGAA _ -> return Nothing
+			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
+			case res of
+				Right _ -> do
+					setSession "game" gn
+					setSession "player" pn
+				Left _ -> do
+					deleteSession "game"
+					deleteSession "player"
+			return res
+		CreatePlayerGAA _ -> return oK
 		VisitGameGAA gamename@(GameName gn) -> do
 			setSession "game" gn
 			deleteSession "player"
-			return Nothing
+			return oK
 		StartGameGAA gamename -> do
-			return Nothing
+			return oK
 		DeleteGameGAA gamename ->
 			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
 
-executeGameAction :: GameName -> PlayerName -> GameAction -> Handler (Maybe String)
+executeGameAction :: GameName -> PlayerName -> GameAction -> Handler UpdateResult
 executeGameAction gamename playername gameaction = do
 	case gameaction of
 		LongPollGA -> waitLongPoll $ GameGame gamename
@@ -197,14 +174,14 @@ executeGameAction gamename playername gameaction = do
 getPollsMVar :: Handler Polls
 getPollsMVar = getYesod >>= (return . appLongPolls)
 
-waitLongPoll :: AffectedGames -> Handler (Maybe String)
+waitLongPoll :: AffectedGames -> Handler UpdateResult
 waitLongPoll affectedgames = do
 	mvar <- liftIO $ newEmptyMVar 
 	pollsmvar <- getPollsMVar
 	liftIO $ do
 		modifyMVar_ pollsmvar $ return . ((affectedgames,mvar):)
 		Notification <- takeMVar mvar
-		return Nothing
+		return oK
 
 notifyLongPoll :: [AffectedGames] -> Handler ()
 notifyLongPoll affectedgamess = do
@@ -216,17 +193,17 @@ notifyLongPoll affectedgamess = do
 		putMVar pollsmvar (filter ((`notElem` affectedgamess) . fst) polls)
 	return ()
 
+{-
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState, MethodResult event ~ (Maybe String)) =>
 	[AffectedGames] -> event -> Handler (Maybe String) 
+-}
 updateCivH affectedgamess event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	notifyLongPoll affectedgamess
+	when (isRight res) $ notifyLongPoll affectedgamess
 	return res
 
 queryCivLensH lens = do
 	app <- getYesod
 	civstate <- query' (appCivAcid app) GetCivState
 	return $ view lens civstate
-
-

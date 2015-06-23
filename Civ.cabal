@@ -27,6 +27,7 @@ library
                      ExecutePlayerAction
                      Logic
                      Version
+                     Display
                      Paths_Civ
 
     if flag(dev) || flag(library-only)
