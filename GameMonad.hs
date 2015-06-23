@@ -19,6 +19,8 @@ import Data.Acid.Advanced
 
 import Control.Concurrent.MVar
 
+import Control.Monad.Error
+
 import Control.Lens
 import qualified Data.Map as Map
 import Control.Monad.Reader
@@ -33,7 +35,7 @@ civStateLens = id
 civGameLens gamename = civStateLens . civGames . at gamename
 
 civPlayerLens gamename playername =
-	civPlayersLens gamename . at playername -- . _Just
+	civPlayersLens gamename . at playername
 
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
@@ -41,7 +43,7 @@ civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
 updateCivLensU fval lens = do
 	modify (over lens fval)
-	return oK
+	return ()
 
 queryCivLensU lens = gets lens
 
@@ -51,8 +53,8 @@ queryCivLensU lens = gets lens
 checkCondition errmsg lens f = do
 	civstate <- get
 	case f (preview lens civstate) of
-		False -> return $ eRR errmsg
-		True -> return oK
+		False -> throwError errmsg
+		True -> return ()
 
 --------------
 
@@ -65,26 +67,26 @@ getCivState :: Query CivState CivState
 getCivState = ask
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
-incTrade gamename playername trade = do
+incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
 createNewGame :: GameName -> UserName -> Update CivState UpdateResult
-createNewGame gamename username = do
+createNewGame gamename username = runErrorT $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
-		(civGameLens gamename) isNothing
+		(civGameLens gamename . _Just) isNothing
 	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
 
 deleteGame :: GameName -> Update CivState UpdateResult
-deleteGame gamename = do
+deleteGame gamename = runErrorT $ do
 	updateCivLensU (\_-> Nothing) $ civGameLens gamename
 
 joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState UpdateResult
-joinGame gamename playername colour civ = do
+joinGame gamename playername colour civ = runErrorT $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
-		(civPlayerLens gamename playername) isNothing
+		(civPlayerLens gamename playername . _Just) isNothing
 	checkCondition (show colour ++ " already taken in " ++ show gamename)
-		(civGameLens gamename . _Just . gamePlayers) ((elem colour) . (map _playerColour) . Map.elems . fromJust)
-	updateCivLensU (\ _ -> Just $ makePlayer colour civ) $
+		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map _playerColour) . Map.elems . fromJust)
+	updateCivLensU (\_ -> Just $ makePlayer colour civ) $
 		civGameLens gamename . _Just . gamePlayers . at playername
 
 $(makeAcidic ''CivState [

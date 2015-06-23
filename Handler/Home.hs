@@ -64,7 +64,9 @@ postHomeR = do
 	case res of
 		Left msg -> do
 			setMessage $ toHtml msg
-			getHomeR
+			case gameadminaction of
+				JoinGameGAA gamename _ _ _ -> createPlayer gamename 
+				_ -> getHomeR
 		Right _ -> do
 			setMessage $ toHtml (show gameadminaction)
 			case gameadminaction of
@@ -78,12 +80,15 @@ postHomeR = do
 
 createPlayer :: GameName -> Handler Html
 createPlayer gamename@(GameName gn) = do
+	mb_msg <- getMessage
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		Just game <- getGame gamename
 		sendJSONJulius HomeR
 		noPolling
 		[whamlet|
+$maybe msg <- mb_msg
+  <div #message>#{msg}
 <h1>Create A Player For Game #{show gn}
 <table>
   $forall (PlayerName pn,player) <- Map.toList (_gamePlayers game)
