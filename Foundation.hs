@@ -5,6 +5,7 @@ module Foundation (
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
+import Text.Cassius         (cassiusFile)
 import Text.Jasmine         (minifym)
 import Yesod.Auth.Email
 import Yesod.Default.Util   (addStaticContentExternal)
@@ -88,6 +89,7 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
+            toWidget $(cassiusFile "templates/homepage.cassius")
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 

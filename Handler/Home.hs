@@ -80,21 +80,18 @@ postHomeR = do
 
 createPlayer :: GameName -> Handler Html
 createPlayer gamename@(GameName gn) = do
-	mb_msg <- getMessage
 	defaultLayout $ do
 		setTitle "Civ - Create A Player"
 		Just game <- getGame gamename
 		sendJSONJulius HomeR
 		noPolling
 		[whamlet|
-$maybe msg <- mb_msg
-  <div #message>#{msg}
 <h1>Create A Player For Game #{show gn}
 <table>
   $forall (PlayerName pn,player) <- Map.toList (_gamePlayers game)
     <tr>
-      <td>#{show pn}
-      <td bgcolor=#{colour2html $ _playerColour player}>#{show $ _playerColour player}
+      <td>#{pn}
+      <td fgcolor=white bgcolor=#{colour2html $ _playerColour player}>#{show $ _playerColour player}
       <td>#{show $ _playerCiv player}
 
   <tr>
@@ -150,8 +147,6 @@ getHomeR = do
 
 			civstate <- queryCivLensH civStateLens
 
-			mb_msg <- getMessage
-			
 			defaultLayout $ do
 				setTitle "Civ - Create, Join or Visit Game"
 				
@@ -159,9 +154,6 @@ getHomeR = do
 				longPollingJulius LongPollGAA
 
 				[whamlet|
-$maybe msg <- mb_msg
-  <div #message>#{msg}
-
 <h1>Games
 <table border=1 cellspacing=10>
   $forall (gamename,game) <- Map.toList (_civGames civstate)
@@ -263,12 +255,10 @@ displayGame (userid,user,gamename,game,playername,player) = do
 		longPollingJulius LongPollGA
 		[whamlet|
 <h1>Civilization Boardgame
-$maybe msg <- mb_msg
-  <div #message>#{msg}
 <p>#{show playername}
 <p>#{show player}
 <ul>
-  $forall (pn,p) <- Map.toList (_gamePlayers game)
+  $forall (pn,p) <- Map.toList $ _gamePlayers game
     <li>
       #{show pn}: #{show $ _playerTrade p}
 <button type=button onclick=#{onclickHandler $ IncTradeGA (Trade 1)}>IncTrade
