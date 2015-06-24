@@ -10,6 +10,7 @@ import Text.Jasmine         (minifym)
 import Yesod.Auth.Email
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
+import Yesod.Core (Yesod(..),logDebug,logInfo,logWarn,logError)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Network.Mail.Mime
 import qualified Data.Text.Lazy.Encoding
@@ -17,7 +18,10 @@ import Text.Shakespeare.Text (stext)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Data.Map
 
+import qualified Data.Text as T
 import Data.Acid (AcidState(..))
+
+import System.Console.ANSI
 
 import Version
 import Model
@@ -149,7 +153,7 @@ instance YesodAuth App where
     -- Where to send a user after successful login
     loginDest _ = HomeR
     -- Where to send a user after logout
-    logoutDest _ = HomeR
+    logoutDest _ = AuthR LoginR
     -- Override the above two destinations when a Referer: header is present
     redirectToReferer _ = True
 
@@ -263,3 +267,11 @@ getUserSessionCredentials = do
 			return $ UserSessionCredentials $ Just (userid,user,
 				map GameName mb_gamename,
 				map PlayerName mb_playername)
+
+------------
+
+printLogDebug :: String -> Handler ()
+printLogDebug msg = $(logDebug) (T.pack $
+	setSGRCode [ SetColor Foreground Vivid System.Console.ANSI.Blue,SetColor Background Dull Cyan] ++
+	msg ++
+	setSGRCode [Reset])

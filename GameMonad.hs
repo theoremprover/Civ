@@ -6,7 +6,7 @@ import Data.Aeson.TH
 
 import Import (
 	Handler,Entity(..),requireAuth,getYesod,App(..),
-	setSession,deleteSession,
+	setSession,deleteSession,printLogDebug,
 	AffectedGames(..),Notification(..),Polls)
 
 import Prelude
@@ -49,7 +49,6 @@ queryCivLensU lens = gets lens
 
 -------------- Conditions
 
---checkCondition :: (MonadState CivState m) => String -> Lens' CivState a -> (a -> Bool) -> m UpdateResult
 checkCondition errmsg lens f = do
 	civstate <- get
 	case f (preview lens civstate) of
@@ -180,19 +179,22 @@ waitLongPoll :: AffectedGames -> Handler UpdateResult
 waitLongPoll affectedgames = do
 	mvar <- liftIO $ newEmptyMVar 
 	pollsmvar <- getPollsMVar
-	liftIO $ do
-		modifyMVar_ pollsmvar $ return . ((affectedgames,mvar):)
-		Notification <- takeMVar mvar
-		return oK
+	liftIO $ modifyMVar_ pollsmvar $ return . ((affectedgames,mvar):)
+	printLogDebug $ "Waiting for Notification on " ++ show affectedgames ++ " ..."
+	Notification <- liftIO $ takeMVar mvar
+	printLogDebug $ "Got Notification on " ++ show affectedgames
+	return oK
 
 notifyLongPoll :: [AffectedGames] -> Handler ()
 notifyLongPoll affectedgamess = do
 	pollsmvar <- getPollsMVar
-	liftIO $ do
-		polls <- takeMVar pollsmvar
-		forM_ (filter ((`elem` affectedgamess) . fst) polls) $ \ (_,mvar) -> do
-			putMVar mvar Notification
-		putMVar pollsmvar (filter ((`notElem` affectedgamess) . fst) polls)
+	polls <- liftIO $ takeMVar pollsmvar
+	forM_ (filter ((`elem` affectedgamess) . fst) polls) $ \ (ag,mvar) -> do
+		printLogDebug $ "Notifying " ++ show ag
+		liftIO $ putMVar mvar Notification
+	let remainingpolls = filter ((`notElem` affectedgamess) . fst) polls
+	liftIO $ putMVar pollsmvar remainingpolls
+	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
 	return ()
 
 {-

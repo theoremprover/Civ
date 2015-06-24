@@ -95,6 +95,7 @@ library
                  , mtl
                  , unix
                  , lens
+                 , ansi-terminal
 
 executable         Civ
     if flag(library-only)
