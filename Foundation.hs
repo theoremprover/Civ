@@ -89,7 +89,8 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
-            toWidget $(cassiusFile "templates/homepage.cassius")
+--            toWidget $(cassiusFile "templates/homepage.cassius")
+            $(widgetFile "homepage")
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 

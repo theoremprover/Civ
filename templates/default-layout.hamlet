@@ -20,7 +20,7 @@
   <tr><td colspan=3><hr style="margin-top: 5px" width="100%">
 
   $maybe msg <- mmsg
-    <tr><td><div #message>#{msg}
+    <tr><td><div class="Message">#{msg}
 
   <tr>
     <td colspan=3>
