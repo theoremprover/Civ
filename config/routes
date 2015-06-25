@@ -6,3 +6,4 @@
 
 /     HomeR GET POST
 /game GameR GET POST
+/waiting WaitingR GET POST

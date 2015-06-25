@@ -48,7 +48,7 @@ type Polls = MVar [(AffectedGames,MVar Notification)]
 data Notification = Notification
 	deriving Show
 
-data AffectedGames = GameAdmin | GameGame GameName
+data AffectedGames = GameAdmin | GameWaiting | GameGame GameName
 	deriving (Eq,Show)
 
 instance HasHttpManager App where

@@ -4,12 +4,16 @@ module GameMonad where
 
 import Data.Aeson.TH
 
+{-
 import Import (
 	Handler,Entity(..),requireAuth,getYesod,App(..),
 	setSession,deleteSession,printLogDebug,
-	AffectedGames(..),Notification(..),Polls,runDB)
+	AffectedGames(..),Notification(..),Polls,runDB,
+	redirect,toHtml,setMessage,getMessage)
+-}
+import Import hiding (Update,Query,get)
 
-import Prelude
+import qualified Prelude
 
 import Model
 import Entities
@@ -17,16 +21,13 @@ import Entities
 import Data.Acid
 import Data.Acid.Advanced
 
-import Control.Concurrent.MVar
-
-import Control.Monad.Error
+import Control.Monad.Error (runErrorT,throwError)
 
 import qualified Database.Persist.Sql as Sql
 
 import Control.Lens
 import qualified Data.Map as Map
-import Control.Monad.Reader
-import Control.Monad.State
+import Control.Monad.State (modify,get,gets)
 
 import Data.Maybe
 import Data.Either
@@ -90,9 +91,16 @@ joinGame gamename playername colour civ = runErrorT $ do
 	updateCivLensU (\_ -> Just $ makePlayer colour civ) $
 		civGameLens gamename . _Just . gamePlayers . at playername
 
+startGame :: GameName -> Update CivState UpdateResult
+startGame gamename = runErrorT $ do
+	checkCondition ("Cannot start " ++ show gamename ++ " is not in waiting state.")
+		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
+	updateCivLensU (\_ -> Running) $ civGameLens gamename . _Just . gameState
+
 $(makeAcidic ''CivState [
 	'getCivState,
 	'createNewGame,
+	'startGame,
 	'joinGame,
 	'deleteGame,
 	'incTrade
@@ -101,20 +109,24 @@ $(makeAcidic ''CivState [
 data GameAdminAction =
 	LongPollGAA |
 	CreateGameGAA GameName |
-	CreatePlayerGAA GameName |
 	JoinGameGAA GameName PlayerName Colour Civ |
 	PlayGameGAA GameName PlayerName |
 	VisitGameGAA GameName |
-	StartGameGAA GameName |
 	DeleteGameGAA GameName
 	deriving Show
 deriveJSON defaultOptions ''GameAdminAction
+
+data WaitingAction =
+	LongPollWA |
+	StartGameWA GameName |
+	CreatePlayerWA GameName
+	deriving Show
+deriveJSON defaultOptions ''WaitingAction	
 
 data GameAction =
 	LongPollGA |
 	IncTradeGA Trade
 	deriving Show
-
 deriveJSON defaultOptions ''Trade
 deriveJSON defaultOptions ''GameAction
 
@@ -131,55 +143,6 @@ getGamePlayer gamename playername = do
 	return $ case mb_game of
 		Nothing -> Nothing
 		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
-
-requireLoggedIn :: Handler UserName
-requireLoggedIn = do
-	Entity userid user <- requireAuth
-	return $ userEmail user
-
-executeGameAdminAction :: GameAdminAction -> Handler UpdateResult
-executeGameAdminAction gaa = do
-	user <- requireLoggedIn
-	case gaa of
-		LongPollGAA -> do
-			waitLongPoll GameAdmin
-		CreateGameGAA gamename -> do
-			updateCivH [GameAdmin] $ CreateNewGame gamename user
-		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
-			Entity userid userentity <- requireAuth
-			runDB $ Sql.update userid
-				[ UserParticipations Sql.=. Map.insertWith' (++) gn [pn] (userParticipations userentity) ]
-			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
-			case res of
-				Right _ -> do
-					setSession "game" gn
-					setSession "player" pn
-				Left _ -> do
-					deleteSession "game"
-					deleteSession "player"
-			return res
-		PlayGameGAA (GameName gn) (PlayerName pn) -> do
-			setSession "game" gn
-			setSession "player" pn
-			return oK
-		CreatePlayerGAA _ -> return oK
-		VisitGameGAA gamename@(GameName gn) -> do
-			setSession "game" gn
-			deleteSession "player"
-			return oK
-		StartGameGAA gamename -> do
-			return oK
-		DeleteGameGAA gamename@(GameName gn) -> do
-			Entity userid userentity <- requireAuth
-			runDB $ Sql.update userid
-				[ UserParticipations Sql.=. Map.delete gn (userParticipations userentity) ]
-			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
-
-executeGameAction :: GameName -> PlayerName -> GameAction -> Handler UpdateResult
-executeGameAction gamename playername gameaction = do
-	case gameaction of
-		LongPollGA -> waitLongPoll $ GameGame gamename
-		IncTradeGA trade -> updateCivH [GameGame gamename] $ IncTrade gamename playername trade
 
 ----
 
@@ -224,3 +187,44 @@ queryCivLensH lens = do
 	app <- getYesod
 	civstate <- query' (appCivAcid app) GetCivState
 	return $ view lens civstate
+
+------------
+
+errRedirect :: String -> Handler a
+errRedirect s = do
+	setMessage $ toHtml s
+	redirect HomeR
+
+requireLoggedIn :: Handler (UserId,User)
+requireLoggedIn = do
+	Entity userid user <- requireAuth
+	return (userid,user)
+
+maybeVisitorUserSessionCredentials :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
+maybeVisitorUserSessionCredentials = do
+	UserSessionCredentials creds <- getUserSessionCredentials
+	case creds of
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,_,Nothing,_) -> errRedirect "gamename not set in this session"
+		Just (userid,user,Just gamename,mb_playername) -> do
+			mb_game <- getGame gamename
+			case mb_game of
+				Nothing -> do
+					errRedirect $ "There is no game " ++ show gamename
+				Just game -> case mb_playername of
+					Nothing -> return (userid,user,gamename,game,Nothing)
+					Just playername -> do
+						mb_gameplayer <- getGamePlayer gamename playername
+						case mb_gameplayer of
+							Nothing -> do
+								errRedirect $ "There is no player " ++ show playername ++ " in game " ++ show gamename
+							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
+								Nothing -> Nothing
+								Just player -> Just (playername,player) )
+
+requirePlayerUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
+requirePlayerUserSessionCredentials = do
+	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+	case mb_player of
+		Nothing -> errRedirect "You are not a player in this game"
+		Just (playername,player) -> return (userid,user,gamename,game,playername,player)

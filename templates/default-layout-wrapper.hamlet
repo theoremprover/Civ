@@ -22,7 +22,7 @@ $newline never
 
     <script>
       document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js');
-  <body onload="longPoll()">
+  <body onload="longPoll()" onunload="onUnload()">
     <div class="container">
       <header>
       <div id="main" role="main">
