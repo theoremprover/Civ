@@ -93,7 +93,6 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
---            toWidget $(cassiusFile "templates/homepage.cassius")
             $(widgetFile "homepage")
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
@@ -155,7 +154,7 @@ instance YesodAuth App where
     -- Where to send a user after logout
     logoutDest _ = AuthR LoginR
     -- Override the above two destinations when a Referer: header is present
-    redirectToReferer _ = True
+    redirectToReferer _ = False
 
     getAuthId creds = runDB $ do
         x <- insertBy $ User (credsIdent creds) Nothing Nothing False Data.Map.empty

@@ -100,6 +100,8 @@ newtype PlayerName = PlayerName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
 $(deriveSafeCopy 0 'base ''PlayerName)
 
+playerName (PlayerName pn) = pn
+
 data Player = Player {
 	_playerColour :: Colour,
 	_playerCiv :: Civ,
@@ -122,6 +124,8 @@ $(deriveSafeCopy 0 'base ''GameState)
 newtype GameName = GameName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
 $(deriveSafeCopy 0 'base ''GameName)
+
+gameName (GameName gn) = gn
 
 data Game = Game {
 	_gameCreator :: UserName,

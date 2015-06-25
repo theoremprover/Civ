@@ -10,8 +10,9 @@ import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
 import qualified Data.Text as Text
 import Text.Julius(rawJS)
+import Text.Blaze(ToMarkup)
 
-import Prelude(reads)
+import Prelude(reads,head,tail)
 import qualified Data.Map as Map
 import Data.Ix
 
@@ -75,6 +76,7 @@ postHomeR = do
 					getHomeR
 				VisitGameGAA _ -> redirect GameR
 				JoinGameGAA _ _ _ _ -> redirect GameR
+				PlayGameGAA _ _ -> redirect GameR
 				CreatePlayerGAA gamename -> createPlayer gamename
 				_ -> getHomeR
 
@@ -113,17 +115,25 @@ function joinGame(gamename_str)
 }
 |]
 
-enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) => String -> o -> WidgetT site m ()
+{-
+enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) =>
+	String -> o -> WidgetT site m ()
+-}
 enumToSelect name defaultoption = do
-	let vals = range (minBound,maxBound)
+	let rng = defaultoption : range (minBound,maxBound)
+	stringListToSelect name (show defaultoption) (map show $ tail rng)
+
+stringListToSelect :: (MonadThrow m,MonadBaseControl IO m,MonadIO m,ToMarkup o,Eq o) =>
+	o -> o -> [o] -> WidgetT site m ()
+stringListToSelect name defaultoption os = do
 	[whamlet|
 <select id=#{name} name=#{name}>
-  $forall val <- vals
-    $case (==) val defaultoption
+  $forall o <- os
+    $case (==) o defaultoption
       $of True
-        <option selected="selected">#{show val}
+        <option selected="selected">#{o}
       $of False
-        <option>#{show val}
+        <option>#{o}
 |]
 
 noPolling = toWidget [julius|
@@ -161,11 +171,18 @@ getHomeR = do
       <td>#{show gamename}
       <td>#{show (_gameState game)}
       <td>
+        $case Map.lookup (gameName gamename) (userParticipations user)
+          $of Just playernametexts
+            <button type=button onclick="playGame(#{show $ gameName gamename})">Play Game
+            as
+            ^{stringListToSelect (Text.append (gameName gamename) "_playername") (Prelude.head playernametexts) playernametexts}
+          $of Nothing
+      <td>
         $case _gameState game
           $of Waiting
-            <button type=button onclick=#{onclickHandler $ CreatePlayerGAA gamename} style="min-width: 100%">Join game
+            <button type=button onclick=#{onclickHandler $ CreatePlayerGAA gamename} style="min-width: 100%">Join Game
           $of Running
-            <button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit
+            <button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit Game
           $of Finished
       <td>
         $if (&&) (_gameCreator game == email) (_gameState game == Waiting)
@@ -187,6 +204,15 @@ function createGame()
   var gamename = document.getElementById("newgamename").value; 
   var cga = {"tag":"CreateGameGAA","contents":gamename};
   sgaa(JSON.stringify(cga));
+}
+
+function playGame(gamename_str)
+{
+  sgaa(JSON.stringify({"tag":"PlayGameGAA",
+    "contents":[
+      gamename_str,
+      document.getElementById(gamename_str+"_playername").value
+      ]}));
 }
 |]
 
@@ -213,7 +239,6 @@ function sgaa(gameadminaction_str)
   }
   xmlhttp.ontimeout = function() { sgaa(gameadminaction_str); }
   xmlhttp.onerror = function() { sgaa(gameadminaction_str); }
-  xmlhttp.onabort = function() { sgaa(gameadminaction_str); }
   xmlhttp.send(gameadminaction_str);
 }
 |]

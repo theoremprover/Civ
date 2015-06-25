@@ -7,7 +7,7 @@ import Data.Aeson.TH
 import Import (
 	Handler,Entity(..),requireAuth,getYesod,App(..),
 	setSession,deleteSession,printLogDebug,
-	AffectedGames(..),Notification(..),Polls)
+	AffectedGames(..),Notification(..),Polls,runDB)
 
 import Prelude
 
@@ -20,6 +20,8 @@ import Data.Acid.Advanced
 import Control.Concurrent.MVar
 
 import Control.Monad.Error
+
+import qualified Database.Persist.Sql as Sql
 
 import Control.Lens
 import qualified Data.Map as Map
@@ -101,6 +103,7 @@ data GameAdminAction =
 	CreateGameGAA GameName |
 	CreatePlayerGAA GameName |
 	JoinGameGAA GameName PlayerName Colour Civ |
+	PlayGameGAA GameName PlayerName |
 	VisitGameGAA GameName |
 	StartGameGAA GameName |
 	DeleteGameGAA GameName
@@ -143,6 +146,9 @@ executeGameAdminAction gaa = do
 		CreateGameGAA gamename -> do
 			updateCivH [GameAdmin] $ CreateNewGame gamename user
 		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
+			Entity userid userentity <- requireAuth
+			runDB $ Sql.update userid
+				[ UserParticipations Sql.=. Map.insertWith' (++) gn [pn] (userParticipations userentity) ]
 			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
 			case res of
 				Right _ -> do
@@ -152,6 +158,10 @@ executeGameAdminAction gaa = do
 					deleteSession "game"
 					deleteSession "player"
 			return res
+		PlayGameGAA (GameName gn) (PlayerName pn) -> do
+			setSession "game" gn
+			setSession "player" pn
+			return oK
 		CreatePlayerGAA _ -> return oK
 		VisitGameGAA gamename@(GameName gn) -> do
 			setSession "game" gn
@@ -159,7 +169,10 @@ executeGameAdminAction gaa = do
 			return oK
 		StartGameGAA gamename -> do
 			return oK
-		DeleteGameGAA gamename ->
+		DeleteGameGAA gamename@(GameName gn) -> do
+			Entity userid userentity <- requireAuth
+			runDB $ Sql.update userid
+				[ UserParticipations Sql.=. Map.delete gn (userParticipations userentity) ]
 			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
 
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler UpdateResult

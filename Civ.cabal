@@ -96,6 +96,7 @@ library
                  , unix
                  , lens
                  , ansi-terminal
+                 , blaze-markup
 
 executable         Civ
     if flag(library-only)
