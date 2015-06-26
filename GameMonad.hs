@@ -4,13 +4,6 @@ module GameMonad where
 
 import Data.Aeson.TH
 
-{-
-import Import (
-	Handler,Entity(..),requireAuth,getYesod,App(..),
-	setSession,deleteSession,printLogDebug,
-	AffectedGames(..),Notification(..),Polls,runDB,
-	redirect,toHtml,setMessage,getMessage)
--}
 import Import hiding (Update,Query,get)
 
 import qualified Prelude
@@ -32,7 +25,7 @@ import Control.Monad.State (modify,get,gets)
 import Data.Maybe
 import Data.Either
 
--- Lenses
+-------- Lenses
 
 civStateLens = id
 civGameLens gamename = civStateLens . civGames . at gamename
@@ -42,13 +35,24 @@ civPlayerLens gamename playername =
 
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
--- In Update monad
+-------- In Update monad
 
 updateCivLensU fval lens = do
 	modify (over lens fval)
 	return ()
 
-queryCivLensU lens = gets lens
+oK = Right ()
+eRR errmsg = Left errmsg
+
+type UpdateResult = Either String ()
+
+-------------- In Handler Monad
+
+updateCivH affectedgamess event = do
+	app <- getYesod
+	res <- update' (appCivAcid app) event
+	when (isRight res) $ notifyLongPoll affectedgamess
+	return res
 
 -------------- Conditions
 
@@ -58,12 +62,68 @@ checkCondition errmsg lens f = do
 		False -> throwError errmsg
 		True -> return ()
 
+-------------- Actions
+
+$(makeAcidic ''CivState [
+	'createNewGame
+	])
+
+data Action =
+	LongPollA Affected |
+	CreateGameA GameName |
+	DeleteGameA GameName |
+	JoinGameA GameName
+	deriving Show
+deriveJSON defaultOptions ''Action
+
+createNewGame :: GameName -> UserName -> Update CivState UpdateResult
+createNewGame gamename username = runErrorT $ do
+	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
+		(civGameLens gamename . _Just) isNothing
+	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
+
+executeAction :: Action -> Handler UpdateResult
+executeAction action = do
+	user <- requireLoggedIn
+	printLogDebug $ "executeAction " ++ show action
+	case action of
+		LongPollA affected   -> waitLongPoll affected
+		CreateGameA gamename -> updateCivH [GameAdmin] $ CreateNewGame gamename user
+		_                    -> eRR $ show action ++ " not implemented yet"
+
+------ Polling
+
+getPollsMVar :: Handler Polls
+getPollsMVar = getYesod >>= (return . appLongPolls)
+
+waitLongPoll :: Affected -> Handler UpdateResult
+waitLongPoll affected = do
+	mvar <- liftIO $ newEmptyMVar 
+	pollsmvar <- getPollsMVar
+	liftIO $ modifyMVar_ pollsmvar $ return . ((affected,mvar):)
+	printLogDebug $ "Waiting for Notification on " ++ show affected ++ " ..."
+	Notification <- liftIO $ takeMVar mvar
+	printLogDebug $ "Got Notification on " ++ show affected
+	return oK
+
+notifyLongPoll :: [Affected] -> Handler ()
+notifyLongPoll affecteds = do
+	pollsmvar <- getPollsMVar
+	polls <- liftIO $ takeMVar pollsmvar
+	forM_ (filter ((`elem` affecteds) . fst) polls) $ \ (ag,mvar) -> do
+		printLogDebug $ "Notifying " ++ show ag
+		liftIO $ putMVar mvar Notification
+	let remainingpolls = filter ((`notElem` affecteds) . fst) polls
+	liftIO $ putMVar pollsmvar remainingpolls
+	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
+	return ()
+
+
+{-
+
+queryCivLensU lens = gets lens
+
 --------------
-
-oK = Right ()
-eRR errmsg = Left errmsg
-
-type UpdateResult = Either String ()
 
 getCivState :: Query CivState CivState
 getCivState = ask
@@ -146,42 +206,6 @@ getGamePlayer gamename playername = do
 
 ----
 
--- In Handler monad
-
-getPollsMVar :: Handler Polls
-getPollsMVar = getYesod >>= (return . appLongPolls)
-
-waitLongPoll :: AffectedGames -> Handler UpdateResult
-waitLongPoll affectedgames = do
-	mvar <- liftIO $ newEmptyMVar 
-	pollsmvar <- getPollsMVar
-	liftIO $ modifyMVar_ pollsmvar $ return . ((affectedgames,mvar):)
-	printLogDebug $ "Waiting for Notification on " ++ show affectedgames ++ " ..."
-	Notification <- liftIO $ takeMVar mvar
-	printLogDebug $ "Got Notification on " ++ show affectedgames
-	return oK
-
-notifyLongPoll :: [AffectedGames] -> Handler ()
-notifyLongPoll affectedgamess = do
-	pollsmvar <- getPollsMVar
-	polls <- liftIO $ takeMVar pollsmvar
-	forM_ (filter ((`elem` affectedgamess) . fst) polls) $ \ (ag,mvar) -> do
-		printLogDebug $ "Notifying " ++ show ag
-		liftIO $ putMVar mvar Notification
-	let remainingpolls = filter ((`notElem` affectedgamess) . fst) polls
-	liftIO $ putMVar pollsmvar remainingpolls
-	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
-	return ()
-
-{-
-updateCivH :: (UpdateEvent event,MethodState event ~ CivState, MethodResult event ~ (Maybe String)) =>
-	[AffectedGames] -> event -> Handler (Maybe String) 
--}
-updateCivH affectedgamess event = do
-	app <- getYesod
-	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll affectedgamess
-	return res
 
 queryCivLensH lens = do
 	app <- getYesod
@@ -228,3 +252,4 @@ requirePlayerUserSessionCredentials = do
 	case mb_player of
 		Nothing -> errRedirect "You are not a player in this game"
 		Just (playername,player) -> return (userid,user,gamename,game,playername,player)
+-}

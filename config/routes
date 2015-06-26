@@ -4,6 +4,7 @@
 /favicon.ico FaviconR GET
 /robots.txt RobotsR GET
 
-/     HomeR GET POST
-/game GameR GET POST
-/waiting WaitingR GET POST
+/              HomeR    GET
+/game/#Text    GameR    GET
+/waiting/#Text WaitingR GET
+/command       CommandR POST

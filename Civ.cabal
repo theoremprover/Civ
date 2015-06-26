@@ -28,6 +28,8 @@ library
                      Logic
                      Version
                      Display
+                     Credentials
+                     Polling
                      Paths_Civ
 
     if flag(dev) || flag(library-only)

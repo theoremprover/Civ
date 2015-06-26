@@ -6,7 +6,7 @@ import Data.Aeson
 
 import Settings.StaticFiles
 import Import
-import Database.Persist.Sql(fromSqlKey,toSqlKey)
+--import Database.Persist.Sql(fromSqlKey,toSqlKey)
 
 import qualified Data.Text as Text
 import Text.Julius(rawJS)
@@ -23,6 +23,75 @@ import Model
 import Entities
 import Display
 
+---- Helpers ------
+
+{-
+enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) =>
+	String -> o -> WidgetT site m ()
+-}
+enumToSelect name defaultoption = do
+	let rng = defaultoption : range (minBound,maxBound)
+	stringListToSelect name (show defaultoption) (map show $ tail rng)
+
+stringListToSelect :: (MonadThrow m,MonadBaseControl IO m,MonadIO m,ToMarkup o,Eq o) =>
+	o -> o -> [o] -> WidgetT site m ()
+stringListToSelect name defaultoption os = do
+	[whamlet|
+<select id=#{name} name=#{name}>
+  $forall o <- os
+    $case (==) o defaultoption
+      $of True
+        <option selected="selected">#{o}
+      $of False
+        <option>#{o}
+|]
+
+noPollingJulius = toWidget [julius|
+function longPoll() {}
+|]
+
+longPollingJulius affected = toWidget [julius|
+function longPoll()
+{
+  sgaa(#{rawJS $ toJSONString $ LongPollA affected});
+}
+|]
+
+onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
+
+toJSONString jsonobject = show $ encode jsonobject
+
+sendJSONJulius = toWidget [julius|
+
+xmlhttp = new XMLHttpRequest();
+
+function sgaa(action_str)
+{
+  xmlhttp.open("POST",'@{CommandR}', true);
+  xmlhttp.timeout = 1000*60*10;
+  xmlhttp.setRequestHeader("Content-type","application/json");
+  xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == XMLHttpRequest.DONE)
+    {
+      if(xmlhttp.status == 200)
+      {
+        document.write(xmlhttp.responseText);
+        document.close();
+      }
+    }
+  }
+  xmlhttp.ontimeout = function() { sgaa(action_str); }
+  xmlhttp.onerror = function() { sgaa(action_str); }
+  xmlhttp.send(action_str);
+}
+
+function onUnload()
+{
+  xmlhttp.abort();
+}
+|]
+
+
 ----- HomeR ---------
 
 getHomeR :: Handler Html
@@ -35,8 +104,8 @@ getHomeR = do
 	defaultLayout $ do
 		setTitle "Civ - Create, Join or Visit Game"
 		
-		sendJSONJulius HomeR
-		longPollingJulius LongPollGAA
+		sendJSONJulius
+		longPollingJulius GameAdmin
 
 		[whamlet|
 <h1>Games
@@ -55,13 +124,13 @@ getHomeR = do
       <td>
         $case _gameState game
           $of Waiting
-            <button type=button onclick=#{onclickHandler $ CreatePlayerGAA gamename} style="min-width: 100%">Join Game
+            <button type=button onclick=#{onclickHandler $ JoinGameA gamename} style="min-width: 100%">Join Game
           $of Running
-            <button type=button onclick=#{onclickHandler $ VisitGameGAA gamename} style="min-width: 100%">Visit Game
+            <button type=button onclick=#{onclickHandler $ VisitGameA gamename} style="min-width: 100%">Visit Game
           $of Finished
       <td>
         $if (&&) (_gameCreator game == email) (_gameState game /= Running)
-          <button type=button onclick=#{onclickHandler $ DeleteGameGAA gamename} style="min-width: 100%">Delete Game
+          <button type=button onclick=#{onclickHandler $ DeleteGameA gamename} style="min-width: 100%">Delete Game
   <tr>
     <td>
       GameName
@@ -73,13 +142,13 @@ getHomeR = do
 function createGame()
 {
   var gamename = document.getElementById("newgamename").value; 
-  var cga = {"tag":"CreateGameGAA","contents":gamename};
+  var cga = {"tag":"CreateGameA","contents":gamename};
   sgaa(JSON.stringify(cga));
 }
 
 function playGame(gamename_str)
 {
-  sgaa(JSON.stringify({"tag":"PlayGameGAA",
+  sgaa(JSON.stringify({"tag":"PlayGameA",
     "contents":[
       gamename_str,
       document.getElementById(gamename_str+"_playername").value
@@ -87,6 +156,7 @@ function playGame(gamename_str)
 }
 |]
 
+{-
 postHomeR :: Handler Html
 postHomeR = do
 	(userid,user) <- requireLoggedIn
@@ -244,71 +314,4 @@ executeGameAction gamename playername gameaction = do
 		LongPollGA -> waitLongPoll $ GameGame gamename
 		IncTradeGA trade -> updateCivH [GameGame gamename] $ IncTrade gamename playername trade
 
----- Helpers ------
-
-{-
-enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) =>
-	String -> o -> WidgetT site m ()
 -}
-enumToSelect name defaultoption = do
-	let rng = defaultoption : range (minBound,maxBound)
-	stringListToSelect name (show defaultoption) (map show $ tail rng)
-
-stringListToSelect :: (MonadThrow m,MonadBaseControl IO m,MonadIO m,ToMarkup o,Eq o) =>
-	o -> o -> [o] -> WidgetT site m ()
-stringListToSelect name defaultoption os = do
-	[whamlet|
-<select id=#{name} name=#{name}>
-  $forall o <- os
-    $case (==) o defaultoption
-      $of True
-        <option selected="selected">#{o}
-      $of False
-        <option>#{o}
-|]
-
-noPolling = toWidget [julius|
-function longPoll() {}
-|]
-
-longPollingJulius action = toWidget [julius|
-function longPoll()
-{
-  sgaa(#{rawJS $ toJSONString action});
-}
-|]
-
-onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
-
-toJSONString jsonobject = show $ encode jsonobject
-
-sendJSONJulius target = toWidget [julius|
-
-xmlhttp = new XMLHttpRequest();
-
-function sgaa(gameadminaction_str)
-{
-  xmlhttp.open("POST",'@{target}', true);
-  xmlhttp.timeout = 1000*60*10;
-  xmlhttp.setRequestHeader("Content-type","application/json");
-  xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == XMLHttpRequest.DONE)
-    {
-      if(xmlhttp.status == 200)
-      {
-        document.write(xmlhttp.responseText);
-        document.close();
-      }
-    }
-  }
-  xmlhttp.ontimeout = function() { sgaa(gameadminaction_str); }
-  xmlhttp.onerror = function() { sgaa(gameadminaction_str); }
-  xmlhttp.send(gameadminaction_str);
-}
-
-function onUnload()
-{
-  xmlhttp.abort();
-}
-|]
-

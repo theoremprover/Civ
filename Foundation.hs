@@ -26,8 +26,8 @@ import System.Console.ANSI
 import Version
 import Model
 import Entities
-
-import Control.Concurrent.MVar
+import Polling
+import Credentials
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -42,14 +42,6 @@ data App = App
     , appCivAcid     :: AcidState CivState
     , appLongPolls   :: Polls
     }
-
-type Polls = MVar [(AffectedGames,MVar Notification)]
-
-data Notification = Notification
-	deriving Show
-
-data AffectedGames = GameAdmin | GameWaiting | GameGame GameName
-	deriving (Eq,Show)
 
 instance HasHttpManager App where
     getHttpManager = appHttpManager
@@ -251,23 +243,6 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 
 -------------
-
-data UserSessionCredentials = UserSessionCredentials {
-    userSessionCredentials :: Maybe (UserId,User,Maybe GameName,Maybe PlayerName) }
-
-getUserSessionCredentials :: Handler UserSessionCredentials
-getUserSessionCredentials = do
-	mb_auth <- maybeAuth
-	case mb_auth of
-		Nothing -> return $ UserSessionCredentials Nothing
-		Just (Entity userid user) -> do
-			mb_gamename <- lookupSession "game"
-			mb_playername <- lookupSession "player"
-			return $ UserSessionCredentials $ Just (userid,user,
-				map GameName mb_gamename,
-				map PlayerName mb_playername)
-
-------------
 
 printLogDebug :: String -> Handler ()
 printLogDebug msg = $(logDebug) (T.pack $
