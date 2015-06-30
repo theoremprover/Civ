@@ -28,13 +28,12 @@ library
                      Logic
                      Version
                      Display
-                     Credentials
-                     Polling
+                     Polls
                      Paths_Civ
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
-        ghc-options:   -w -O0 
+        ghc-options:   -w -O0
     else
         ghc-options:   -w -O2
 
@@ -108,7 +107,7 @@ executable         Civ
     hs-source-dirs:    app
     build-depends:     base, Civ
 
-    ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
+    ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N 
 
 test-suite test
     type:              exitcode-stdio-1.0

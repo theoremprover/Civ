@@ -18,16 +18,15 @@ import Text.Shakespeare.Text (stext)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Data.Map
 
+import System.Console.ANSI
+
 import qualified Data.Text as T
 import Data.Acid (AcidState(..))
-
-import System.Console.ANSI
 
 import Version
 import Model
 import Entities
-import Polling
-import Credentials
+import Polls
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -242,7 +241,24 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 
--------------
+----------
+
+data UserSessionCredentials = UserSessionCredentials {
+    userSessionCredentials :: Maybe (UserId,User,Maybe GameName,Maybe PlayerName) }
+
+getUserSessionCredentials :: Handler UserSessionCredentials
+getUserSessionCredentials = do
+	mb_auth <- maybeAuth
+	case mb_auth of
+		Nothing -> return $ UserSessionCredentials Nothing
+		Just (Entity userid user) -> do
+			mb_gamename <- lookupSession "game"
+			mb_playername <- lookupSession "player"
+			return $ UserSessionCredentials $ Just (userid,user,
+				map GameName mb_gamename,
+				map PlayerName mb_playername)
+
+---------------
 
 printLogDebug :: String -> Handler ()
 printLogDebug msg = $(logDebug) (T.pack $

@@ -1,0 +1,2 @@
+cabal clean
+cabal build 2> splices.txt --ghc-options="-ddump-splices"

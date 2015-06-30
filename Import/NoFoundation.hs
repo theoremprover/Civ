@@ -1,5 +1,6 @@
 module Import.NoFoundation
-    ( module Import
+    ( module Import,
+      module Import.NoFoundation
     ) where
 
 import ClassyPrelude.Yesod   as Import
