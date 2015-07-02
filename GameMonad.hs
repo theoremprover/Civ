@@ -18,78 +18,19 @@ import Control.Monad.Error (runErrorT,throwError)
 
 import qualified Database.Persist.Sql as Sql
 
-import Control.Lens
+import Control.Lens hiding (Action)
 import qualified Data.Map as Map
 import Control.Monad.State (modify,get,gets)
 
 import Data.Maybe
 import Data.Either
 
--------- Lenses
+import Polls
 
-civStateLens = id
-civGameLens gamename = civStateLens . civGames . at gamename
-
-civPlayerLens gamename playername =
-	civPlayersLens gamename . at playername
-
-civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
-
--------- In Update monad
-
-updateCivLensU fval lens = do
-	modify (over lens fval)
-	return ()
-
-oK = Right ()
-eRR errmsg = Left errmsg
-
-type UpdateResult = Either String ()
-
--------------- In Handler Monad
-
-updateCivH affectedgamess event = do
-	app <- getYesod
-	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll affectedgamess
-	return res
-
--------------- Conditions
-
-checkCondition errmsg lens f = do
-	civstate <- get
-	case f (preview lens civstate) of
-		False -> throwError errmsg
-		True -> return ()
-
--------------- Actions
-
-$(makeAcidic ''CivState [
-	'createNewGame
-	])
-
-data Action =
-	LongPollA Affected |
-	CreateGameA GameName |
-	DeleteGameA GameName |
-	JoinGameA GameName
-	deriving Show
-deriveJSON defaultOptions ''Action
-
-createNewGame :: GameName -> UserName -> Update CivState UpdateResult
-createNewGame gamename username = runErrorT $ do
-	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
-		(civGameLens gamename . _Just) isNothing
-	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
-
-executeAction :: Action -> Handler UpdateResult
-executeAction action = do
-	user <- requireLoggedIn
-	printLogDebug $ "executeAction " ++ show action
-	case action of
-		LongPollA affected   -> waitLongPoll affected
-		CreateGameA gamename -> updateCivH [GameAdmin] $ CreateNewGame gamename user
-		_                    -> eRR $ show action ++ " not implemented yet"
+requireLoggedIn :: Handler (UserId,User)
+requireLoggedIn = do
+	Entity userid user <- requireAuth
+	return (userid,user)
 
 ------ Polling
 
@@ -119,14 +60,92 @@ notifyLongPoll affecteds = do
 	return ()
 
 
+-------- Lenses
+
+civStateLens = id
+civGameLens gamename = civStateLens . civGames . at gamename
+
+civPlayerLens gamename playername =
+	civPlayersLens gamename . at playername
+
+civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
+
+
+-------- In Update/Query monad
+
+updateCivLensU fval lens = do
+	modify (over lens fval)
+	return ()
+
+oK = Right ()
+eRR errmsg = Left errmsg
+
+type UpdateResult = Either String ()
+
+getCivState :: Query CivState CivState
+getCivState = ask
+
+
+-------------- In Handler Monad
+
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ view lens civstate
+
+updateCivH affectedgamess event = do
+	app <- getYesod
+	res <- update' (appCivAcid app) event
+	when (isRight res) $ notifyLongPoll affectedgamess
+	return res
+
+
+-------------- Conditions
+
+checkCondition errmsg lens f = do
+	civstate <- get
+	case f (preview lens civstate) of
+		False -> throwError errmsg
+		True -> return ()
+
+-------------- Actions
+
+data Action =
+	LongPollA Affected |
+	CreateGameA GameName |
+	DeleteGameA GameName |
+	JoinGameA GameName
+	deriving Show
+deriveJSON defaultOptions ''Action
+deriveJSON defaultOptions ''Notification
+deriveJSON defaultOptions ''Affected
+deriveJSON defaultOptions ''GameName
+
+createNewGame :: GameName -> UserName -> Update CivState UpdateResult
+createNewGame gamename username = runErrorT $ do
+	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
+		(civGameLens gamename . _Just) isNothing
+	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
+
+
+$(makeAcidic ''CivState [
+	'createNewGame
+	])
+
+executeAction :: Action -> Handler UpdateResult
+executeAction action = do
+	(_,user) <- requireLoggedIn
+	printLogDebug $ "executeAction " ++ show action
+	case action of
+		LongPollA affected   -> waitLongPoll affected
+		CreateGameA gamename -> updateCivH [GameAdmin] $ CreateNewGame gamename (userEmail user)
+		_                    -> return $ eRR $ show action ++ " not implemented yet"
+
 {-
 
 queryCivLensU lens = gets lens
 
 --------------
-
-getCivState :: Query CivState CivState
-getCivState = ask
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = runErrorT $ do
@@ -207,22 +226,12 @@ getGamePlayer gamename playername = do
 ----
 
 
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ view lens civstate
-
 ------------
 
 errRedirect :: String -> Handler a
 errRedirect s = do
 	setMessage $ toHtml s
 	redirect HomeR
-
-requireLoggedIn :: Handler (UserId,User)
-requireLoggedIn = do
-	Entity userid user <- requireAuth
-	return (userid,user)
 
 maybeVisitorUserSessionCredentials :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
 maybeVisitorUserSessionCredentials = do

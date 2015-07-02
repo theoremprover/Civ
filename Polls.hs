@@ -1,5 +1,7 @@
 module Polls where
 
+import Data.Aeson
+
 import Control.Concurrent.MVar
 import Prelude
 
