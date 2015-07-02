@@ -52,24 +52,13 @@ noPollingJulius = toWidget [julius|
 function longPoll() {}
 |]
 
-longPollingJulius affected = toWidget [julius|
-function longPoll()
-{
-  sgaa(#{rawJS $ toJSONString $ LongPollA affected});
-}
-|]
-
-onclickHandler jsonobject = "sgaa(" ++ toJSONString jsonobject ++")"
-
-toJSONString jsonobject = show $ encode jsonobject
-
-sendJSONJulius = toWidget [julius|
+longPollingJulius target affected = toWidget [julius|
 
 xmlhttp = new XMLHttpRequest();
 
-function sgaa(action_str)
+function longPoll()
 {
-  xmlhttp.open("POST",'@{CommandR}', true);
+  xmlhttp.open("POST",'@{target}', true);
   xmlhttp.timeout = 1000*60*10;
   xmlhttp.setRequestHeader("Content-type","application/json");
   xmlhttp.onreadystatechange = function() {
@@ -82,14 +71,51 @@ function sgaa(action_str)
       }
     }
   }
-  xmlhttp.ontimeout = function() { sgaa(action_str); }
-  xmlhttp.onerror = function() { sgaa(action_str); }
-  xmlhttp.send(action_str);
+  xmlhttp.ontimeout = function() { longPoll(); }
+  xmlhttp.onerror = function() { longPoll(); }
+  xmlhttp.send(#{rawJS $ toJSONString $ affected});
 }
 
 function onUnload()
 {
   xmlhttp.abort();
+}
+|]
+
+onclickHandler jsonobject = "sendAction(" ++ toJSONString jsonobject ++")"
+
+toJSONString jsonobject = show $ encode jsonobject
+
+sendJSONJulius = toWidget [julius|
+
+function sendAction(action_str)
+{
+  xh = new XMLHttpRequest();
+  xh.open("POST",'@{CommandR}', true);
+  xh.timeout = 1000*60*10;
+  xh.setRequestHeader("Content-type","application/json");
+  xh.onreadystatechange = function() {
+    if (xh.readyState == XMLHttpRequest.DONE)
+    {
+      if(xh.status == 200)
+      {
+        var response = JSON.parse(xh.responseText);
+        if(response.hasOwnProperty("Left"))
+        {
+          alert(response["Left"]);
+        }
+      }
+      else
+      {
+        alert("Status=" + xh.status + ":\n" +
+          "action_str = " + action_str + "\n" +
+          "Response: " + xh.responseText + "\n");
+      }
+    }
+  }
+  xh.ontimeout = function() { alert("Timeout sending " + action_str); }
+  xh.onerror = function() { alert("Error sending " + action_str); }
+  xh.send(action_str);
 }
 |]
 
@@ -107,7 +133,7 @@ getHomeR = do
 		setTitle "Civ - Create, Join or Visit Game"
 		
 		sendJSONJulius
-		longPollingJulius GameAdmin
+		longPollingJulius HomeR GameAdmin
 
 		[whamlet|
 <h1>Games
@@ -126,9 +152,9 @@ getHomeR = do
       <td>
         $case _gameState game
           $of Waiting
-            <button type=button onclick=#{onclickHandler $ JoinGameA gamename} style="min-width: 100%">Join Game
+            <a href=@{WaitingR (gameName gamename)}>Join Game
           $of Running
-            <button type=button onclick=#{onclickHandler $ VisitGameA gamename} style="min-width: 100%">Visit Game
+            <a href=@{GameR (gameName gamename)}>Visit Game
           $of Finished
       <td>
         $if (&&) (_gameCreator game == email) (_gameState game /= Running)
@@ -140,23 +166,38 @@ getHomeR = do
     <td>
     <td><button type=button onclick="createGame()" style="min-width: 100%">Create game
 |]
-				toWidget [julius|
+
+		toWidget [julius|
+
 function createGame()
 {
   var gamename = document.getElementById("newgamename").value; 
   var cga = {"tag":"CreateGameA","contents":gamename};
-  sgaa(JSON.stringify(cga));
+  sendAction(JSON.stringify(cga));
 }
 
 function playGame(gamename_str)
 {
-  sgaa(JSON.stringify({"tag":"PlayGameA",
+  sendAction(JSON.stringify({"tag":"PlayGameA",
     "contents":[
       gamename_str,
       document.getElementById(gamename_str+"_playername").value
       ]}));
 }
 |]
+
+postHomeR :: Handler Html
+postHomeR = do
+	(userid,user) <- requireLoggedIn
+	affected :: Affected <- requireJsonBody
+	waitLongPoll affected
+	getHomeR
+
+getGameR :: Text -> Handler Html
+getGameR gamenametext = defaultLayout $ [whamlet|<h1>Not implemented|]
+
+getWaitingR :: Text -> Handler Html
+getWaitingR gamenametext = defaultLayout $ [whamlet|<h1>Not implemented|]
 
 {-
 postHomeR :: Handler Html
