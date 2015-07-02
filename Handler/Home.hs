@@ -23,6 +23,8 @@ import Model
 import Entities
 import Display
 
+import Polls
+
 ---- Helpers ------
 
 {-

@@ -86,20 +86,6 @@ getCivState :: Query CivState CivState
 getCivState = ask
 
 
--------------- In Handler Monad
-
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ view lens civstate
-
-updateCivH affectedgamess event = do
-	app <- getYesod
-	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll affectedgamess
-	return res
-
-
 -------------- Conditions
 
 checkCondition errmsg lens f = do
@@ -114,8 +100,10 @@ data Action =
 	LongPollA Affected |
 	CreateGameA GameName |
 	DeleteGameA GameName |
+	VisitGameA GameName |
 	JoinGameA GameName
 	deriving Show
+
 deriveJSON defaultOptions ''Action
 deriveJSON defaultOptions ''Notification
 deriveJSON defaultOptions ''Affected
@@ -127,8 +115,8 @@ createNewGame gamename username = runErrorT $ do
 		(civGameLens gamename . _Just) isNothing
 	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
 
-
 $(makeAcidic ''CivState [
+	'getCivState,
 	'createNewGame
 	])
 
@@ -140,6 +128,30 @@ executeAction action = do
 		LongPollA affected   -> waitLongPoll affected
 		CreateGameA gamename -> updateCivH [GameAdmin] $ CreateNewGame gamename (userEmail user)
 		_                    -> return $ eRR $ show action ++ " not implemented yet"
+
+-------------- In Handler Monad
+
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ view lens civstate
+
+updateCivH affectedgamess event = do
+	app <- getYesod
+	res <- update' (appCivAcid app) event
+	when (isRight res) $ notifyLongPoll affectedgamess
+	return res
+
+postCommandR = do
+	(userid,user) <- requireLoggedIn
+	action :: Action <- requireJsonBody
+ 	res <- executeAction action
+	case res of
+		Left msg -> do
+			setMessage $ toHtml msg
+		Right _  -> do
+			setMessage $ toHtml (show action)
+	sendResponse 
 
 {-
 
