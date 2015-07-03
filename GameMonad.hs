@@ -38,7 +38,8 @@ data Action =
 	JoinGameA GameName PlayerName Colour Civ |
 	IncTradeA GameName PlayerName Trade |
 	StartGameA GameName |
-	SetSessionGameA GameName
+	SetSessionGameA GameName |
+	SetSessionPlayerA PlayerName
 	deriving Show
 
 ------------- Splices
@@ -257,20 +258,14 @@ executeAction action = do
 			setSession "game" gn
 			return oK
 
+		SetSessionPlayerA (PlayerName pn) -> do
+			setSession "player" pn
+			return oK
+
+		StartGameA gamename -> do
+			updateCivH [GameAdmin,GameGame gamename] $ StartGame gamename
+
 		IncTradeA gamename playername trade -> do
 			updateCivH [GameGame gamename] $ IncTrade gamename playername trade
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
-
-
-{-
-
-queryCivLensU lens = gets lens
-
-requirePlayerUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
-requirePlayerUserSessionCredentials = do
-	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
-	case mb_player of
-		Nothing -> errRedirect "You are not a player in this game"
-		Just (playername,player) -> return (userid,user,gamename,game,playername,player)
--}

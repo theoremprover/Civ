@@ -26,10 +26,6 @@ import Polls
 
 ---- Helpers ------
 
-{-
-enumToSelect :: (Ix o,Bounded o,Show o,MonadThrow m,MonadBaseControl IO m,MonadIO m) =>
-	String -> o -> WidgetT site m ()
--}
 enumToSelect name defaultoption = do
 	let rng = defaultoption : range (minBound,maxBound)
 	stringListToSelect name (show defaultoption) (map show $ tail rng)
@@ -93,6 +89,12 @@ function redirectTo(target_str)
   xmlhttp.send(null);
 }
 
+function sendAndRedirect(action_str,url)
+{
+  sendAction_Fun(action_str,
+    function() { redirectTo(url); });
+}
+
 function onUnload()
 {
   xmlhttp.abort();
@@ -107,9 +109,13 @@ sendJSONJulius = toWidget [julius|
 
 function sendAction(action_str)
 {
+  sendAction_Fun(action_str,function() {});
+}
+
+function sendAction_Fun(action_str,fun_after_response)
+{
   xh = new XMLHttpRequest();
   xh.open("POST",'@{CommandR}', true);
-  xh.timeout = 1000*60*10;
   xh.setRequestHeader("Content-type","application/json");
   xh.onreadystatechange = function() {
     if (xh.readyState == XMLHttpRequest.DONE)
@@ -120,6 +126,10 @@ function sendAction(action_str)
         if(response.hasOwnProperty("Left"))
         {
           alert(response["Left"]);
+        }
+        else
+        {
+          fun_after_response();
         }
       }
       else
@@ -162,16 +172,21 @@ getHomeR = do
       <td>
         $case Map.lookup (gameName gamename) (userParticipations user)
           $of Just playernametexts
-            <button type=button onclick="playGame(#{show $ gameName gamename})">Play Game
+            $case _gameState game
+              $of Waiting
+                <button type=button onclick="playGame(#{show $ gameName gamename},'@{WaitingR $ gameName gamename}')">Play Game
+              $of Running
+                <button type=button onclick="playGame(#{show $ gameName gamename},'@{GameR $ gameName gamename}')">Play Game
+              $of _
             as
             ^{stringListToSelect (Text.append (gameName gamename) "_playername") (Prelude.head playernametexts) playernametexts}
           $of Nothing
       <td>
         $case _gameState game
           $of Waiting
-            <button type=button onclick="joinGame(#{onclickHandler $ SetSessionGameA gamename},@{WaitingR $ gameName gamename})" style="min-width: 100%">Join Game
+            <button type=button onclick="sendAndRedirect(#{toJSONString $ SetSessionGameA gamename},'@{WaitingR $ gameName gamename}')" style="min-width: 100%">Join Game
           $of Running
-            <button type=button onclick="visitGame(#{onclickHandler $ SetSessionGameA gamename},@{GameR $ gameName gamename})" style="min-width: 100%">Visit Game
+            <button type=button onclick="sendAndRedirect(#{toJSONString $ SetSessionGameA gamename},'@{GameR $ gameName gamename}')" style="min-width: 100%">Visit Game
           $of Finished
       <td>
         $if (&&) (_gameCreator game == email) (_gameState game /= Running)
@@ -193,25 +208,12 @@ function createGame()
   sendAction(JSON.stringify(cga));
 }
 
-function joinGame(action_str,url)
+function playGame(gamename_str,url)
 {
-  sendAction(action_str);
-  redirectTo(url);
-}
-
-function visitGame(action_str,url)
-{
-  sendAction(action_str);
-  redirectTo(url);
-}
-
-function playGame(gamename_str)
-{
-  sendAction(JSON.stringify({"tag":"PlayGameA",
-    "contents":[
-      gamename_str,
-      document.getElementById(gamename_str+"_playername").value
-      ]}));
+  sendAndRedirect(JSON.stringify(
+    { "tag":"SetSessionPlayerA",
+      "contents":document.getElementById(gamename_str+"_playername").value }),
+    url);
 }
 |]
 
@@ -220,55 +222,6 @@ postHomeR = pollHandler >> getHomeR
 ------- WaitingR
 
 postWaitingR gn = pollHandler >> getWaitingR gn
-
-{-
-postHomeR :: Handler Html
-postHomeR = do
-	(userid,user) <- requireLoggedIn
-	gameadminaction :: GameAdminAction <- requireJsonBody
-	res <- executeGameAdminAction gameadminaction
-	case res of
-		Left msg -> setMessage $ toHtml msg
-		Right _  -> setMessage $ toHtml (show gameadminaction)
-	getHomeR
-
-executeGameAdminAction :: GameAdminAction -> Handler UpdateResult
-executeGameAdminAction gaa = do
-	user <- requireLoggedIn
-	printLogDebug $ "executeGameAdminAction " ++ show gaa
-	case gaa of
-		LongPollGAA -> do
-			waitLongPoll GameAdmin
-		CreateGameGAA gamename -> do
-			updateCivH [GameAdmin] $ CreateNewGame gamename user
-		JoinGameGAA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
-			Entity userid userentity <- requireAuth
-			runDB $ Sql.update userid
-				[ UserParticipations Sql.=. Map.insertWith' (++) gn [pn] (userParticipations userentity) ]
-			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
-			case res of
-				Right _ -> do
-					setSession "game" gn
-					setSession "player" pn
-				Left _ -> do
-					deleteSession "game"
-					deleteSession "player"
-			return res
-		PlayGameGAA (GameName gn) (PlayerName pn) -> do
-			setSession "game" gn
-			setSession "player" pn
-			return oK
-		VisitGameGAA gamename@(GameName gn) -> do
-			setSession "game" gn
-			deleteSession "player"
-			return oK
-		DeleteGameGAA gamename@(GameName gn) -> do
-			Entity userid userentity <- requireAuth
-			runDB $ Sql.update userid
-				[ UserParticipations Sql.=. Map.delete gn (userParticipations userentity) ]
-			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
-
--}
 
 getWaitingR :: Text -> Handler Html
 getWaitingR gn = do
@@ -293,7 +246,8 @@ getWaitingR gn = do
     <td>^{enumToSelect "colour" Red}
     <td>^{enumToSelect "civ" Russia}
     <td><button type=button onclick="joinGame(#{show gn})">Join The Game
-<button type=button onclick=#{onclickHandler $ StartGameA (GameName gn)}>Start Game
+$if userEmail user == _gameCreator game
+  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA $ GameName gn},'@{GameR gn}')">Start Game
 |]
 
 		toWidget [julius|

@@ -8,8 +8,17 @@
             <td align=center>
               $case userSessionCredentials
                 $of Nothing
-                $of Just (_,_,Just gamename,Just playername)
-                  #{show gamename}, #{show playername},
+                $of Just (_,_,mb_gamename,mb_playername)
+                  $maybe gamename <- mb_gamename
+                    #{show gamename}
+                  $nothing
+                  $case (mb_gamename,mb_playername)
+                    $of (Just _,Just _)
+                      ,
+                    $of _
+                  $maybe playername <- mb_playername
+                    #{show playername}
+                  $nothing
                   <a href=@{HomeR}>Change
                 $of _
                   <a href=@{HomeR}>Create/Join Game

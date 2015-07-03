@@ -5,6 +5,6 @@
 /robots.txt RobotsR GET
 
 /              HomeR    GET POST
-/game/#Text    GameR    GET
-/waiting/#Text WaitingR GET
+/game/#Text    GameR    GET POST
+/waiting/#Text WaitingR GET POST
 /command       CommandR     POST
