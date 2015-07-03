@@ -26,6 +26,8 @@ import Control.Monad.State (modify,get,gets)
 import Data.Maybe
 import Data.Either
 
+import qualified Data.Text as Text
+
 import Polls
 
 -------------- Actions
@@ -34,7 +36,9 @@ data Action =
 	CreateGameA GameName |
 	DeleteGameA GameName |
 	JoinGameA GameName PlayerName Colour Civ |
-	IncTradeA GameName PlayerName Trade
+	IncTradeA GameName PlayerName Trade |
+	StartGameA GameName |
+	SetSessionGameA GameName
 	deriving Show
 
 ------------- Splices
@@ -48,41 +52,17 @@ deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Civ
 deriveJSON defaultOptions ''Colour
 
--------- Credentials
+--------- Errors
 
 errHandler :: String -> Handler a
-errHandler msg = do
-	sendResponse $ [hamlet|
-<h1>Error
-<h3 colour=red>#{msg}
-|]
+errHandler msg = invalidArgs [Text.pack msg]
+
+-------- Credentials
 
 requireLoggedIn :: Handler (UserId,User)
 requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return (userid,user)
-
-maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
-maybeVisitor = do
-	UserSessionCredentials creds <- getUserSessionCredentials
-	case creds of
-		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing,_) -> errHandler "gamename not set in this session"
-		Just (userid,user,Just gamename,mb_playername) -> do
-			mb_game <- getGame gamename
-			case mb_game of
-				Nothing -> do
-					errHandler $ "There is no game " ++ show gamename
-				Just game -> case mb_playername of
-					Nothing -> return (userid,user,gamename,game,Nothing)
-					Just playername -> do
-						mb_gameplayer <- getGamePlayer gamename playername
-						case mb_gameplayer of
-							Nothing -> do
-								errHandler $ "There is no player " ++ show playername ++ " in game " ++ show gamename
-							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
-								Nothing -> Nothing
-								Just player -> Just (playername,player) )
 
 ------ Polling
 
@@ -183,27 +163,11 @@ incTrade gamename playername trade = runErrorT $ do
 getCivState :: Query CivState CivState
 getCivState = ask
 
-getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
-getGamePlayer gamename playername = do
-	mb_game <- getGame gamename
-	return $ case mb_game of
-		Nothing -> Nothing
-		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
-
 updateCivH affectedgamess event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
 	when (isRight res) $ notifyLongPoll affectedgamess
 	return res
-
-postCommandR :: Handler ()
-postCommandR = do
-	(userid,user) <- requireLoggedIn
-	action :: Action <- requireJsonBody
- 	res <- executeAction action
-	sendResponse $ repJson $ encode res
-
-getGame gamename = queryCivLensH $ civGameLens gamename
 
 $(makeAcidic ''CivState [
 	'getCivState,
@@ -214,23 +178,86 @@ $(makeAcidic ''CivState [
 	'createNewGame
 	])
 
+getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
+getGamePlayer gamename playername = do
+	mb_game <- getGame gamename
+	return $ case mb_game of
+		Nothing -> Nothing
+		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
+
+postCommandR :: Handler ()
+postCommandR = do
+	(userid,user) <- requireLoggedIn
+	action :: Action <- requireJsonBody
+ 	res <- executeAction action
+	sendResponse $ repJson $ encode res
+
+getGame gamename = queryCivLensH $ civGameLens gamename
+
 queryCivLensH lens = do
 	app <- getYesod
 	civstate <- query' (appCivAcid app) GetCivState
 	return $ view lens civstate
 
+maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
+maybeVisitor = do
+	UserSessionCredentials creds <- getUserSessionCredentials
+	case creds of
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,_,Nothing,_) -> errHandler "gamename not set in this session"
+		Just (userid,user,Just gamename,mb_playername) -> do
+			mb_game <- getGame gamename
+			case mb_game of
+				Nothing -> do
+					errHandler $ "There is no game " ++ show gamename
+				Just game -> case mb_playername of
+					Nothing -> return (userid,user,gamename,game,Nothing)
+					Just playername -> do
+						mb_gameplayer <- getGamePlayer gamename playername
+						case mb_gameplayer of
+							Nothing -> do
+								errHandler $ "There is no player " ++ show playername ++ " in game " ++ show gamename
+							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
+								Nothing -> Nothing
+								Just player -> Just (playername,player) )
+
 executeAction :: Action -> Handler UpdateResult
 executeAction action = do
-	(_,user) <- requireLoggedIn
+	(userid,user) <- requireLoggedIn
 	printLogDebug $ "executeAction " ++ show action
 	case action of
-		CreateGameA gamename ->
+
+		CreateGameA gamename -> do
 			updateCivH [GameAdmin] $ CreateNewGame gamename (userEmail user)
-		DeleteGameA gamename ->
-			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
-		JoinGameA gamename playername colour civ ->
-			updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
-		IncTradeA gamename playername trade ->
+
+		DeleteGameA gamename@(GameName gn) -> do
+			res <- updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
+			case res of
+				Right () -> do
+					runDB $ Sql.update userid
+						[ UserParticipations Sql.=. Map.delete gn (userParticipations user) ]
+				Left errmsg -> do
+					setMessage $ toHtml errmsg
+			return res
+
+		JoinGameA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
+			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
+			case res of
+				Right () -> do
+					runDB $ Sql.update userid
+						[ UserParticipations Sql.=. Map.insertWith' (++) gn [pn] (userParticipations user) ]
+					setSession "player" pn
+				Left errmsg -> do
+					deleteSession "game"
+					deleteSession "player"
+					setMessage $ toHtml errmsg
+			return res
+
+		SetSessionGameA (GameName gn) -> do
+			setSession "game" gn
+			return oK
+
+		IncTradeA gamename playername trade -> do
 			updateCivH [GameGame gamename] $ IncTrade gamename playername trade
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
@@ -239,58 +266,6 @@ executeAction action = do
 {-
 
 queryCivLensU lens = gets lens
-
---------------
-
-createNewGame :: GameName -> UserName -> Update CivState UpdateResult
-createNewGame gamename username = runErrorT $ do
-	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
-		(civGameLens gamename . _Just) isNothing
-	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
-
-$(makeAcidic ''CivState [
-	'getCivState,
-	'createNewGame,
-	])
-
-data GameAdminAction =
-	LongPollGAA |
-	CreateGameGAA GameName |
-	JoinGameGAA GameName PlayerName Colour Civ |
-	PlayGameGAA GameName PlayerName |
-	VisitGameGAA GameName |
-	DeleteGameGAA GameName
-	deriving Show
-deriveJSON defaultOptions ''GameAdminAction
-
-data WaitingAction =
-	LongPollWA |
-	StartGameWA GameName |
-	CreatePlayerWA GameName
-	deriving Show
-deriveJSON defaultOptions ''WaitingAction	
-
-data GameAction =
-	LongPollGA |
-	IncTradeGA Trade
-	deriving Show
-deriveJSON defaultOptions ''Trade
-deriveJSON defaultOptions ''GameAction
-
-deriveJSON defaultOptions ''GameName
-deriveJSON defaultOptions ''PlayerName
-deriveJSON defaultOptions ''Civ
-deriveJSON defaultOptions ''Colour
-
-----
-
-
-------------
-
-errRedirect :: String -> Handler a
-errRedirect s = do
-	setMessage $ toHtml s
-	redirect HomeR
 
 requirePlayerUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
 requirePlayerUserSessionCredentials = do
