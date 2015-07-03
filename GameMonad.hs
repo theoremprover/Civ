@@ -28,10 +28,34 @@ import Data.Either
 
 import Polls
 
+-------------- Actions
+
+data Action =
+	CreateGameA GameName |
+	DeleteGameA GameName |
+	JoinGameA GameName PlayerName Colour Civ |
+	IncTradeA GameName PlayerName Trade
+	deriving Show
+
+------------- Splices
+
+deriveJSON defaultOptions ''Action
+deriveJSON defaultOptions ''Notification
+deriveJSON defaultOptions ''Affected
+deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''GameName
+deriveJSON defaultOptions ''PlayerName
+deriveJSON defaultOptions ''Civ
+deriveJSON defaultOptions ''Colour
+
 -------- Credentials
 
+errHandler :: String -> Handler a
 errHandler msg = do
-	sendResponse 
+	sendResponse $ [hamlet|
+<h1>Error
+<h3 colour=red>#{msg}
+|]
 
 requireLoggedIn :: Handler (UserId,User)
 requireLoggedIn = do
@@ -43,19 +67,19 @@ maybeVisitor = do
 	UserSessionCredentials creds <- getUserSessionCredentials
 	case creds of
 		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing,_) -> errRedirect "gamename not set in this session"
+		Just (_,_,Nothing,_) -> errHandler "gamename not set in this session"
 		Just (userid,user,Just gamename,mb_playername) -> do
 			mb_game <- getGame gamename
 			case mb_game of
 				Nothing -> do
-					errRedirect $ "There is no game " ++ show gamename
+					errHandler $ "There is no game " ++ show gamename
 				Just game -> case mb_playername of
 					Nothing -> return (userid,user,gamename,game,Nothing)
 					Just playername -> do
 						mb_gameplayer <- getGamePlayer gamename playername
 						case mb_gameplayer of
 							Nothing -> do
-								errRedirect $ "There is no player " ++ show playername ++ " in game " ++ show gamename
+								errHandler $ "There is no player " ++ show playername ++ " in game " ++ show gamename
 							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
 								Nothing -> Nothing
 								Just player -> Just (playername,player) )
@@ -116,10 +140,6 @@ eRR errmsg = Left errmsg
 
 type UpdateResult = Either String ()
 
-getCivState :: Query CivState CivState
-getCivState = ask
-
-
 -------------- Conditions
 
 checkCondition errmsg lens f = do
@@ -127,24 +147,6 @@ checkCondition errmsg lens f = do
 	case f (preview lens civstate) of
 		False -> throwError errmsg
 		True -> return ()
-
--------------- Actions
-
-data Action =
-	CreateGameA GameName |
-	DeleteGameA GameName |
-	JoinGameA GameName PlayerName Colour Civ |
-	IncTradeA GameName PlayerName Trade
-	deriving Show
-
-deriveJSON defaultOptions ''Action
-deriveJSON defaultOptions ''Notification
-deriveJSON defaultOptions ''Affected
-deriveJSON defaultOptions ''Trade
-deriveJSON defaultOptions ''GameName
-deriveJSON defaultOptions ''PlayerName
-deriveJSON defaultOptions ''Civ
-deriveJSON defaultOptions ''Colour
 
 createNewGame :: GameName -> UserName -> Update CivState UpdateResult
 createNewGame gamename username = runErrorT $ do
@@ -176,6 +178,33 @@ incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
 
+-------------- In Handler Monad
+
+getCivState :: Query CivState CivState
+getCivState = ask
+
+getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
+getGamePlayer gamename playername = do
+	mb_game <- getGame gamename
+	return $ case mb_game of
+		Nothing -> Nothing
+		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
+
+updateCivH affectedgamess event = do
+	app <- getYesod
+	res <- update' (appCivAcid app) event
+	when (isRight res) $ notifyLongPoll affectedgamess
+	return res
+
+postCommandR :: Handler ()
+postCommandR = do
+	(userid,user) <- requireLoggedIn
+	action :: Action <- requireJsonBody
+ 	res <- executeAction action
+	sendResponse $ repJson $ encode res
+
+getGame gamename = queryCivLensH $ civGameLens gamename
+
 $(makeAcidic ''CivState [
 	'getCivState,
 	'startGame,
@@ -184,6 +213,11 @@ $(makeAcidic ''CivState [
 	'incTrade,
 	'createNewGame
 	])
+
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ view lens civstate
 
 executeAction :: Action -> Handler UpdateResult
 executeAction action = do
@@ -201,25 +235,6 @@ executeAction action = do
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
 
--------------- In Handler Monad
-
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ view lens civstate
-
-updateCivH affectedgamess event = do
-	app <- getYesod
-	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll affectedgamess
-	return res
-
-postCommandR :: Handler ()
-postCommandR = do
-	(userid,user) <- requireLoggedIn
-	action :: Action <- requireJsonBody
- 	res <- executeAction action
-	sendResponse $ repJson $ encode res
 
 {-
 
@@ -266,15 +281,6 @@ deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Civ
 deriveJSON defaultOptions ''Colour
-
-getGame gamename = queryCivLensH $ civGameLens gamename
-
-getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
-getGamePlayer gamename playername = do
-	mb_game <- getGame gamename
-	return $ case mb_game of
-		Nothing -> Nothing
-		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
 
 ----
 
