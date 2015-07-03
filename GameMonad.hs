@@ -28,10 +28,37 @@ import Data.Either
 
 import Polls
 
+-------- Credentials
+
+errHandler msg = do
+	sendResponse 
+
 requireLoggedIn :: Handler (UserId,User)
 requireLoggedIn = do
 	Entity userid user <- requireAuth
 	return (userid,user)
+
+maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
+maybeVisitor = do
+	UserSessionCredentials creds <- getUserSessionCredentials
+	case creds of
+		Nothing -> redirect $ AuthR LoginR
+		Just (_,_,Nothing,_) -> errRedirect "gamename not set in this session"
+		Just (userid,user,Just gamename,mb_playername) -> do
+			mb_game <- getGame gamename
+			case mb_game of
+				Nothing -> do
+					errRedirect $ "There is no game " ++ show gamename
+				Just game -> case mb_playername of
+					Nothing -> return (userid,user,gamename,game,Nothing)
+					Just playername -> do
+						mb_gameplayer <- getGamePlayer gamename playername
+						case mb_gameplayer of
+							Nothing -> do
+								errRedirect $ "There is no player " ++ show playername ++ " in game " ++ show gamename
+							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
+								Nothing -> Nothing
+								Just player -> Just (playername,player) )
 
 ------ Polling
 
@@ -60,6 +87,12 @@ notifyLongPoll affecteds = do
 	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
 	return ()
 
+pollHandler :: Handler ()
+pollHandler = do
+	(userid,user) <- requireLoggedIn
+	affected :: Affected <- requireJsonBody
+	waitLongPoll affected
+	return ()
 
 -------- Lenses
 
@@ -252,28 +285,6 @@ errRedirect :: String -> Handler a
 errRedirect s = do
 	setMessage $ toHtml s
 	redirect HomeR
-
-maybeVisitorUserSessionCredentials :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
-maybeVisitorUserSessionCredentials = do
-	UserSessionCredentials creds <- getUserSessionCredentials
-	case creds of
-		Nothing -> redirect $ AuthR LoginR
-		Just (_,_,Nothing,_) -> errRedirect "gamename not set in this session"
-		Just (userid,user,Just gamename,mb_playername) -> do
-			mb_game <- getGame gamename
-			case mb_game of
-				Nothing -> do
-					errRedirect $ "There is no game " ++ show gamename
-				Just game -> case mb_playername of
-					Nothing -> return (userid,user,gamename,game,Nothing)
-					Just playername -> do
-						mb_gameplayer <- getGamePlayer gamename playername
-						case mb_gameplayer of
-							Nothing -> do
-								errRedirect $ "There is no player " ++ show playername ++ " in game " ++ show gamename
-							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
-								Nothing -> Nothing
-								Just player -> Just (playername,player) )
 
 requirePlayerUserSessionCredentials :: Handler (UserId,User,GameName,Game,PlayerName,Player)
 requirePlayerUserSessionCredentials = do

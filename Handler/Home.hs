@@ -186,18 +186,11 @@ function playGame(gamename_str)
 }
 |]
 
-postHomeR :: Handler Html
-postHomeR = do
-	(userid,user) <- requireLoggedIn
-	affected :: Affected <- requireJsonBody
-	waitLongPoll affected
-	getHomeR
+postHomeR = pollHandler >> getHomeR
 
-getGameR :: Text -> Handler Html
-getGameR gamenametext = defaultLayout $ [whamlet|<h1>Not implemented|]
+------- WaitingR
 
-getWaitingR :: Text -> Handler Html
-getWaitingR gamenametext = defaultLayout $ [whamlet|<h1>Not implemented|]
+postWaitingR = pollHandler >> getWaitingR
 
 {-
 postHomeR :: Handler Html
@@ -246,8 +239,7 @@ executeGameAdminAction gaa = do
 				[ UserParticipations Sql.=. Map.delete gn (userParticipations userentity) ]
 			updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
 
-
------ WaitingR ----------
+-}
 
 getWaitingR :: Handler Html
 getWaitingR = do
@@ -255,9 +247,10 @@ getWaitingR = do
 	defaultLayout $ do
 		setTitle $ "Civ - " ++ show gamename
 		Just game <- getGame gamename
-		sendJSONJulius WaitingR
-		longPollingJulius LongPollGAA
+		sendJSONJulius
+		longPollingJulius WaitingR (GameGame gamename)
 		[whamlet|
+
 <h1>Game #{show gn}
 <table>
   $forall (PlayerName pn,player) <- Map.toList (_gamePlayers game)
@@ -274,10 +267,10 @@ getWaitingR = do
 <button type=button onclick=#{onclickHandler $ StartGameGAA gamename}>Start Game
 |]
 		toWidget [julius|
+
 function joinGame(gamename_str)
 {
-  var playername = document.getElementById("playername").value; 
-  sgaa(JSON.stringify({"tag":"JoinGameGAA",
+  sendAction(JSON.stringify({"tag":"JoinGameA",
     "contents":[
       gamename_str,
       document.getElementById("playername").value,
@@ -286,45 +279,16 @@ function joinGame(gamename_str)
 }
 |]
 
-postWaitingR :: Handler Html
-postWaitingR = do
-
-executeWaitingAction waitingaction = do
-	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
-	case waitingaction of
-		LongPollWA -> waitLongPoll GameWaiting
-		StartGameWA gamename -> do
-			updateCivH [GameAdmin,GameGame gamename] $ StartGame gamename
-
 ---- GameR --------------
+
+postGameR = pollHandler >> getGameR
 
 getGameR :: Handler Html
 getGameR = do
-	(userid,user,gamename,game,mb_player) <- maybeVisitorUserSessionCredentials
+	(userid,user,gamename,game,mb_player) <- maybeVisitor
 	case mb_player of
 		Nothing -> visitGame (userid,user,gamename,game)
 		Just (playername,player) -> displayGame (userid,user,gamename,game,playername,player)
-
-postGameR :: Handler Html
-postGameR = do
-	pusc@(_,_,gamename,_,playername,_) <- requirePlayerUserSessionCredentials
-	gameaction :: GameAction <- requireJsonBody
-	res <- executeGameAction gamename playername gameaction
-	case res of
-		Left msg -> do
-			setMessage $ toHtml msg
-		Right _ -> do
-			setMessage $ toHtml $ show gameaction
-	displayGame pusc
-
-visitGame :: (UserId,User,GameName,Game) -> Handler Html
-visitGame (userid,user,gamename,game) = do
-	defaultLayout $ do
-		setTitle "Civilization Boardgame"
-		[whamlet|
-<h1>Civilization Boardgame
-<p>Visitor not implemented yet.
-|]
 
 displayGame :: (UserId,User,GameName,Game,PlayerName,Player) -> Handler Html
 displayGame (userid,user,gamename,game,playername,player) = do
@@ -346,9 +310,10 @@ displayGame (userid,user,gamename,game,playername,player) = do
   $forall (pn,p) <- Map.toList $ _gamePlayers game
     <li>
       #{show pn}: #{show $ _playerTrade p}
-<button type=button onclick=#{onclickHandler $ IncTradeGA (Trade 1)}>IncTrade
+<button type=button onclick=#{onclickHandler $ IncTradeA (Trade 1)}>IncTrade
 |]
 
+{-
 executeGameAction :: GameName -> PlayerName -> GameAction -> Handler UpdateResult
 executeGameAction gamename playername gameaction = do
 	(userid,user,gamename,game,playername,player) <- requirePlayerUserSessionCredentials
