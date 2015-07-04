@@ -148,7 +148,7 @@ instance YesodAuth App where
     redirectToReferer _ = False
 
     getAuthId creds = runDB $ do
-        x <- insertBy $ User (credsIdent creds) Nothing Nothing False Data.Map.empty
+        x <- insertBy $ User (credsIdent creds) Nothing Nothing False
         return $ Just $
             case x of
                 Left (Entity userid _) -> userid -- newly added user
@@ -162,7 +162,7 @@ instance YesodAuth App where
 instance YesodAuthEmail App where
     type AuthEmailId App = UserId
     afterPasswordRoute _ = HomeR
-    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False Data.Map.empty
+    addUnverified email verkey = runDB $ insert $ User email Nothing (Just verkey) False
     sendVerifyEmail email _ verurl =
         liftIO $ renderSendMail (emptyMail $ Address Nothing "noreply")
             { mailTo = [Address Nothing email]

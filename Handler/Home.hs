@@ -162,16 +162,17 @@ getHomeR = do
 		sendJSONJulius
 		longPollingJulius HomeR GameAdmin
 
+		let my_players game = map playerName $ Map.keys $ Map.filter ((==email) . _playerUserEmail) (_gamePlayers game)
 		[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
-  $forall (gamename,game) <- Map.toList games
+  $forall (gamename,game) <- sortBy (comparing snd) (Map.toList games)
     <tr>
       <td>#{show gamename}
       <td>#{show (_gameState game)}
       <td>
-        $case Map.lookup (gameName gamename) (userParticipations user)
-          $of Just playernametexts
+        $with playernametexts <- my_players game
+          $if not (null playernametexts)
             $case _gameState game
               $of Waiting
                 <button type=button onclick="playGame(#{show $ gameName gamename},'@{WaitingR $ gameName gamename}')">Play Game
@@ -180,7 +181,6 @@ getHomeR = do
               $of _
             as
             ^{stringListToSelect (Text.append (gameName gamename) "_playername") (Prelude.head playernametexts) playernametexts}
-          $of Nothing
       <td>
         $case _gameState game
           $of Waiting
@@ -189,7 +189,7 @@ getHomeR = do
             <button type=button onclick="sendAndRedirect(#{toJSONString $ SetSessionGameA gamename},'@{GameR $ gameName gamename}')" style="min-width: 100%">Visit Game
           $of Finished
       <td>
-        $if (&&) (_gameCreator game == email) (_gameState game /= Running)
+        $if _gameCreator game == email
           <button type=button onclick=#{onclickHandler $ DeleteGameA gamename} style="min-width: 100%">Delete Game
   <tr>
     <td>
@@ -211,8 +211,10 @@ function createGame()
 function playGame(gamename_str,url)
 {
   sendAndRedirect(JSON.stringify(
-    { "tag":"SetSessionPlayerA",
-      "contents":document.getElementById(gamename_str+"_playername").value }),
+    { "tag":"SetSessionGamePlayerA",
+      "contents":[
+        gamename_str,
+        document.getElementById(gamename_str+"_playername").value ]}),
     url);
 }
 |]
@@ -221,16 +223,26 @@ postHomeR = pollHandler >> getHomeR
 
 ------- WaitingR
 
-postWaitingR gn = pollHandler >> getWaitingR gn
+postWaitingR gn = do
+	action <- pollHandler
+	case action of
+		StartGameA (GameName gn_action) | gn_action == gn -> do
+			setMessage $ toHtml $ "Game " ++ show gn ++ " has started!"
+			redirect $ GameR gn
+		DeleteGameA (GameName gn_action) -> do
+			setMessage $ toHtml $ "Game " ++ show gn ++ "has been deleted."
+			redirect HomeR
+		_ -> getWaitingR gn
 
 getWaitingR :: Text -> Handler Html
 getWaitingR gn = do
 	(userid,user,_,game,mb_player) <- maybeVisitor
+	let gamename = GameName gn
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
-		Just game <- getGame $ GameName gn
+		Just game <- getGame gamename
 		sendJSONJulius
-		longPollingJulius (WaitingR gn) (GameGame $ GameName gn)
+		longPollingJulius (WaitingR gn) (GameGame gamename)
 		[whamlet|
 
 <h1>Game #{gn}
@@ -245,19 +257,20 @@ getWaitingR gn = do
     <td><input id="playername" type=text size=20 value="New Player">
     <td>^{enumToSelect "colour" Red}
     <td>^{enumToSelect "civ" Russia}
-    <td><button type=button onclick="joinGame(#{show gn})">Join The Game
+    <td><button type=button onclick="joinGame(#{show gn},'#{userEmail user}')">Join The Game
 $if userEmail user == _gameCreator game
   <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA $ GameName gn},'@{GameR gn}')">Start Game
 |]
 
 		toWidget [julius|
 
-function joinGame(gamename_str)
+function joinGame(gamename_str,email_str)
 {
   sendAction(JSON.stringify({"tag":"JoinGameA",
     "contents":[
       gamename_str,
       document.getElementById("playername").value,
+      email_str,
       document.getElementById("colour").value,
       document.getElementById("civ").value ]}));
 }
@@ -265,7 +278,13 @@ function joinGame(gamename_str)
 
 ---- GameR --------------
 
-postGameR gn = pollHandler >> (getGameR gn)
+postGameR gn = do
+	action <- pollHandler
+	case action of
+		DeleteGameA (GameName gn_action) -> do
+			setMessage $ toHtml $ "Game " ++ show gn ++ "has been deleted."
+			redirect HomeR
+		_ -> getGameR gn
 
 getGameR :: Text -> Handler Html
 getGameR gn = do

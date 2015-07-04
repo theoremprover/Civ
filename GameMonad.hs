@@ -17,7 +17,7 @@ import Data.Acid.Advanced
 
 import Control.Monad.Error (runErrorT,throwError)
 
-import qualified Database.Persist.Sql as Sql
+--import qualified Database.Persist.Sql as Sql
 
 import Control.Lens hiding (Action)
 import qualified Data.Map as Map
@@ -30,22 +30,9 @@ import qualified Data.Text as Text
 
 import Polls
 
--------------- Actions
-
-data Action =
-	CreateGameA GameName |
-	DeleteGameA GameName |
-	JoinGameA GameName PlayerName Colour Civ |
-	IncTradeA GameName PlayerName Trade |
-	StartGameA GameName |
-	SetSessionGameA GameName |
-	SetSessionPlayerA PlayerName
-	deriving Show
-
 ------------- Splices
 
 deriveJSON defaultOptions ''Action
-deriveJSON defaultOptions ''Notification
 deriveJSON defaultOptions ''Affected
 deriveJSON defaultOptions ''Trade
 deriveJSON defaultOptions ''GameName
@@ -70,34 +57,29 @@ requireLoggedIn = do
 getPollsMVar :: Handler Polls
 getPollsMVar = getYesod >>= (return . appLongPolls)
 
-waitLongPoll :: Affected -> Handler UpdateResult
-waitLongPoll affected = do
-	mvar <- liftIO $ newEmptyMVar 
-	pollsmvar <- getPollsMVar
-	liftIO $ modifyMVar_ pollsmvar $ return . ((affected,mvar):)
-	printLogDebug $ "Waiting for Notification on " ++ show affected ++ " ..."
-	Notification <- liftIO $ takeMVar mvar
-	printLogDebug $ "Got Notification on " ++ show affected
-	return oK
-
-notifyLongPoll :: [Affected] -> Handler ()
-notifyLongPoll affecteds = do
+notifyLongPoll :: Action -> [Affected] -> Handler ()
+notifyLongPoll action affecteds = do
 	pollsmvar <- getPollsMVar
 	polls <- liftIO $ takeMVar pollsmvar
 	forM_ (filter ((`elem` affecteds) . fst) polls) $ \ (ag,mvar) -> do
 		printLogDebug $ "Notifying " ++ show ag
-		liftIO $ putMVar mvar Notification
+		liftIO $ putMVar mvar action
 	let remainingpolls = filter ((`notElem` affecteds) . fst) polls
 	liftIO $ putMVar pollsmvar remainingpolls
 	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
 	return ()
 
-pollHandler :: Handler ()
+pollHandler :: Handler Action
 pollHandler = do
 	(userid,user) <- requireLoggedIn
 	affected :: Affected <- requireJsonBody
-	waitLongPoll affected
-	return ()
+	mvar <- liftIO $ newEmptyMVar 
+	pollsmvar <- getPollsMVar
+	liftIO $ modifyMVar_ pollsmvar $ return . ((affected,mvar):)
+	printLogDebug $ "Waiting for Notification on " ++ show affected ++ " ..."
+	action <- liftIO $ takeMVar mvar
+	printLogDebug $ "Got Notification on " ++ show affected
+	return action
 
 -------- Lenses
 
@@ -129,23 +111,23 @@ checkCondition errmsg lens f = do
 		False -> throwError errmsg
 		True -> return ()
 
-createNewGame :: GameName -> UserName -> Update CivState UpdateResult
-createNewGame gamename username = runErrorT $ do
+createNewGame :: GameName -> UserName -> UTCTime -> Update CivState UpdateResult
+createNewGame gamename username utctime = runErrorT $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
 		(civGameLens gamename . _Just) isNothing
-	updateCivLensU (\_-> Just $ newGame username) $ civGameLens gamename
+	updateCivLensU (\_-> Just $ newGame username utctime) $ civGameLens gamename
 
 deleteGame :: GameName -> Update CivState UpdateResult
 deleteGame gamename = runErrorT $ do
 	updateCivLensU (\_-> Nothing) $ civGameLens gamename
 
-joinGame :: GameName -> PlayerName -> Colour -> Civ -> Update CivState UpdateResult
-joinGame gamename playername colour civ = runErrorT $ do
+joinGame :: GameName -> PlayerName -> PlayerEmail -> Colour -> Civ -> Update CivState UpdateResult
+joinGame gamename playername email colour civ = runErrorT $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
 		(civPlayerLens gamename playername . _Just) isNothing
 	checkCondition (show colour ++ " already taken in " ++ show gamename)
 		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map _playerColour) . Map.elems . fromJust)
-	updateCivLensU (\_ -> Just $ makePlayer colour civ) $
+	updateCivLensU (\_ -> Just $ makePlayer email colour civ) $
 		civGameLens gamename . _Just . gamePlayers . at playername
 
 startGame :: GameName -> Update CivState UpdateResult
@@ -164,10 +146,10 @@ incTrade gamename playername trade = runErrorT $ do
 getCivState :: Query CivState CivState
 getCivState = ask
 
-updateCivH affectedgamess event = do
+updateCivH action affectedgamess event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll affectedgamess
+	when (isRight res) $ notifyLongPoll action affectedgamess
 	return res
 
 $(makeAcidic ''CivState [
@@ -229,24 +211,16 @@ executeAction action = do
 	case action of
 
 		CreateGameA gamename -> do
-			updateCivH [GameAdmin] $ CreateNewGame gamename (userEmail user)
+			now <- liftIO $ getCurrentTime
+			updateCivH action [GameAdmin] $ CreateNewGame gamename (userEmail user) now
 
 		DeleteGameA gamename@(GameName gn) -> do
-			res <- updateCivH [GameAdmin,GameGame gamename] $ DeleteGame gamename
-			case res of
-				Right () -> do
-					runDB $ Sql.update userid
-						[ UserParticipations Sql.=. Map.delete gn (userParticipations user) ]
-				Left errmsg -> do
-					setMessage $ toHtml errmsg
-			return res
+			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
 
-		JoinGameA gamename@(GameName gn) playername@(PlayerName pn) colour civ -> do
-			res <- updateCivH [GameAdmin,GameGame gamename] $ JoinGame gamename playername colour civ
+		JoinGameA gamename@(GameName gn) playername@(PlayerName pn) email colour civ -> do
+			res <- updateCivH action [GameAdmin,GameGame gamename] $ JoinGame gamename playername email colour civ
 			case res of
 				Right () -> do
-					runDB $ Sql.update userid
-						[ UserParticipations Sql.=. Map.insertWith' (++) gn [pn] (userParticipations user) ]
 					setSession "player" pn
 				Left errmsg -> do
 					deleteSession "game"
@@ -258,14 +232,15 @@ executeAction action = do
 			setSession "game" gn
 			return oK
 
-		SetSessionPlayerA (PlayerName pn) -> do
+		SetSessionGamePlayerA (GameName gn) (PlayerName pn) -> do
+			setSession "game" gn
 			setSession "player" pn
 			return oK
 
 		StartGameA gamename -> do
-			updateCivH [GameAdmin,GameGame gamename] $ StartGame gamename
+			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
 
 		IncTradeA gamename playername trade -> do
-			updateCivH [GameGame gamename] $ IncTrade gamename playername trade
+			updateCivH action [GameGame gamename] $ IncTrade gamename playername trade
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"

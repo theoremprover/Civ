@@ -13,7 +13,6 @@ User
     password Text Maybe
     verkey Text Maybe
     verified Bool
-    participations (Map Text [Text])
     UniqueUser email
     deriving Typeable
     deriving Show

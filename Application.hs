@@ -60,7 +60,8 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
-    appCivAcid <- openLocalState initialCivState
+    civstate <- initialCivState
+    appCivAcid <- openLocalState civstate
 
     appLongPolls <- newMVar []
 
