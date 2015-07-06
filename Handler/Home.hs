@@ -130,7 +130,7 @@ postWaitingR gn = do
 
 getWaitingR :: Text -> Handler Html
 getWaitingR gn = do
-	(userid,user,_,game,mb_player) <- maybeVisitor
+	(userid,user,_,game,mb_playername) <- maybeVisitor
 	let gamename = GameName gn
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
@@ -182,7 +182,7 @@ postGameR gn = do
 
 getGameR :: Text -> Handler Html
 getGameR gn = do
-	(userid,user,gamename,game,mb_player) <- maybeVisitor
+	(userid,user,gamename,game,mb_playername) <- maybeVisitor
 	case _gameState game of
 		Waiting -> do
 			setMessage $ toHtml $ show gamename ++ " is waiting to start..."

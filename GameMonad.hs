@@ -83,11 +83,17 @@ pollHandler = do
 
 -------- Lenses
 
+assocListLens key = lens (Prelude.lookup key) setter where
+	setter list Nothing = filter ((==key).fst) list
+	setter [] (Just val) = [(key,val)]
+	setter ((k,a):kas) (Just val) | k==key = (k,val) : kas
+	setter (ka:kas) jval = ka : setter kas jval
+
 civStateLens = id
 civGameLens gamename = civStateLens . civGames . at gamename
 
 civPlayerLens gamename playername =
-	civPlayersLens gamename . at playername
+	civPlayersLens gamename . assocListLens playername
 
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
@@ -126,9 +132,9 @@ joinGame gamename playername email colour civ = runErrorT $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
 		(civPlayerLens gamename playername . _Just) isNothing
 	checkCondition (show colour ++ " already taken in " ++ show gamename)
-		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map _playerColour) . Map.elems . fromJust)
+		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromJust)
 	updateCivLensU (\_ -> Just $ makePlayer email colour civ) $
-		civGameLens gamename . _Just . gamePlayers . at playername
+		civGameLens gamename . _Just . gamePlayers . assocListLens playername
 
 startGame :: GameName -> Update CivState UpdateResult
 startGame gamename = runErrorT $ do
@@ -166,7 +172,7 @@ getGamePlayer gamename playername = do
 	mb_game <- getGame gamename
 	return $ case mb_game of
 		Nothing -> Nothing
-		Just game -> Just (game,Map.lookup playername (_gamePlayers game))
+		Just game -> Just (game,Prelude.lookup playername (_gamePlayers game))
 
 postCommandR :: Handler ()
 postCommandR = do
@@ -182,7 +188,7 @@ queryCivLensH lens = do
 	civstate <- query' (appCivAcid app) GetCivState
 	return $ view lens civstate
 
-maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe (PlayerName,Player))
+maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe PlayerName)
 maybeVisitor = do
 	UserSessionCredentials creds <- getUserSessionCredentials
 	case creds of
@@ -193,7 +199,9 @@ maybeVisitor = do
 			case mb_game of
 				Nothing -> do
 					errHandler $ "There is no game " ++ show gamename
-				Just game -> case mb_playername of
+				Just game -> return (userid,user,gamename,game,mb_playername)
+{-
+case mb_playername of
 					Nothing -> return (userid,user,gamename,game,Nothing)
 					Just playername -> do
 						mb_gameplayer <- getGamePlayer gamename playername
@@ -202,7 +210,8 @@ maybeVisitor = do
 								errHandler $ "There is no player " ++ show playername ++ " in game " ++ show gamename
 							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
 								Nothing -> Nothing
-								Just player -> Just (playername,player) )
+								Just player -> Just playername )
+-}
 
 executeAction :: Action -> Handler UpdateResult
 executeAction action = do

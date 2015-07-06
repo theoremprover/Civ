@@ -152,7 +152,7 @@ instance Ord Game where
 	compare = comparing _gameCreationDate
 
 newGame :: UserName -> UTCTime -> Game
-newGame creator utctime = Game utctime creator Waiting Nothing Map.empty
+newGame creator utctime = Game utctime creator Waiting Nothing []
 
 type Games = Map.Map GameName Game
 

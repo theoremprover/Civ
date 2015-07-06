@@ -30,6 +30,7 @@ library
                      Handler.DisplayGame
                      Handler.HandlerPolling
                      Polls
+                     Handler.StaticResources
                      Paths_Civ
 
     if flag(dev) || flag(library-only)
