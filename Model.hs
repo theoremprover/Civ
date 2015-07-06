@@ -137,7 +137,7 @@ data Game = Game {
 	_gameCreator :: UserName,
 	_gameState :: GameState,
 	_gameBoardTiles :: Maybe [BoardTile],
-	_gamePlayers :: Map.Map PlayerName Player
+	_gamePlayers :: [(PlayerName,Player)]
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
@@ -176,8 +176,7 @@ initialCivState = do
 			BoardTile Tile5 (Coors 4 8) True Northward,
 			BoardTile Tile6 (Coors 0 12) True Westward,
 			BoardTile (Tile America) (Coors 4 12) True Northward ])
-			(Map.fromList [
-				(PlayerName "Spieler Rot", Player "public@thinking-machines.net" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
+			[(PlayerName "Spieler Rot", Player "public@thinking-machines.net" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
 					TechCard CodeOfLaws TechLevelI (Coins 2),
 					TechCard HorsebackRiding TechLevelI (Coins 0),
 					TechCard AnimalHusbandry TechLevelI (Coins 0),
@@ -203,11 +202,10 @@ initialCivState = do
 					TechCard Computers TechLevelIV (Coins 0),
 					TechCard MassMedia TechLevelIV (Coins 0),
 					TechCard SpaceFlight TechLevelV (Coins 0) ])
-				])),
+				]),
 
 		(GameName "Testgame 2", Game now "public@thinking-machines.net" Waiting Nothing
-			(Map.fromList [
+			[
 				(PlayerName "Spieler Blau", Player "public@thinking-machines.net" Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
-				])
-			)
+			] )
 		]
