@@ -2,13 +2,10 @@
 
 module Handler.Home where
 
-import Data.Aeson
-
 import Settings.StaticFiles
 import Import
 
 import qualified Data.Text as Text
-import Text.Julius(rawJS)
 import Text.Blaze(ToMarkup)
 
 import Prelude(reads,head,tail)
@@ -20,9 +17,10 @@ import Version
 import GameMonad
 import Model
 import Entities
-import Display
+import Handler.DisplayGame
 
 import Polls
+import Handler.HandlerPolling
 
 ---- Helpers ------
 
@@ -42,110 +40,6 @@ stringListToSelect name defaultoption os = do
       $of False
         <option>#{o}
 |]
-
-noPollingJulius = toWidget [julius|
-function longPoll() {}
-|]
-
-longPollingJulius target affected = toWidget [julius|
-
-xmlhttp = new XMLHttpRequest();
-
-function longPoll()
-{
-  xmlhttp.open("POST",'@{target}', true);
-  xmlhttp.timeout = 1000*60*10;
-  xmlhttp.setRequestHeader("Content-type","application/json");
-  xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == XMLHttpRequest.DONE)
-    {
-      if(xmlhttp.status == 200)
-      {
-        document.write(xmlhttp.responseText);
-        document.close();
-      }
-    }
-  }
-  xmlhttp.ontimeout = function() { longPoll(); }
-  xmlhttp.onerror = function() { longPoll(); }
-  xmlhttp.send(#{rawJS $ toJSONString $ affected});
-}
-
-function redirectTo(target_str)
-{
-  xmlhttp.open("GET",target_str, true);
-  xmlhttp.onreadystatechange = function() {
-    if(xmlhttp.readyState == XMLHttpRequest.DONE)
-    {
-      if(xmlhttp.status == 200)
-      {
-        document.write(xmlhttp.responseText);
-        document.close();
-      }
-    }
-  }
-  xmlhttp.ontimeout = function() { alert("Timeout loading " + target_str); }
-  xmlhttp.onerror = function() { alert("Error loading " + target_str); }
-  xmlhttp.send(null);
-}
-
-function sendAndRedirect(action_str,url)
-{
-  sendAction_Fun(action_str,
-    function() { redirectTo(url); });
-}
-
-function onUnload()
-{
-  xmlhttp.abort();
-}
-|]
-
-onclickHandler jsonobject = "sendAction(" ++ toJSONString jsonobject ++")"
-
-toJSONString jsonobject = show $ encode jsonobject
-
-sendJSONJulius = toWidget [julius|
-
-function sendAction(action_str)
-{
-  sendAction_Fun(action_str,function() {});
-}
-
-function sendAction_Fun(action_str,fun_after_response)
-{
-  xh = new XMLHttpRequest();
-  xh.open("POST",'@{CommandR}', true);
-  xh.setRequestHeader("Content-type","application/json");
-  xh.onreadystatechange = function() {
-    if (xh.readyState == XMLHttpRequest.DONE)
-    {
-      if(xh.status == 200)
-      {
-        var response = JSON.parse(xh.responseText);
-        if(response.hasOwnProperty("Left"))
-        {
-          alert(response["Left"]);
-        }
-        else
-        {
-          fun_after_response();
-        }
-      }
-      else
-      {
-        alert("Status=" + xh.status + ":\n" +
-          "action_str = " + action_str + "\n" +
-          "Response: " + xh.responseText + "\n");
-      }
-    }
-  }
-  xh.ontimeout = function() { alert("Timeout sending " + action_str); }
-  xh.onerror = function() { alert("Error sending " + action_str); }
-  xh.send(action_str);
-}
-|]
-
 
 ----- HomeR ---------
 
@@ -288,37 +182,14 @@ postGameR gn = do
 
 getGameR :: Text -> Handler Html
 getGameR gn = do
-	(userid,user,_,game,mb_player) <- maybeVisitor
-	displayGame (userid,user,GameName gn,game,mb_player)
-
-displayGame :: (UserId,User,GameName,Game,Maybe (PlayerName,Player)) -> Handler Html
-displayGame (userid,user,gamename,game,mb_playername_player) = do
+	(userid,user,gamename,game,mb_player) <- maybeVisitor
 	case _gameState game of
 		Waiting -> do
-			setMessage $ toHtml $ "Game " ++ show gamename ++ " is waiting to start..."
-			redirect $ WaitingR $ gameName gamename
+			setMessage $ toHtml $ show gamename ++ " is waiting to start..."
+			redirect $ WaitingR (gameName gamename)
 		Finished -> do
-			setMessage $ toHtml $ "Game " ++ show gamename ++ " is finished already."
+			setMessage $ toHtml $ show gamename ++ " is finished already."
 			redirect $ HomeR
 		_ -> do
-			defaultLayout $ do
-				setTitle "Civilization Boardgame"
-				sendJSONJulius
-				longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
-				[whamlet|
+			displayGame (userid,user,gamename,game,mb_player)
 
-$case mb_playername_player
-  $of Nothing
-    <h1>Game #{Text.concat [gameName gamename," - Visitor"]}
-  $of Just (playername,_)
-    <h1>Game #{Text.concat [gameName gamename," - Player ",playerName playername]}
-<ul>
-  $forall (pn,p) <- Map.toList $ _gamePlayers game
-    <li>
-      #{show pn}: #{show $ _playerTrade p}
-      $case mb_playername_player
-        $of Nothing
-        $of Just (playername,_)
-          $if playername == pn
-            <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
-|]

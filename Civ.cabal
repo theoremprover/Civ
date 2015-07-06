@@ -27,7 +27,8 @@ library
                      ExecutePlayerAction
                      Logic
                      Version
-                     Display
+                     Handler.DisplayGame
+                     Handler.HandlerPolling
                      Polls
                      Paths_Civ
 
