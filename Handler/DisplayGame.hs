@@ -19,39 +19,44 @@ colour2html colour = show colour
 
 displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
 displayGame (userid,user,gamename,game,mb_playername) = do
+	playerareas <- mapM (playerArea game mb_playername) $ _gamePlayers game
+	boardarea <- boardArea game
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
-		nPlayersLayout $ _gamePlayers game
-
-	where
-	nPlayersLayout :: Players -> Widget
-	nPlayersLayout [player1,player2] = [whamlet|
+		case playerareas of
+			[playerarea1,playerarea2] -> [whamlet|
 <table>
-  <tr><td>^{playerArea player2}
-  <tr><td>^{boardArea game}
-  <tr><td>^{playerArea player1}
+  <tr><td>^{playerarea2}
+  <tr><td>^{boardarea}
+  <tr><td>^{playerarea1}
 |]
-	nPlayersLayout [player1,player2,player3,player4] = [whamlet|
+			[playerarea1,playerarea2,playerarea3,playerarea4] -> [whamlet|
 <table>
   <tr>
-    <td rowspan="2">^{playerArea player2}
-    <td colspan="2">^{playerArea player3}
+    <td rowspan="2">^{playerarea2}
+    <td colspan="2">^{playerarea3}
   <tr>
-    <td>^{boardArea game}
-    <td rowspan="2">^{playerArea player4}
+    <td>^{boardarea}
+    <td rowspan="2">^{playerarea4}
   <tr>
-    <td colspan="2">^{playerArea player1}
+    <td colspan="2">^{playerarea1}
 |]
-	nPlayersLayout players = errHamlet $ "Layout for " ++ show players ++ " not implemented (yet)."
+			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
-	playerArea :: (PlayerName,Player) -> Widget
-	playerArea (playername,player) = [whamlet|
-$with isMyPlayer <- Just playername == mb_playername
-<p>#{show playername}
+playerArea :: Game -> Maybe PlayerName -> (PlayerName,Player) -> Handler Widget
+playerArea game mb_playername (playername,player) = do
+	return [whamlet|
+<div>
+  <table>
+    <tr><td>#{show playername}
+    <tr><td>#{show player}
 |]
 
-	boardArea :: Game -> Widget
-	boardArea game = [whamlet|
+boardArea :: Game -> Handler Widget
+boardArea game = do
+	return [whamlet|
+<div>
+  #{show $ _gameBoardTiles game}
 |]
