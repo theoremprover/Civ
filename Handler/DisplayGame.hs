@@ -11,6 +11,7 @@ import Model
 import Entities
 import Polls
 import Handler.HandlerPolling
+import Handler.StaticResources
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -52,7 +53,7 @@ playerArea game mb_playername (playername,player) = do
 <div>
   <table>
     <tr><td>#{show playername}
-    <tr><td>#{show player}
+    <tr><td><img src=@{dialRoute True (_playerCiv player)}>
 |]
 
 boardArea :: Game -> Handler Widget

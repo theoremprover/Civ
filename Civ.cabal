@@ -31,6 +31,7 @@ library
                      Handler.HandlerPolling
                      Polls
                      Handler.StaticResources
+                     Handler.MakeRoutes
                      Paths_Civ
 
     if flag(dev) || flag(library-only)
