@@ -47,6 +47,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 
 playerArea :: Game -> Maybe PlayerName -> (PlayerName,Player) -> Handler Widget
 playerArea game mb_playername (playername,player) = do
+	let revealed = mb_playername == Just playername
 	return [whamlet|
 <div>
   <table>
