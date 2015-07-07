@@ -8,7 +8,7 @@ import Import
 import qualified Data.Text as Text
 import Text.Blaze(ToMarkup)
 
-import Prelude(reads,head,tail)
+import Prelude(reads,head,tail,filter)
 import qualified Data.Map as Map
 import Data.Ix
 
@@ -56,7 +56,8 @@ getHomeR = do
 		sendJSONJulius
 		longPollingJulius HomeR GameAdmin
 
-		let my_players game = map playerName $ Map.keys $ Map.filter ((==email) . _playerUserEmail) (_gamePlayers game)
+		let my_players game = map playerName $ map fst $
+			Prelude.filter ((==email) . _playerUserEmail . snd) (_gamePlayers game)
 		[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
@@ -141,7 +142,7 @@ getWaitingR gn = do
 
 <h1>Game #{gn}
 <table>
-  $forall (PlayerName pn,player) <- Map.toList (_gamePlayers game)
+  $forall (PlayerName pn,player) <- _gamePlayers game
     <tr>
       <td>#{pn}
       <td fgcolor=white bgcolor=#{colour2html $ _playerColour player}>#{show $ _playerColour player}
@@ -191,5 +192,5 @@ getGameR gn = do
 			setMessage $ toHtml $ show gamename ++ " is finished already."
 			redirect $ HomeR
 		_ -> do
-			displayGame (userid,user,gamename,game,mb_player)
+			displayGame (userid,user,gamename,game,mb_playername)
 

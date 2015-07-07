@@ -6,7 +6,7 @@ import Import
 
 import Model
 
-makeStaticRoutes = 
+--makeStaticRoutes = 
 {-
 civRoute :: Civ -> Bool -> Route App
 civRoute civ revealed = case civ of

@@ -26,6 +26,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		nPlayersLayout $ _gamePlayers game
 
 	where
+	nPlayersLayout :: Players -> Widget
 	nPlayersLayout [player1,player2] = [whamlet|
 <table>
   <tr><td>^{playerArea player2}
@@ -43,13 +44,14 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <tr>
     <td colspan="2">^{playerArea player1}
 |]
-	nPlayersLayout players = errHandler $ "Layout for " ++ show players ++ " not implemented (yet)."
+	nPlayersLayout players = errHamlet $ "Layout for " ++ show players ++ " not implemented (yet)."
 
-	playerArea (playername,player) = do
-		let isMyPlayer = Just playername == mb_playername
-		[whamlet|
-
+	playerArea :: (PlayerName,Player) -> Widget
+	playerArea (playername,player) = [whamlet|
+$with isMyPlayer <- Just playername == mb_playername
+<p>#{show playername}
 |]
 
+	boardArea :: Game -> Widget
 	boardArea game = [whamlet|
 |]

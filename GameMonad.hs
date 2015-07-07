@@ -45,6 +45,11 @@ deriveJSON defaultOptions ''Colour
 errHandler :: String -> Handler a
 errHandler msg = invalidArgs [Text.pack msg]
 
+errHamlet msg = [whamlet|
+<h1>Error
+<h3>#{msg}
+|]
+
 -------- Credentials
 
 requireLoggedIn :: Handler (UserId,User)

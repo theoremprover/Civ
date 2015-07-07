@@ -132,12 +132,14 @@ $(deriveSafeCopy 0 'base ''GameName)
 
 gameName (GameName gn) = gn
 
+type Players = [(PlayerName,Player)]
+
 data Game = Game {
 	_gameCreationDate :: UTCTime,
 	_gameCreator :: UserName,
 	_gameState :: GameState,
 	_gameBoardTiles :: Maybe [BoardTile],
-	_gamePlayers :: [(PlayerName,Player)]
+	_gamePlayers :: Players
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy 0 'base ''Game)
