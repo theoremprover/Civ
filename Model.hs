@@ -211,3 +211,70 @@ initialCivState = do
 				(PlayerName "Spieler Blau", Player "public@thinking-machines.net" Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
 			] )
 		]
+
+data CultureEvent =
+	Astray | BarbarianEncampment | BankCrisis | BreadCircus | Catastrophe |
+	Colonists | Counterfeit | DayOfThePresident | DayOfTheTyrant | Deforestation |
+	Disaster | Desertion | Drought | EconomicCrisis | ExchangeIdeas | Faithless |
+	Flooding | GenerousGift | GiftFromAfar | HonorAndDuty | Ideas | Immigrants |
+	KnightTournament | LongLiveTheQueen | MassDefection | Migrants | Displaced |
+	Nationalism | Disoriented | Patriotism | PrimeTime | PrincelyGift | RevoltI | RevoltII |
+	RoamingHoarde | Sabotage | SharedKnowledge | SupplyDrop
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''CultureEvent)
+
+data CultureLevel = CultureLevel1 | CultureLevel2 | CultureLevel3
+	deriving (Show,Read,Data,Ord,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''CultureLevel)
+
+cultureEventsOfLevel :: CultureLevel -> [CultureEvent]
+cultureEventsOfLevel CultureLevel1 = [
+	GiftFromAfar,GiftFromAfar,GiftFromAfar,
+	BarbarianEncampment,BarbarianEncampment,
+	BreadCircus,BreadCircus,
+	Counterfeit,Counterfeit,
+	Desertion,Desertion,
+	Disoriented,
+	DayOfTheTyrant,DayOfTheTyrant,DayOfTheTyrant,
+	Drought,Drought,
+	ExchangeIdeas,ExchangeIdeas,ExchangeIdeas,
+	HonorAndDuty,HonorAndDuty,
+	Migrants,Migrants,
+	RevoltI,
+	Sabotage,Sabotage ]
+cultureEventsLevel CultureLevel2 = [
+	GenerousGift,GenerousGift,GenerousGift,
+	Catastrophe,
+	Colonists,Colonists,
+	Deforestation,Deforestation,
+	EconomicCrisis,
+	Flooding,
+	KnightTournament,KnightTournament,
+	SharedKnowledge,SharedKnowledge,SharedKnowledge,
+	Astray,
+	MassDefection,MassDefection,
+	Nationalism,Nationalism,
+	RoamingHoarde,RoamingHoarde,
+	RevoltII,
+	LongLiveTheQueen,LongLiveTheQueen ]
+cultureEventsLevel CultureLevel3 = [
+	PrincelyGift,PrincelyGift,
+	BankCrisis,
+	Disaster,
+	Immigrants,Immigrants,
+	Displaced,
+	Patriotism,
+	PrimeTime,PrimeTime,
+	SupplyDrop,SupplyDrop,
+	DayOfThePresident,
+	MassDefection,
+	Ideas,Ideas ]
+
+data CultureCard = CultureCard {
+	_cultureCardRevealed :: Bool,
+	_cultureCardEvent    :: CultureEvent,
+	_cultureCardCoins    :: Coins
+	}
+	deriving (Data,Typeable,Show)
+$(deriveSafeCopy 0 'base ''TechCard)
+makeLenses ''TechCard

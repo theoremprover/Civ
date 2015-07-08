@@ -58,6 +58,16 @@ boardTileRoute boardtile = case _boardTileId boardtile of
 	revealed = _boardTileDiscovered boardtile
 
 $(makeRoutes ''Civ "dialRoute" toDial)
+tradeDialRoute = _Dials_Tradedial_gif
+coinDialRoute = _Dials_Coindial_gif
+oneCultureRoute = _Dials_1Culture_gif
+fiveCultureRoute = _Dials_5Culture_gif
+coinRoute = _Dials_Coin_gif
+
+$(makeRoutes ''CultureCardID "cultureRouteRevealed" toCulture)
+cultureRoute culturecard = 
+
+--toCulture level _ False = "_Culture_" ++ show level ++ "_back_jpg"
 
 --putStrLn $(stringE . show =<< reify ''Bool)
 
