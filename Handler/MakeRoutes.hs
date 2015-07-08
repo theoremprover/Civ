@@ -6,6 +6,8 @@ import Import
 
 import Language.Haskell.TH
 
+--putStrLn $(stringE . show =<< reify ''Bool)
+
 
 makeRoutes :: Name -> String -> (String -> Bool -> String) -> Q [Dec]
 makeRoutes name funnamestr path = do
@@ -23,4 +25,7 @@ makeRoutes name funnamestr path = do
 
 toDial s _ = "_Dials_" ++ s ++ "_jpg"
 
-toCulture s True = "_Culture_" ++ s ++ "_jpg"
+toCulture s _ = "_Culture_" ++ s ++ "_jpg"
+
+toTech s True -> "_Techs_" ++ s ++ "_jpg"
+toTech _ False -> "_Techs_"

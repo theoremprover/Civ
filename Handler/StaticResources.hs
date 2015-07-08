@@ -8,7 +8,7 @@ import Handler.MakeRoutes
 
 import Model
 
-boardTileRoute boardtile = case _boardTileId boardtile of
+boardTileRoute boardtile = StaticR $ case _boardTileId boardtile of
 	Tile civ -> case civ of
 		America  -> if revealed then _Tiles_TileAmerica_front_jpg else _Tiles_TileAmerica_back_jpg
 		Arabs    -> if revealed then _Tiles_TileArabs_front_jpg else _Tiles_TileArabs_back_jpg
@@ -58,18 +58,20 @@ boardTileRoute boardtile = case _boardTileId boardtile of
 	revealed = _boardTileDiscovered boardtile
 
 $(makeRoutes ''Civ "dialRoute" toDial)
-tradeDialRoute = _Dials_Tradedial_gif
-coinDialRoute = _Dials_Coindial_gif
-oneCultureRoute = _Dials_1Culture_gif
-fiveCultureRoute = _Dials_5Culture_gif
-coinRoute = _Dials_Coin_gif
+tradeDialRoute = StaticR $ _Dials_Tradedial_gif
+coinDialRoute = StaticR $ _Dials_Coindial_gif
+oneCultureRoute = StaticR $ _Dials_1Culture_gif
+fiveCultureRoute = StaticR $ _Dials_5Culture_gif
+coinRoute = StaticR $ _Dials_Coin_gif
 
-$(makeRoutes ''CultureCardID "cultureRouteRevealed" toCulture)
-cultureRoute culturecard = 
+$(makeRoutes ''CultureEvent "cultureRouteRevealed" toCulture)
+cultureRoute (CultureCard False ev _) = StaticR $ case cultureEventLevel ev of
+	CultureLevel1 -> _Culture_CultureLevel1_back_jpg
+	CultureLevel2 -> _Culture_CultureLevel2_back_jpg
+	CultureLevel3 -> _Culture_CultureLevel3_back_jpg
+cultureRoute (CultureCard True ev coins) = cultureRouteRevealed True ev
 
---toCulture level _ False = "_Culture_" ++ show level ++ "_back_jpg"
-
---putStrLn $(stringE . show =<< reify ''Bool)
+$(makeRoutes ''Tech "techRoute" toTech)
 
 {-
 makeBoardTileRoutes :: Q [Dec]

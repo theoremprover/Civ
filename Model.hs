@@ -224,7 +224,7 @@ data CultureEvent =
 $(deriveSafeCopy 0 'base ''CultureEvent)
 
 data CultureLevel = CultureLevel1 | CultureLevel2 | CultureLevel3
-	deriving (Show,Read,Data,Ord,Typeable,Eq)
+	deriving (Show,Read,Data,Ord,Bounded,Ix,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''CultureLevel)
 
 cultureEventsOfLevel :: CultureLevel -> [CultureEvent]
@@ -242,7 +242,7 @@ cultureEventsOfLevel CultureLevel1 = [
 	Migrants,Migrants,
 	RevoltI,
 	Sabotage,Sabotage ]
-cultureEventsLevel CultureLevel2 = [
+cultureEventsOfLevel CultureLevel2 = [
 	GenerousGift,GenerousGift,GenerousGift,
 	Catastrophe,
 	Colonists,Colonists,
@@ -257,7 +257,7 @@ cultureEventsLevel CultureLevel2 = [
 	RoamingHoarde,RoamingHoarde,
 	RevoltII,
 	LongLiveTheQueen,LongLiveTheQueen ]
-cultureEventsLevel CultureLevel3 = [
+cultureEventsOfLevel CultureLevel3 = [
 	PrincelyGift,PrincelyGift,
 	BankCrisis,
 	Disaster,
@@ -270,11 +270,15 @@ cultureEventsLevel CultureLevel3 = [
 	MassDefection,
 	Ideas,Ideas ]
 
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel1) = CultureLevel1
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel2) = CultureLevel2
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel3) = CultureLevel3
+
 data CultureCard = CultureCard {
 	_cultureCardRevealed :: Bool,
 	_cultureCardEvent    :: CultureEvent,
 	_cultureCardCoins    :: Coins
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''TechCard)
-makeLenses ''TechCard
+$(deriveSafeCopy 0 'base ''CultureCard)
+makeLenses ''CultureCard
