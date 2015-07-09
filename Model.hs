@@ -20,7 +20,8 @@ import Entities
 
 import qualified Data.Ix as Ix
 
-data Coors = Coors Int Int deriving (Show,Read,Data,Typeable,Eq)
+data Coors = Coors { xCoor :: Int, yCoor :: Int }
+	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Coors)
 
 newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
@@ -59,11 +60,11 @@ $(deriveSafeCopy 0 'base ''Phase)
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
 	HorsebackRiding | AnimalHusbandry | Philosophy | Navigation | Navy |
-	CivilService | Mysticism | MonarchyTech | DemocracyTech | Chivalry | Mathematics | Logistics |
+	PublicAdministration | Mysticism | MonarchyTech | DemocracyTech | Chivalry | Mathematics | Logistics |
 	PrintingPress | Sailing | Construction | Engineering | Irrigation | Bureaucracy |
 	Theology | CommunismTech | Gunpowder | Railroad | MetalCasting | Ecology | Biology |
-	SteamPower | Banking | MilitaryScience | Education |
-	Computers | MassMedia | Ballistics | ReplaceableParts | Flight | Plastics | Combustion | AtomicTheory |
+	SteamEngine | Banking | MilitaryScience | Education |
+	Computers | MassMedia | Ballistics | ReplacementParts | Flight | Plastics | CombustionEngine | AtomicTheory |
 	SpaceFlight
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Tech)
@@ -154,7 +155,7 @@ instance Ord Game where
 	compare = comparing _gameCreationDate
 
 newGame :: UserName -> UTCTime -> Game
-newGame creator utctime = Game utctime creator Waiting Nothing []
+newGame creator utctime = Game utctime creator Waiting [] []
 
 type Games = Map.Map GameName Game
 
@@ -169,7 +170,7 @@ initialCivState :: IO CivState
 initialCivState = do
 	now <- getCurrentTime
 	return $ CivState $ Map.fromList [
-		(GameName "testgame",Game now "public@thinking-machines.net" Running (Just [
+		(GameName "testgame",Game now "public@thinking-machines.net" Running [
 			BoardTile (Tile Russia) (Coors 0 0) True Southward,
 			BoardTile Tile1 (Coors 4 0) True Eastward,
 			BoardTile Tile2 (Coors 0 4) True Southward,
@@ -177,7 +178,7 @@ initialCivState = do
 			BoardTile Tile4 (Coors 0 8) False Southward,
 			BoardTile Tile5 (Coors 4 8) True Northward,
 			BoardTile Tile6 (Coors 0 12) True Westward,
-			BoardTile (Tile America) (Coors 4 12) True Northward ])
+			BoardTile (Tile America) (Coors 4 12) True Northward ]
 			[(PlayerName "Spieler Rot", Player "public@thinking-machines.net" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
 					TechCard CodeOfLaws TechLevelI (Coins 2),
 					TechCard HorsebackRiding TechLevelI (Coins 0),
@@ -198,7 +199,7 @@ initialCivState = do
 					TechCard Sailing TechLevelII (Coins 0),
 					TechCard Construction TechLevelII (Coins 0),
 					TechCard Engineering TechLevelII (Coins 0),
-					TechCard SteamPower TechLevelIII (Coins 0),
+					TechCard SteamEngine TechLevelIII (Coins 0),
 					TechCard Banking TechLevelIII (Coins 0),
 					TechCard MilitaryScience TechLevelIII (Coins 0),
 					TechCard Computers TechLevelIV (Coins 0),
@@ -206,7 +207,7 @@ initialCivState = do
 					TechCard SpaceFlight TechLevelV (Coins 0) ])
 				]),
 
-		(GameName "Testgame 2", Game now "public@thinking-machines.net" Waiting Nothing
+		(GameName "Testgame 2", Game now "public@thinking-machines.net" Waiting []
 			[
 				(PlayerName "Spieler Blau", Player "public@thinking-machines.net" Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
 			] )

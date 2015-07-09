@@ -8,7 +8,6 @@ import Language.Haskell.TH
 
 --putStrLn $(stringE . show =<< reify ''Bool)
 
-
 makeRoutes :: Name -> String -> (String -> Bool -> String) -> Q [Dec]
 makeRoutes name funnamestr path = do
 	TyConI (DataD _ _ _ constrs _) <- reify name
@@ -27,5 +26,5 @@ toDial s _ = "_Dials_" ++ s ++ "_jpg"
 
 toCulture s _ = "_Culture_" ++ s ++ "_jpg"
 
-toTech s True -> "_Techs_" ++ s ++ "_jpg"
-toTech _ False -> "_Techs_"
+toTech s True = "_Techs_" ++ s ++ "_jpg"
+toTech _ False = "_Missing_jpg"

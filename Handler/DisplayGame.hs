@@ -1,7 +1,7 @@
 module Handler.DisplayGame where
 
-import Import
-import qualified Prelude
+import Import hiding (map,minimum,maximum,concat,lookup)
+import Prelude (map,minimum,maximum,concat,lookup)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -58,12 +58,25 @@ playerArea game mb_playername (playername,player) = do
 
 boardArea :: Game -> Handler Widget
 boardArea game = do
-	tss <- forM (_gameBoardTiles game) $ \ tile -> do
-		let coors@(Coors x y) = _boardTileCoors tile
-		return $ (coors,tile) : [ (Coors x' y',tile) | x' <- [x..(x+3)], y' <- [y..(y+3)] ]
+	let
+		ts = concat $ (flip map) (_gameBoardTiles game) $ \ tile ->
+			let coors@(Coors x y) = _boardTileCoors tile in
+				((x,y),Just tile) : [ ((x',y'),Nothing) |
+					x' <- [x..(x+3)], y' <- [y..(y+3)], not (x' == x  && y' == y) ]
+		xcoors = map (fst.fst) ts
+		ycoors = map (snd.fst) ts
+		xs = [(minimum xcoors)..(maximum xcoors)]
+		ys = [(minimum ycoors)..(maximum ycoors)]
 	return [whamlet|
 <div>
-  <table>
-    $forall (Coors x y,tile) <- concat tss
-          
+  <table .NoSpacing>
+    $forall y <- ys
+      <tr>
+        $forall x <- xs
+          $maybe mb_tile <- lookup (x,y) ts
+            $maybe tile <- mb_tile
+              <td colspan=4 rowspan=4><img class=#{show (_boardTileOrientation tile)} src=@{boardTileRoute tile}>
+            $nothing
+          $nothing
+            <td>
 |]
