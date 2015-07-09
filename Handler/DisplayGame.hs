@@ -58,7 +58,12 @@ playerArea game mb_playername (playername,player) = do
 
 boardArea :: Game -> Handler Widget
 boardArea game = do
+	tss <- forM (_gameBoardTiles game) $ \ tile -> do
+		let coors@(Coors x y) = _boardTileCoors tile
+		return $ (coors,tile) : [ (Coors x' y',tile) | x' <- [x..(x+3)], y' <- [y..(y+3)] ]
 	return [whamlet|
 <div>
-  #{show $ _gameBoardTiles game}
+  <table>
+    $forall (Coors x y,tile) <- concat tss
+          
 |]

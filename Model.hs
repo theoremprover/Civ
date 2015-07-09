@@ -138,7 +138,7 @@ data Game = Game {
 	_gameCreationDate :: UTCTime,
 	_gameCreator :: UserName,
 	_gameState :: GameState,
-	_gameBoardTiles :: Maybe [BoardTile],
+	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players
 	}
 	deriving (Data,Typeable)
