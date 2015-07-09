@@ -18,3 +18,11 @@ img
     transform: rotate(180deg)
 .Westward
     transform: rotate(270deg)
+
+.Parent
+    position: relative
+.Child
+    position: absolute
+
+.Square
+    margin: auto

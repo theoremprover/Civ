@@ -68,15 +68,30 @@ boardArea game = do
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 	return [whamlet|
-<div>
-  <table .NoSpacing>
-    $forall y <- ys
-      <tr>
-        $forall x <- xs
-          $maybe mb_tile <- lookup (x,y) ts
-            $maybe tile <- mb_tile
-              <td colspan=4 rowspan=4><img class=#{show (_boardTileOrientation tile)} src=@{boardTileRoute tile}>
+<div .Parent>
+  <div .Child style="z-index: 1;">
+    <table .NoSpacing>
+      $forall y <- ys
+        <tr>
+          $forall x <- xs
+            $maybe mb_tile <- lookup (x,y) ts
+              $maybe tile <- mb_tile
+                <td colspan=4 rowspan=4><img class=#{show (_boardTileOrientation tile)} src=@{boardTileRoute tile}>
+              $nothing
             $nothing
-          $nothing
+              <td><img src=@{transparentSquareRoute}>
+
+  <div .Child style="z-index: 2;">
+    <table .NoSpacing border=1>
+      $forall y <- ys
+        <tr>
+          $forall x <- xs
             <td>
+              <div .Parent>
+              $case mod x 2
+                $of 0
+                  <div .Child><img src=@{transparentSquareRoute}>
+                $of 1
+                  <div style="z-index=3;" .Child><img src=@{transparentSquareRoute}>
+                  <div style="z-index=4;" .Child><img src=@{StaticR $ _Squares_TradeStation_jpg}>
 |]

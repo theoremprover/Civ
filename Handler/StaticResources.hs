@@ -73,34 +73,4 @@ cultureRoute (CultureCard True ev coins) = cultureRouteRevealed True ev
 
 $(makeRoutes ''Tech "techRoute" toTech)
 
-{-
-makeBoardTileRoutes :: Q [Dec]
-makeBoardTileRoutes = do
-	TyConI (DataD _ _ _ tileconstrs) <- reify ''TileID
-	revealedname <- newName "revealed"
-	cases <- forM tileconstrs $ \case
-		NormalC cname [] -> do
-			let revname = mkName $ "_Tiles_" ++ nameBase cname ++ "_jpg"
-			let backname = mkName "_Tiles_Back_jpg"
-			return [e|if $(revealedname) then $(revname) else $(backname)|]
-		NormalC cname [(_,ConT)] -> do
-			let revname = mkName $ "_Tiles_" ++ nameBase cname ++ "_front_jpg"
-			let backname = mkName "_Tiles_Back_jpg"
-			return [e|if $(revealedname) then $(revname) else $(backname)|]
-	[d|
-boardTileRoute :: TileID -> Bool -> Route Static
-boardTileRoute tileid $(revealedname) = case tileid of $(map tomatch tileconstrs)
-|]
-	where
-	tomatch (NormalC cname []) -> cond ("_Tiles_Tile") ()
-
-	pbs = 
-	cases = [ Match (ConP pname []) (NormalB bodyexpr) | (pname,bodyexpr) <- pbs ]
-
-	NormalC cname cargs -> return $ case cargs of
-		[] -> Match (ConP pname []) (NormalB bodyexpr)
-
-case tileid of
-	Tile25     -> if revealed then _Tiles_Tile25_jpg    else _Tiles_Back_jpg
-	Tile Arabs -> if revealed then _Tiles_TileArabs_front_jpg else _Tiles_TileArabs_back_jpg
--}
+transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
