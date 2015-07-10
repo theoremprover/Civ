@@ -7,6 +7,7 @@ del tmpFile
 
 git commit -a -m "No Message"
 echo %RC%
+pause
 exit
 if errorlevel 1 goto :err
 git push origin master:master
