@@ -15,6 +15,7 @@ import Data.Ord
 import Data.Time
 import Control.Lens
 import qualified Data.Map as Map
+import Data.Array.IArray
 
 import Entities
 
@@ -80,11 +81,86 @@ data Government =
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy 0 'base ''Government)
 
+data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Resource)
+
+data Terrain = Grassland | Desert | Mountains | Forest | Water | Steppe
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Terrain)
+
+data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Artifact)
+
+data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | FriendlyBarbarianHut
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Hut)
+
+hutHeap = concatMap (ResourceHut.(uncurry replicate))
+	[ (6,Spy),(7,Wheat),(6,Incense),(6,Linen),(3,Iron),(1,Atom) ] ++
+	[ CityStateHut,CityStateHut,TeacherHut,ThreeCulture,
+		FriendlyBarbarianHut,FriendlyBarbarianyHut ]
+
+data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
+	CoinVillage | GreatPersonVillage
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Village)
+
+villageHeap = concatMap (ResourceVillage.(uncurry replicate))
+	[ (4,Spy),(4,Atom),(3,Iron) ] ++
+	[ CityStateVillage,CityStateVillage,CityStateVillage,SixCulture,
+		FourHammers,CoinVillage,CoinVillage,GreatPersonVillage,GreatPersonVillage ]
+
+data City = CityProxy Orientation | City {
+	_cityOwner :: PlayerName,
+	_cityCapital :: Bool,
+	_cityDoubleProd :: Bool,
+	_cityFortified :: Bool,
+	_cityCaravan :: Bool,
+	_cityMetropolis :: Maybe Orientation
+	}
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''City)
+
+data Building = ...
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Building)
+
+buildingHeap = concatMap (uncurry replicate)
+	[ (99,Barracks) ...
+
+data Plate =
+	ArtifactPlate Artifact |
+	HutPlate Hut |
+	VillagePlate Village |
+	CityPlate City |
+	BuildingPlate Building
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Plate)
+
+data Figure =
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy 0 'base ''Figure)
+
+data Square = Square {
+	_squareTerrain  :: [Terrain],
+	_squareCoin     :: Bool,
+	_squareResource :: Resource,
+	_squareCulture  :: Bool,
+	_squarePlate    :: Maybe Plate,
+	_squareFigures  :: [Figure]
+	}
+	deriving (Data,Typeable,Show)
+$(deriveSafeCopy 0 'base ''Square)
+makeLenses ''Square
+
 data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
 	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Orientation
+	_boardTileOrientation :: Orientation,
+	_boardTileSquares :: Array 
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy 0 'base ''BoardTile)

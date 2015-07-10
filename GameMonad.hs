@@ -202,21 +202,8 @@ maybeVisitor = do
 		Just (userid,user,Just gamename,mb_playername) -> do
 			mb_game <- getGame gamename
 			case mb_game of
-				Nothing -> do
-					errHandler $ "There is no game " ++ show gamename
+				Nothing -> errHandler $ "There is no game " ++ show gamename
 				Just game -> return (userid,user,gamename,game,mb_playername)
-{-
-case mb_playername of
-					Nothing -> return (userid,user,gamename,game,Nothing)
-					Just playername -> do
-						mb_gameplayer <- getGamePlayer gamename playername
-						case mb_gameplayer of
-							Nothing -> do
-								errHandler $ "There is no player " ++ show playername ++ " in game " ++ show gamename
-							Just (game,mb_player) -> return (userid,user,gamename,game,case mb_player of
-								Nothing -> Nothing
-								Just player -> Just playername )
--}
 
 executeAction :: Action -> Handler UpdateResult
 executeAction action = do
