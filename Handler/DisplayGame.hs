@@ -86,12 +86,10 @@ boardArea game = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            <td>
-              <div .Parent>
+            <td style="position:relative">
+              <img src=@{transparentSquareRoute}>
               $case mod x 2
                 $of 0
-                  <div .Child><img src=@{transparentSquareRoute}>
                 $of 1
-                  <div style="z-index=3;" .Child><img src=@{transparentSquareRoute}>
-                  <div style="z-index=4;" .Child><img src=@{StaticR $ _Squares_TradeStation_jpg}>
+                  <img style="position: absolute" src=@{StaticR $ _Squares_TradeStation_jpg}>
 |]
