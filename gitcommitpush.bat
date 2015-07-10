@@ -6,10 +6,7 @@ set /p GIT_SSH= < tmpFile
 del tmpFile
 
 git commit -a -m "No Message"
-echo %errorlevel%
-pause
-exit
-if errorlevel 1 goto :err
+if errorlevel 2 goto :err
 git push origin master:master
 if errorlevel 1 goto :err
 exit 0
