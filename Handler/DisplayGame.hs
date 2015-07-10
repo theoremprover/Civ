@@ -91,5 +91,5 @@ boardArea game = do
               $case mod x 2
                 $of 0
                 $of 1
-                  <img style="position: absolute" src=@{StaticR $ _Squares_TradeStation_jpg}>
+                  <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
 |]
