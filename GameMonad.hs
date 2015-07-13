@@ -245,3 +245,6 @@ executeAction action = do
 			updateCivH action [GameGame gamename] $ IncTrade gamename playername trade
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
+
+------------
+

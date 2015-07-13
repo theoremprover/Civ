@@ -15,7 +15,7 @@ import Data.Ord
 import Data.Time
 import Control.Lens
 import qualified Data.Map as Map
-import Data.Array.IArray
+--import Data.Array.IArray
 
 import Entities
 
@@ -33,7 +33,7 @@ replicateUnit (t,n) = replicate () n
 replicateT (t,n) = replicate n t
 
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Read,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''Coors)
 
 newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
@@ -203,8 +203,7 @@ data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
 	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Orientation,
-	_boardTileSquares :: Array 
+	_boardTileOrientation :: Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''BoardTile)
@@ -241,7 +240,7 @@ data Player = Player {
 $(deriveSafeCopy modelVersion 'base ''Player)
 makeLenses ''Player
 
-makePlayer useremail colour civ = Player useremail colour civ Anarchy (Trade 0) (Culture 0) (Coins 0) []
+makePlayer useremail colour civ = Player useremail colour civ Despotism (Trade 0) (Culture 0) (Coins 0) []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -260,7 +259,8 @@ data Game = Game {
 	_gameCreator :: UserName,
 	_gameState :: GameState,
 	_gameBoardTiles :: [BoardTile],
-	_gamePlayers :: Players
+	_gamePlayers :: Players,
+	_gameBoard :: Array Coors Square
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)
@@ -285,53 +285,6 @@ data CivState = CivState {
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''CivState)
 makeLenses ''CivState
-
-initialCivState :: IO CivState
-initialCivState = do
-	now <- getCurrentTime
-	return $ CivState $ Map.fromList [
-		(GameName "testgame",Game now "public@thinking-machines.net" Running [
-			BoardTile (Tile Russia) (Coors 0 0) True Southward,
-			BoardTile Tile1 (Coors 4 0) True Eastward,
-			BoardTile Tile2 (Coors 0 4) True Southward,
-			BoardTile Tile3 (Coors 4 4) False Southward,
-			BoardTile Tile4 (Coors 0 8) False Southward,
-			BoardTile Tile5 (Coors 4 8) True Northward,
-			BoardTile Tile6 (Coors 0 12) True Westward,
-			BoardTile (Tile America) (Coors 4 12) True Northward ]
-			[(PlayerName "Spieler Rot", Player "public@thinking-machines.net" Red Russia Despotism (Trade 1) (Culture 6) (Coins 1) [
-					TechCard CodeOfLaws TechLevelI (Coins 2),
-					TechCard HorsebackRiding TechLevelI (Coins 0),
-					TechCard AnimalHusbandry TechLevelI (Coins 0),
-					TechCard Philosophy TechLevelI (Coins 0),
-					TechCard Navigation TechLevelI (Coins 0),
-					TechCard Navy TechLevelI (Coins 0),
-					TechCard MonarchyTech TechLevelII (Coins 0) ]),
-				(PlayerName "Spieler Blau", Player "reitmeier@thinking-machines.net" Blue America Democracy (Trade 2) (Culture 11) (Coins 3) [
-					TechCard CodeOfLaws TechLevelI (Coins 1),
-					TechCard HorsebackRiding TechLevelI (Coins 0),
-					TechCard AnimalHusbandry TechLevelI (Coins 0),
-					TechCard Philosophy TechLevelI (Coins 0),
-					TechCard Navigation TechLevelI (Coins 0),
-					TechCard Navy TechLevelI (Coins 0),
-					TechCard MonarchyTech TechLevelII (Coins 0),
-					TechCard PrintingPress TechLevelII (Coins 0),
-					TechCard Sailing TechLevelII (Coins 0),
-					TechCard Construction TechLevelII (Coins 0),
-					TechCard Engineering TechLevelII (Coins 0),
-					TechCard SteamEngine TechLevelIII (Coins 0),
-					TechCard Banking TechLevelIII (Coins 0),
-					TechCard MilitaryScience TechLevelIII (Coins 0),
-					TechCard Computers TechLevelIV (Coins 0),
-					TechCard MassMedia TechLevelIV (Coins 0),
-					TechCard SpaceFlight TechLevelV (Coins 0) ])
-				]),
-
-		(GameName "Testgame 2", Game now "public@thinking-machines.net" Waiting []
-			[
-				(PlayerName "Spieler Blau", Player "public@thinking-machines.net" Blue America Democracy (Trade 0) (Culture 0) (Coins 0) [])
-			] )
-		]
 
 data CultureEvent =
 	Astray | BarbarianEncampment | BankCrisis | BreadCircus | Catastrophe |

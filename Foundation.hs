@@ -27,6 +27,7 @@ import Version
 import Model
 import Entities
 import Polls
+import Logic
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
