@@ -23,6 +23,15 @@ import qualified Data.Ix as Ix
 
 modelVersion = 0
 
+type TokenStack tokenty token = Map.Map tokenty [token]
+tokenStackFromList l = Map.fromList l
+
+allOfThem :: (Ix t,Bounded t) => [t]
+allOfThem = range (minBound,maxBound)
+
+replicateUnit (t,n) = replicate () n
+replicateT (t,n) = replicate n t
+
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Coors)
@@ -53,7 +62,7 @@ data TileID =
 	Tile11 | Tile12 | Tile13 | Tile14 | Tile15 | Tile16 | Tile17 | Tile18 | Tile19 | Tile20 |
 	Tile21 | Tile22 | Tile23 | Tile24 | Tile25 | Tile26 | Tile27 |
 	Tile Civ
-	deriving (Show,Read,Eq,Data,Typeable)
+	deriving (Show,Read,Eq,Data,Ix,Bounded,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfTurn | Trading | CityManagement | Movement | Research
@@ -69,8 +78,11 @@ data Tech =
 	SteamEngine | Banking | MilitaryScience | Education |
 	Computers | MassMedia | Ballistics | ReplacementParts | Flight | Plastics | CombustionEngine | AtomicTheory |
 	SpaceFlight
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Read,Data,Ord,Ix,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Tech)
+
+initialTechStack :: TokenStack () Tech
+initialTechStack = tokenStackFromList [ ((),allOfThem) ]
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
@@ -99,24 +111,35 @@ data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | Fri
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Hut)
 
-initialHutSet = concatMap (ResourceHut.(uncurry replicate))
-	[ (6,Spy),(7,Wheat),(6,Incense),(6,Linen),(3,Iron),(1,Atom) ] ++
-	[ CityStateHut,CityStateHut,TeacherHut,ThreeCulture,
-		FriendlyBarbarianHut,FriendlyBarbarianyHut ]
+initialHutStack :: TokenStack () Hut
+initialHutStack = tokenStackFromList $ concatMap replicateT [
+	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
+	(ResourceHut Linen,6),(ResourceHut Iron,3),(ResourceHut Atom,1),
+	(CityStateHut,2),(TeacherHut,1),(ThreeCulture,1),
+	(FriendlyBarbarianHut,2) ]
 
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Village)
 
-initialVillageSet = concatMap (ResourceVillage.(uncurry replicate))
-	[ (4,Spy),(4,Atom),(3,Iron) ] ++
-	[ CityStateVillage,CityStateVillage,CityStateVillage,SixCulture,
-		FourHammers,CoinVillage,CoinVillage,GreatPersonVillage,GreatPersonVillage ]
+initialVillageSet :: TokenStack () Village
+initialVillageSet = tokenStackFromList $ concatMap replicateT [
+	(ResourceVillage Spy,4),(ResourceVillage Atom,4),(ResourceVillage Iron,3),
+	(CityStateVillage,3),(SixCulture,1),
+	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
+
+data CityType = City | Metropolis
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''CityType)
+
+initialCityStack :: TokenStack CityType ()
+initialCityStack = tokenStackFromList $ map replicateUnit [
+	(City,3),(Metropolis,1) ]
 
 data City = SecondCitySquare Orientation | City {
 	_cityOwner :: PlayerName,
-	_cityCapital :: Bool,
+	_cityType :: CityType,
 	_cityDoubleProd :: Bool,
 	_cityFortified :: Bool,
 	_cityCaravan :: Bool,
@@ -125,11 +148,11 @@ data City = SecondCitySquare Orientation | City {
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 
-data BuildingType = BarracksOrAcademy | ForgeOrForge2 |
+data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
 	MarketOrBank | Harbours | TradeStations | Shipyards
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''Building)
+$(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 data Building = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradeStation | Temple |
@@ -137,21 +160,26 @@ data Building = Barracks | Forge | Granary | Harbour | Library |
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
 
-initialBuildingStacks = Map.fromList $ concatMap (uncurry replicate) [
-	(9,BarracksOrAcademy),(9,ForgeOrForge2),(9,GranaryOrAquaeduct),
-	(9,TempleOrCathedral),(9,LibraryOrUniversity),(9,MarketOrBank,),
-	(9,Harbours),(9,TradeStations),(9,Shipyards) ]
+initialBuildingStack :: TokenStack BuildingMarker ()
+initialBuildingStack = tokenStackFromList $ concatMap replicateUnit [
+	(BarracksOrAcademy,9),(ForgeOrForge2,9),      (GranaryOrAquaeduct,9),
+	(TempleOrCathedral,9),(LibraryOrUniversity,9),(MarketOrBank,9),
+	(Harbours,9),         (TradeStations,9),      (Shipyards,9) ]
 
-data Plate =
+data TokenMarker =
 	ArtifactPlate Artifact |
 	HutPlate Hut |
 	VillagePlate Village |
 	CityPlate City |
 	BuildingPlate Building
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''Plate)
+$(deriveSafeCopy modelVersion 'base ''TokenMarker)
 
-data Figure =
+initialFigureStack :: TokenStack Figure ()
+initialFigureStack = tokenStackFromList $ map replicateUnit [
+	(Figure,6), (Wagon,2) ]
+
+data Figure = Flag | Wagon
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
@@ -160,12 +188,16 @@ data Square = Square {
 	_squareCoin     :: Bool,
 	_squareResource :: Resource,
 	_squareCulture  :: Bool,
-	_squarePlate    :: Maybe Plate,
+	_squareTokenMarker :: Maybe TokenMarker,
+	_squareBuilding :: Maybe Building,
 	_squareFigures  :: [Figure]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square
+
+initialBoardTileStack :: TokenStack () TileID
+initialBoardTileStack = tokenStackFromList [ ((),range (Tile1,Tile27)) ]
 
 data BoardTile = BoardTile {
 	_boardTileId :: TileID,
