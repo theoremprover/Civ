@@ -18,13 +18,9 @@ import qualified Data.Map as Map
 --import Data.Array.IArray
 
 import Entities
+import TokenStack
 
 import qualified Data.Ix as Ix
-
-modelVersion = 0
-
-type TokenStack tokenty token = Map.Map tokenty [token]
-tokenStackFromList l = Map.fromList l
 
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
@@ -99,7 +95,7 @@ data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Resource)
 
-data Terrain = Grassland | Desert | Mountains | Forest | Water | Steppe
+data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
 
@@ -184,13 +180,13 @@ data Figure = Flag | Wagon
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
 data Square = Square {
-	_squareTerrain  :: [Terrain],
-	_squareCoin     :: Bool,
-	_squareResource :: Resource,
-	_squareCulture  :: Bool,
+	_squareTerrain     :: [Terrain],
+	_squareCoin        :: Bool,
+	_squareResource    :: Maybe Resource,
+	_squareNatWonder   :: Bool,
 	_squareTokenMarker :: Maybe TokenMarker,
-	_squareBuilding :: Maybe Building,
-	_squareFigures  :: [Figure]
+	_squareBuilding    :: Maybe Building,
+	_squareFigures     :: [Figure]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
@@ -260,7 +256,12 @@ data Game = Game {
 	_gameState :: GameState,
 	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
-	_gameBoard :: Array Coors Square
+	_gameBoard :: Array Coors Square,
+	_gameHutStack :: TokenStack () Hut,
+	_gameVillageStack :: TokenStack () Village
+--	_gameBuildingStack :: TokenStack BuildingMarker (),
+--	_gameGreatPersonStack :: TokenStack () GreatPerson,
+--	_gameUnitStack :: TokenStack UnitType Unit,
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)
@@ -273,9 +274,6 @@ instance Eq Game where
 
 instance Ord Game where
 	compare = comparing _gameCreationDate
-
-newGame :: UserName -> UTCTime -> Game
-newGame creator utctime = Game utctime creator Waiting [] []
 
 type Games = Map.Map GameName Game
 

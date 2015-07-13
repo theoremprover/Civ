@@ -30,6 +30,7 @@ library
                      Handler.DisplayGame
                      Handler.HandlerPolling
                      Polls
+                     TokenStack
                      Handler.StaticResources
                      Handler.MakeRoutes
                      Paths_Civ
@@ -101,6 +102,7 @@ library
                  , lens
                  , ansi-terminal
                  , blaze-markup
+                 , random
                  , array
 
 executable         Civ

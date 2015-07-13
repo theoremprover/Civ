@@ -4,6 +4,8 @@ import ClassyPrelude.Yesod
 import Database.Persist.Quasi
 import Data.Map
 
+modelVersion = 0
+
 type UserName = Text
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|

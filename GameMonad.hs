@@ -12,6 +12,8 @@ import qualified Prelude
 import Model
 import Entities
 
+import Logic
+
 import Data.Acid
 import Data.Acid.Advanced
 
@@ -122,11 +124,11 @@ checkCondition errmsg lens f = do
 		False -> throwError errmsg
 		True -> return ()
 
-createNewGame :: GameName -> UserName -> UTCTime -> Update CivState UpdateResult
-createNewGame gamename username utctime = runErrorT $ do
+createNewGame :: GameName -> Game -> Update CivState UpdateResult
+createNewGame gamename game = runErrorT $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
 		(civGameLens gamename . _Just) isNothing
-	updateCivLensU (\_-> Just $ newGame username utctime) $ civGameLens gamename
+	updateCivLensU (\_-> Just $ game) $ civGameLens gamename
 
 deleteGame :: GameName -> Update CivState UpdateResult
 deleteGame gamename = runErrorT $ do
@@ -145,11 +147,58 @@ startGame :: GameName -> Update CivState UpdateResult
 startGame gamename = runErrorT $ do
 	checkCondition ("Cannot start " ++ show gamename ++ " is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
-	updateCivLensU (\_ -> Running) $ civGameLens gamename . _Just . gameState
+	updateCivLensU (const Running) $ civGameLens gamename . _Just . gameState
+	createBoard gamename
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
+
+createBoard :: GameName -> Update CivState UpdateResult
+createBoard gamename = do
+	updateCivLensU (const sqarray) $ civGameLens gamename . _Just . gameBoard
+	where
+	takeFromStack
+	xcoorss = map (xCoor._boardTileCoors) tiles
+	ycoorss = map (yCoor._boardTileCoors) tiles
+	mincoors@(Coors minx miny) = Coors (minimum xcoorss) (minimum ycoorss)
+	maxcoors@(Coors minx miny) = Coors (maximum xcoorss + 3) (maximum ycoorss + 3)
+	sqarray = array (mincoors,maxcoors) [ (coors',tileSquare tile coors) |
+		tile <- tiles,
+		coors  <- _boardTileCoors tile,
+		coors' <- rotate4x4coors (_boardTileOrientation tile) coors ]
+
+
+-------- tileSquare
+
+{-
+data Square = Square {
+	_squareTerrain  :: [Terrain],
+	_squareCoin     :: Bool,
+	_squareResource :: Maybe Resource,
+	_squareNatWonder  :: Bool,
+	_squareTokenMarker :: Maybe TokenMarker,
+	_squareBuilding :: Maybe Building,
+	_squareFigures  :: [Figure]
+-}
+
+tileSquare
+tileSquare tile (Coors x y) = fromJust $ lookup (x,y) $ case tile of
+	Tile1 -> [
+		[ d ____,d ____,g ___h,g ____ ],
+		[ d__,f_i,f__,g__ ],
+		[ d ,d_,gh,g ],
+		[ d ,d_,gh,g ] ]
+	where
+	____ = 
+	sq terrain (coin,res,natwon,tok) = Square [terrain] coin res natwon tokmark Nothing []
+	d = sq Desert
+	g = sq Grassland
+	m = sq Mountains
+	f = sq Forest
+	w = sq Water
+	____ = (False,Nothing,False,Nothing)
+	___h = (False,Nothing,False,Just HutPlate)
 
 
 -------------- In Handler Monad
@@ -213,7 +262,10 @@ executeAction action = do
 
 		CreateGameA gamename -> do
 			now <- liftIO $ getCurrentTime
-			updateCivH action [GameAdmin] $ CreateNewGame gamename (userEmail user) now
+			hutstack <- shuffle initialHutStack
+			villagestack <- shuffle initialVillageStack
+			updateCivH action [GameAdmin] $ CreateNewGame gamename $
+				Game (userEmail user) now Waiting [] [] hutstack villagestack
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
