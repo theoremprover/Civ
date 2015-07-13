@@ -21,30 +21,32 @@ import Entities
 
 import qualified Data.Ix as Ix
 
+modelVersion = 0
+
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Coors)
+$(deriveSafeCopy modelVersion 'base ''Coors)
 
 newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
-$(deriveSafeCopy 0 'base ''Trade)
+$(deriveSafeCopy modelVersion 'base ''Trade)
 newtype Coins = Coins Int deriving (Show,Read,Num,Data,Typeable)
-$(deriveSafeCopy 0 'base ''Coins)
+$(deriveSafeCopy modelVersion 'base ''Coins)
 newtype Culture = Culture Int deriving (Show,Read,Num,Data,Typeable)
-$(deriveSafeCopy 0 'base ''Culture)
+$(deriveSafeCopy modelVersion 'base ''Culture)
 
 data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Read,Eq,Ord,Ix.Ix,Bounded,Data,Typeable)
-$(deriveSafeCopy 0 'base ''Orientation)
+$(deriveSafeCopy modelVersion 'base ''Orientation)
 
 data Colour = Red | Green | Blue | Violet | Yellow
 	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
-$(deriveSafeCopy 0 'base ''Colour)
+$(deriveSafeCopy modelVersion 'base ''Colour)
 
 data Civ =
 	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
 	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
 	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
-$(deriveSafeCopy 0 'base ''Civ)
+$(deriveSafeCopy modelVersion 'base ''Civ)
 
 data TileID =
 	Tile1 | Tile2 | Tile3 | Tile4 | Tile5 | Tile6 | Tile7 | Tile8 | Tile9 | Tile10 |
@@ -52,11 +54,11 @@ data TileID =
 	Tile21 | Tile22 | Tile23 | Tile24 | Tile25 | Tile26 | Tile27 |
 	Tile Civ
 	deriving (Show,Read,Eq,Data,Typeable)
-$(deriveSafeCopy 0 'base ''TileID)
+$(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfTurn | Trading | CityManagement | Movement | Research
 	deriving (Show,Read,Eq,Ord,Enum,Data,Typeable)
-$(deriveSafeCopy 0 'base ''Phase)
+$(deriveSafeCopy modelVersion 'base ''Phase)
 
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
@@ -68,36 +70,36 @@ data Tech =
 	Computers | MassMedia | Ballistics | ReplacementParts | Flight | Plastics | CombustionEngine | AtomicTheory |
 	SpaceFlight
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Tech)
+$(deriveSafeCopy modelVersion 'base ''Tech)
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
 	deriving (Show,Read,Eq,Ord,Enum,Data,Typeable)
-$(deriveSafeCopy 0 'base ''TechLevel)
+$(deriveSafeCopy modelVersion 'base ''TechLevel)
 
 data Government =
 	Anarchy | Despotism | Monarchy | Democracy |
 	Fundamentalism | Republic | Feudalism | Communism
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Government)
+$(deriveSafeCopy modelVersion 'base ''Government)
 
 data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Resource)
+$(deriveSafeCopy modelVersion 'base ''Resource)
 
 data Terrain = Grassland | Desert | Mountains | Forest | Water | Steppe
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Terrain)
+$(deriveSafeCopy modelVersion 'base ''Terrain)
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Artifact)
+$(deriveSafeCopy modelVersion 'base ''Artifact)
 
 data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | FriendlyBarbarianHut
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Hut)
+$(deriveSafeCopy modelVersion 'base ''Hut)
 
-hutHeap = concatMap (ResourceHut.(uncurry replicate))
+initialHutSet = concatMap (ResourceHut.(uncurry replicate))
 	[ (6,Spy),(7,Wheat),(6,Incense),(6,Linen),(3,Iron),(1,Atom) ] ++
 	[ CityStateHut,CityStateHut,TeacherHut,ThreeCulture,
 		FriendlyBarbarianHut,FriendlyBarbarianyHut ]
@@ -105,14 +107,14 @@ hutHeap = concatMap (ResourceHut.(uncurry replicate))
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Village)
+$(deriveSafeCopy modelVersion 'base ''Village)
 
-villageHeap = concatMap (ResourceVillage.(uncurry replicate))
+initialVillageSet = concatMap (ResourceVillage.(uncurry replicate))
 	[ (4,Spy),(4,Atom),(3,Iron) ] ++
 	[ CityStateVillage,CityStateVillage,CityStateVillage,SixCulture,
 		FourHammers,CoinVillage,CoinVillage,GreatPersonVillage,GreatPersonVillage ]
 
-data City = CityProxy Orientation | City {
+data City = SecondCitySquare Orientation | City {
 	_cityOwner :: PlayerName,
 	_cityCapital :: Bool,
 	_cityDoubleProd :: Bool,
@@ -121,14 +123,24 @@ data City = CityProxy Orientation | City {
 	_cityMetropolis :: Maybe Orientation
 	}
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''City)
+$(deriveSafeCopy modelVersion 'base ''City)
 
-data Building = ...
+data BuildingType = BarracksOrAcademy | ForgeOrForge2 |
+	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
+	MarketOrBank | Harbours | TradeStations | Shipyards
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Building)
+$(deriveSafeCopy modelVersion 'base ''Building)
 
-buildingHeap = concatMap (uncurry replicate)
-	[ (99,Barracks) ...
+data Building = Barracks | Forge | Granary | Harbour | Library |
+	Market | Shipyard | TradeStation | Temple |
+	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
+	deriving (Show,Read,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Building)
+
+initialBuildingStacks = Map.fromList $ concatMap (uncurry replicate) [
+	(9,BarracksOrAcademy),(9,ForgeOrForge2),(9,GranaryOrAquaeduct),
+	(9,TempleOrCathedral),(9,LibraryOrUniversity),(9,MarketOrBank,),
+	(9,Harbours),(9,TradeStations),(9,Shipyards) ]
 
 data Plate =
 	ArtifactPlate Artifact |
@@ -137,11 +149,11 @@ data Plate =
 	CityPlate City |
 	BuildingPlate Building
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Plate)
+$(deriveSafeCopy modelVersion 'base ''Plate)
 
 data Figure =
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''Figure)
+$(deriveSafeCopy modelVersion 'base ''Figure)
 
 data Square = Square {
 	_squareTerrain  :: [Terrain],
@@ -152,7 +164,7 @@ data Square = Square {
 	_squareFigures  :: [Figure]
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''Square)
+$(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square
 
 data BoardTile = BoardTile {
@@ -163,7 +175,7 @@ data BoardTile = BoardTile {
 	_boardTileSquares :: Array 
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''BoardTile)
+$(deriveSafeCopy modelVersion 'base ''BoardTile)
 makeLenses ''BoardTile
 
 data TechCard = TechCard {
@@ -172,12 +184,12 @@ data TechCard = TechCard {
 	_techCardCoins :: Coins
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''TechCard)
+$(deriveSafeCopy modelVersion 'base ''TechCard)
 makeLenses ''TechCard
 
 newtype PlayerName = PlayerName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
-$(deriveSafeCopy 0 'base ''PlayerName)
+$(deriveSafeCopy modelVersion 'base ''PlayerName)
 
 playerName (PlayerName pn) = pn
 
@@ -194,18 +206,18 @@ data Player = Player {
 	_playerTechs :: [TechCard]
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''Player)
+$(deriveSafeCopy modelVersion 'base ''Player)
 makeLenses ''Player
 
 makePlayer useremail colour civ = Player useremail colour civ Anarchy (Trade 0) (Culture 0) (Coins 0) []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
-$(deriveSafeCopy 0 'base ''GameState)
+$(deriveSafeCopy modelVersion 'base ''GameState)
 
 newtype GameName = GameName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
-$(deriveSafeCopy 0 'base ''GameName)
+$(deriveSafeCopy modelVersion 'base ''GameName)
 
 gameName (GameName gn) = gn
 
@@ -219,7 +231,7 @@ data Game = Game {
 	_gamePlayers :: Players
 	}
 	deriving (Data,Typeable)
-$(deriveSafeCopy 0 'base ''Game)
+$(deriveSafeCopy modelVersion 'base ''Game)
 makeLenses ''Game
 
 instance Eq Game where
@@ -239,7 +251,7 @@ data CivState = CivState {
 	_civGames :: Games
 	}
 	deriving (Data,Typeable)
-$(deriveSafeCopy 0 'base ''CivState)
+$(deriveSafeCopy modelVersion 'base ''CivState)
 makeLenses ''CivState
 
 initialCivState :: IO CivState
@@ -298,11 +310,11 @@ data CultureEvent =
 	Nationalism | Disoriented | Patriotism | PrimeTime | PrincelyGift | RevoltI | RevoltII |
 	RoamingHoarde | Sabotage | SharedKnowledge | SupplyDrop
 	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''CultureEvent)
+$(deriveSafeCopy modelVersion 'base ''CultureEvent)
 
 data CultureLevel = CultureLevel1 | CultureLevel2 | CultureLevel3
 	deriving (Show,Read,Data,Ord,Bounded,Ix,Typeable,Eq)
-$(deriveSafeCopy 0 'base ''CultureLevel)
+$(deriveSafeCopy modelVersion 'base ''CultureLevel)
 
 cultureEventsOfLevel :: CultureLevel -> [CultureEvent]
 cultureEventsOfLevel CultureLevel1 = [
@@ -357,5 +369,5 @@ data CultureCard = CultureCard {
 	_cultureCardCoins    :: Coins
 	}
 	deriving (Data,Typeable,Show)
-$(deriveSafeCopy 0 'base ''CultureCard)
+$(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
