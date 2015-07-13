@@ -101,6 +101,7 @@ library
                  , lens
                  , ansi-terminal
                  , blaze-markup
+                 , array
 
 executable         Civ
     if flag(library-only)
