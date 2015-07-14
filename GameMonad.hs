@@ -154,19 +154,29 @@ incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
+takeFromStackU gamename stacklens toktyp = do
+	updateCivLensU (takeFromStack toktyp) $ civGameLens gamename . stacklens
+
+putOnStackU gamename stacklens toktyp tok = do
+	updateCivLensU (putOnStack toktyp tok) $ civGameLens gamename . stacklens
+
 createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
+	-- TODO: create tiles here
+
+	let
+		xcoorss = map (xCoor._boardTileCoors) tiles
+		ycoorss = map (yCoor._boardTileCoors) tiles
+		mincoors = Coors (minimum xcoorss) (minimum ycoorss)
+		maxcoors = Coors (maximum xcoorss + 3) (maximum ycoorss + 3)
+
+	coorsquaress <- forM tiles $ \ tile -> do
+		let (Coors xt yt) = _boardTileCoors tile
+		forM [ Coors x y | x <- [xt..(xt+3)], y <- [yt..(yt+3)] ] $ \ tilecoors -> do
+			let boardcoors = rotate4x4coors (_boardTileOrientation tile) tilecoors ]
+			return $ Square ...
+	let sqarray = listArray (mincoors,maxcoors) (concat coorsquaress)
 	updateCivLensU (const sqarray) $ civGameLens gamename . _Just . gameBoard
-	where
-	takeFromStack
-	xcoorss = map (xCoor._boardTileCoors) tiles
-	ycoorss = map (yCoor._boardTileCoors) tiles
-	mincoors@(Coors minx miny) = Coors (minimum xcoorss) (minimum ycoorss)
-	maxcoors@(Coors minx miny) = Coors (maximum xcoorss + 3) (maximum ycoorss + 3)
-	sqarray = array (mincoors,maxcoors) [ (coors',tileSquare tile coors) |
-		tile <- tiles,
-		coors  <- _boardTileCoors tile,
-		coors' <- rotate4x4coors (_boardTileOrientation tile) coors ]
 
 
 -------- tileSquare
@@ -199,6 +209,7 @@ tileSquare tile (Coors x y) = fromJust $ lookup (x,y) $ case tile of
 	w = sq Water
 	____ = (False,Nothing,False,Nothing)
 	___h = (False,Nothing,False,Just HutPlate)
+	___b = (False,Nothing,False,Just VillageMarker)
 
 
 -------------- In Handler Monad
