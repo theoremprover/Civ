@@ -163,11 +163,11 @@ initialBuildingStack = tokenStackFromList $ concatMap replicateUnit [
 	(Harbours,9),         (TradeStations,9),      (Shipyards,9) ]
 
 data TokenMarker =
-	ArtifactPlate Artifact |
-	HutPlate Hut |
-	VillagePlate Village |
-	CityPlate City |
-	BuildingPlate Building
+	ArtifactMarker Artifact |
+	HutMarker Hut |
+	VillageMarker Village |
+	CityMarker City |
+	BuildingMarker Building
 	deriving (Show,Read,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
 
@@ -354,3 +354,266 @@ data CultureCard = CultureCard {
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
+
+-------- tileSquare
+
+{-
+data Square = Square {
+	_squareTerrain  :: [Terrain],
+	_squareCoin     :: Bool,
+	_squareResource :: Maybe Resource,
+	_squareNatWonder  :: Bool,
+	_squareTokenMarker :: Maybe TokenMarker,
+	_squareBuilding :: Maybe Building,
+	_squareFigures  :: [Figure]
+
+data TokenMarker =
+	ArtifactMarker Artifact |
+	HutMarker Hut |
+	VillageMarker Village |
+	CityMarker City |
+	BuildingMarker Building
+-}
+
+tileSquare :: TileID -> Coors -> (Terrain,Bool,Maybe Resource,Bool,Maybe TokenMarker)
+tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
+	Tile1 -> [
+		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   f c_ m_ n_ rI,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ mH n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ d c_ m_ nW r_,   f c_ m_ n_ r_,   w c_ m_ n_ rL,   m c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile3 -> [
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   w c_ m_ n_ rL,   m c1 mV n_ r_ ],
+		[ g c_ m_ n_ rW,   g c_ mH n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ r_,   d c_ m_ n_ r_ ] ]
+	Tile4 -> [
+		[ d c_ m_ n_ rL,   d c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mC n_ r_,   m c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_ ] ]
+	Tile5 -> [
+		[ w c_ m_ n_ rW,   d c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ mH n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ mH n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile6 -> [
+		[ d c_ m_ n_ r_,   m c_ mH n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ d c_ m_ n_ rI,   d c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   f c_ m_ n_ r_ ] ]
+	Tile7 -> [
+		[ f c_ m_ n_ r_,   w c_ m_ nW r_,   f c_ m_ n_ rW,   m c_ mH n_ r_ ],
+		[ f c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   g c_ mH n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_ ] ]
+	Tile8 -> [
+		[ f c_ m_ n_ rW,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ rL ],
+		[ g c_ mV n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   g c_ mH n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_ ] ]
+	Tile9 -> [
+		[ w c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ rI ],
+		[ w c_ m_ n_ r_,   g c_ mS n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_ ] ]
+	Tile10 -> [
+		[ m c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ mH n_ r_ ],
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ nW r_ ],
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+	Tile2 -> [
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+
+	where
+	sq terrain coin res natwon tok = Square [terrain] coin res natwon tok Nothing []
+	d = sq Desert
+	g = sq Grassland
+	m = sq Mountains
+	f = sq Forest
+	w = sq Water
+	c_ = False
+	c1 = True
+	m_ = Nothing
+	mH = Just (HutMarker undefined)
+	mV = Just (VillageMarker undefined)
+	mC = Just (ArtifactMarker ArkOfCovenant)
+	mV = Just (ArtifactMarker AttilaVillage)
+	mG = Just (ArtifactMarker SevenCitiesOfGold)
+	mA = Just (ArtifactMarker Atlantis)
+	mS = Just (ArtifactMarker SchoolConfucius)
+	n_ = False
+	nW = True
+	r_ = Nothing
+	rI = Just Incense
+	rL = Just Linen
+	rR = Just Iron
+	rW = Just Wheat

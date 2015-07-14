@@ -179,39 +179,6 @@ createBoard gamename = do
 	updateCivLensU (const sqarray) $ civGameLens gamename . _Just . gameBoard
 
 
--------- tileSquare
-
-{-
-data Square = Square {
-	_squareTerrain  :: [Terrain],
-	_squareCoin     :: Bool,
-	_squareResource :: Maybe Resource,
-	_squareNatWonder  :: Bool,
-	_squareTokenMarker :: Maybe TokenMarker,
-	_squareBuilding :: Maybe Building,
-	_squareFigures  :: [Figure]
--}
-
-tileSquare
-tileSquare tile (Coors x y) = fromJust $ lookup (x,y) $ case tile of
-	Tile1 -> [
-		[ d ____,d ____,g ___h,g ____ ],
-		[ d__,f_i,f__,g__ ],
-		[ d ,d_,gh,g ],
-		[ d ,d_,gh,g ] ]
-	where
-	____ = 
-	sq terrain (coin,res,natwon,tok) = Square [terrain] coin res natwon tokmark Nothing []
-	d = sq Desert
-	g = sq Grassland
-	m = sq Mountains
-	f = sq Forest
-	w = sq Water
-	____ = (False,Nothing,False,Nothing)
-	___h = (False,Nothing,False,Just HutPlate)
-	___b = (False,Nothing,False,Just VillageMarker)
-
-
 -------------- In Handler Monad
 
 getCivState :: Query CivState CivState
