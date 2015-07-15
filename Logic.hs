@@ -7,8 +7,9 @@ import Data.Map
 
 initialCivState :: IO CivState
 initialCivState = do
-	now <- getCurrentTime
-	return $ CivState $ Map.fromList [
+--	now <- getCurrentTime
+	return $ CivState $ Map.fromList []
+{-
 		let tiles = [
 			BoardTile (Tile Russia) (Coors 0 0) True Southward,
 			BoardTile Tile1 (Coors 4 0) True Eastward,
@@ -49,6 +50,7 @@ initialCivState = do
 					]
 				(createBoard tiles))
 		]
+-}
 
 rotate4x4coors orientation (Coors x y) = case orientation of
 	Northward -> Coors x y
@@ -56,14 +58,17 @@ rotate4x4coors orientation (Coors x y) = case orientation of
 	Eastward  -> Coors (3-y) x
 	Westward  -> Coors y (3-x)
 
-shuffle :: TokenStack a b -> IO (TokenStack a b)
+shuffle :: (MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do
-		l <- shufflelist l []
+		l' <- shuffleList l
 		return (key,l')
 	return $ Map.fromList ss
+
+shuffleList :: (MonadIO m) => [a] -> [a]
+shuffleList l = shufflelist' l []
 	where
-	shufflelist [] acc = return acc
-	shufflelist ls acc = do
-		i <- randomRIO (0,length ls - 1)
-		shufflelist (take i ls ++ drop (i+1) ls) ((ls!!i) : acc)
+	shufflelist' [] acc = return acc
+	shufflelist' ls acc = do
+		i <- liftIO $ randomRIO (0,length ls - 1)
+		shufflelist' (take i ls ++ drop (i+1) ls) ((ls!!i) : acc)

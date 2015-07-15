@@ -156,17 +156,34 @@ incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
+setShuffledPlayers :: GameName -> Update CivState UpdateResult
+setShuffledPlayers gamename players = do
+	updateCivLensU (const players) $ civPlayersLens gamename
+
 takeFromStackU gamename stacklens toktyp = do
 	updateCivLensU (takeFromStack toktyp) $ civGameLens gamename . stacklens
 
 putOnStackU gamename stacklens toktyp tok = do
 	updateCivLensU (putOnStack toktyp tok) $ civGameLens gamename . stacklens
 
+squaresFromTile tile = do
+	forM (tileSquares tile) $ \ sq -> do
+		case _squareTokenMarker sq of
+			Just (HutMarker _) -> do
+				hut <- takeFromStackU gamename gameHutStack ()
+				return $ sq { _squareTokenMarker = Just (HutMarker hut)
+			Just (VillageMarker _) -> do
+				village <- takeFromStackU gamename gameVillageStack ()
+				return $ sq { _squareTokenMarker = Just (VillageMarker village)
+			_ -> return sq
+
 createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
 	players <- queryCivLensH $ civGamePlayers gamename
-	playertiles <- forM players $ \ player -> do
-		
+	squaress <- forM (boardLayout $ length players) $ \ 
+	playersquaress <- forM players $ \ player -> do
+		squaresFromTile $ Tile (_playerCiv player)
+	restsquaress <- 
 
 	let
 		xcoorss = map (xCoor._boardTileCoors) tiles
@@ -196,6 +213,7 @@ updateCivH action affectedgamess event = do
 
 $(makeAcidic ''CivState [
 	'getCivState,
+	'setShuffledPlayers,
 	'startGame,
 	'joinGame,
 	'deleteGame,
@@ -244,10 +262,11 @@ executeAction action = do
 
 		CreateGameA gamename -> do
 			now <- liftIO $ getCurrentTime
-			hutstack <- shuffle initialHutStack
+			hutstack     <- shuffle initialHutStack
 			villagestack <- shuffle initialVillageStack
+			tilestack    <- shuffle initialBoardTileStack
 			updateCivH action [GameAdmin] $ CreateNewGame gamename $
-				Game (userEmail user) now Waiting [] [] hutstack villagestack
+				Game (userEmail user) now Waiting [] [] tilestack hutstack villagestack
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
@@ -273,6 +292,8 @@ executeAction action = do
 			return oK
 
 		StartGameA gamename -> do
+			shuffledplayers <- queryCivLensH (civPlayersLens gamename) >>= shuffleList
+			updateCivH action [] $ SetShuffledPlayers gamename shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
 
 		IncTradeA gamename playername trade -> do

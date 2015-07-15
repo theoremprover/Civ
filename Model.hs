@@ -199,7 +199,7 @@ data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
 	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Orientation
+	_boardTileOrientation :: Maybe Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''BoardTile)
@@ -257,6 +257,7 @@ data Game = Game {
 	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
 	_gameBoard :: Array Coors Square,
+	_gameTileStack :: TokenStack () TileID
 	_gameHutStack :: TokenStack () Hut,
 	_gameVillageStack :: TokenStack () Village
 --	_gameBuildingStack :: TokenStack BuildingMarker (),
@@ -373,10 +374,16 @@ data TokenMarker =
 	VillageMarker Village |
 	CityMarker City |
 	BuildingMarker Building
+
+data BoardTile = BoardTile {
+	_boardTileId :: TileID,
+	_boardTileCoors :: Coors,
+	_boardTileDiscovered :: Bool,
+	_boardTileOrientation :: Orientation
 -}
 
-tileSquare :: TileID -> Coors -> (Terrain,Bool,Maybe Resource,Bool,Maybe TokenMarker)
-tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
+tileSquares :: TileID -> [(Coors,Square)]
+tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0..3])) $ zip [0..3] $ case tileid of
 	Tile1 -> [
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ],
 		[ d c_ m_ n_ r_,   f c_ m_ n_ rI,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
@@ -618,18 +625,18 @@ tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
 	rR = Just Iron
 	rW = Just Wheat
 
-data LayoutTile = CT Orientation | ST
+data LayoutTile = CT Orientation | NT
 
 boardLayout numPlayers = case numPlayers of
 	2 -> [
-		(c 0  0,CT s), (c 4  0,ST  ),
-		(c 0  4,ST  ), (c 4  4,ST  ),
-		(c 0  8,ST  ), (c 4  8,ST  ),
-		(c 0 12,ST  ), (c 4 12,ST  ),
-		(c 0 16,ST  ), (c 4 16,ST  ),
-		(c 0 20,ST  ), (c 4 20,ST  ),
-		(c 0 24,ST  ), (c 4 24,ST  ),
-		(c 0 28,ST  ), (c 4 28,CT n) ]
+		(c 0  0,CT s), (c 4  0,NT  ),
+		(c 0  4,NT  ), (c 4  4,NT  ),
+		(c 0  8,NT  ), (c 4  8,NT  ),
+		(c 0 12,NT  ), (c 4 12,NT  ),
+		(c 0 16,NT  ), (c 4 16,NT  ),
+		(c 0 20,NT  ), (c 4 20,NT  ),
+		(c 0 24,NT  ), (c 4 24,NT  ),
+		(c 0 28,NT  ), (c 4 28,CT n) ]
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 	where
 	c = Coors
