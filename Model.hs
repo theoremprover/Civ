@@ -512,82 +512,82 @@ tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
 		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   g c_ m_ n_ r_,   f c_ mH n_ r_ ],
 		[ w c_ m_ n_ r_,   g c_ mV n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile America -> [
+		[ m c_ m_ n_ rR,   m c_ m_ n_ r_,   w c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   m c_ m_ n_ rL,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   m c_ m_ n_ rI,   f c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ rW ] ]
+	Tile Arabs -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Aztecs -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile China -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Egypt -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile English -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile French -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Germany -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Greeks -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Indians -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Japanese -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Mongols -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Rome -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Russia -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	Tile Spanish -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
-	Tile2 -> [
+	TilenZulu -> [
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
@@ -617,3 +617,23 @@ tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
 	rL = Just Linen
 	rR = Just Iron
 	rW = Just Wheat
+
+data LayoutTile = CT Orientation | ST
+
+boardLayout numPlayers = case numPlayers of
+	2 -> [
+		(c 0  0,CT s), (c 4  0,ST  ),
+		(c 0  4,ST  ), (c 4  4,ST  ),
+		(c 0  8,ST  ), (c 4  8,ST  ),
+		(c 0 12,ST  ), (c 4 12,ST  ),
+		(c 0 16,ST  ), (c 4 16,ST  ),
+		(c 0 20,ST  ), (c 4 20,ST  ),
+		(c 0 24,ST  ), (c 4 24,ST  ),
+		(c 0 28,ST  ), (c 4 28,CT n) ]
+	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
+	where
+	c = Coors
+	n = Northward
+	s = Southward
+	e = Eastward
+	w = Westward

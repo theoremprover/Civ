@@ -107,6 +107,8 @@ civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
 -------- In Update/Query monad
 
+
+
 updateCivLensU fval lens = do
 	modify (over lens fval)
 	return ()
@@ -162,7 +164,9 @@ putOnStackU gamename stacklens toktyp tok = do
 
 createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
-	-- TODO: create tiles here
+	players <- queryCivLensH $ civGamePlayers gamename
+	playertiles <- forM players $ \ player -> do
+		
 
 	let
 		xcoorss = map (xCoor._boardTileCoors) tiles
@@ -174,7 +178,7 @@ createBoard gamename = do
 		let (Coors xt yt) = _boardTileCoors tile
 		forM [ Coors x y | x <- [xt..(xt+3)], y <- [yt..(yt+3)] ] $ \ tilecoors -> do
 			let boardcoors = rotate4x4coors (_boardTileOrientation tile) tilecoors ]
-			return $ Square ...
+			return $ tileSquare
 	let sqarray = listArray (mincoors,maxcoors) (concat coorsquaress)
 	updateCivLensU (const sqarray) $ civGameLens gamename . _Just . gameBoard
 
