@@ -166,38 +166,39 @@ takeFromStackU gamename stacklens toktyp = do
 putOnStackU gamename stacklens toktyp tok = do
 	updateCivLensU (putOnStack toktyp tok) $ civGameLens gamename . stacklens
 
-squaresFromTile tile = do
-	forM (tileSquares tile) $ \ sq -> do
-		case _squareTokenMarker sq of
+squaresFromTile tileid tilecoors orientation = do
+	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
+		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
 				hut <- takeFromStackU gamename gameHutStack ()
-				return $ sq { _squareTokenMarker = Just (HutMarker hut)
+				return $ sq { _squareTokenMarker = Just (HutMarker hut) }
 			Just (VillageMarker _) -> do
 				village <- takeFromStackU gamename gameVillageStack ()
-				return $ sq { _squareTokenMarker = Just (VillageMarker village)
+				return $ sq { _squareTokenMarker = Just (VillageMarker village) }
 			_ -> return sq
+		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
 
 createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
 	players <- queryCivLensH $ civGamePlayers gamename
-	squaress <- forM (boardLayout $ length players) $ \ 
-	playersquaress <- forM players $ \ player -> do
-		squaresFromTile $ Tile (_playerCiv player)
-	restsquaress <- 
+	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
+		(tileid,orientation) <- case layouttile of
+			NT -> do
+				tid <- takeFromStackU gamename boardTileStack ()
+				return (tid,Nothing)
+			CT playerindex ori -> do
+				return (Tile $ _playerCiv (players!!playerindex),Just ori)
+		squaresFromTile tileid coors orientation
 
 	let
-		xcoorss = map (xCoor._boardTileCoors) tiles
-		ycoorss = map (yCoor._boardTileCoors) tiles
+		coorsquares = concat coorsquaress
+		xcoorss = map (xCoor.fst) coorsquares
+		ycoorss = map (yCoor.fst) coorsquares
 		mincoors = Coors (minimum xcoorss) (minimum ycoorss)
-		maxcoors = Coors (maximum xcoorss + 3) (maximum ycoorss + 3)
+		maxcoors = Coors (maximum xcoorss) (maximum ycoorss)
+		gameboardarr = array (mincoors,maxcoors) coorsquares
 
-	coorsquaress <- forM tiles $ \ tile -> do
-		let (Coors xt yt) = _boardTileCoors tile
-		forM [ Coors x y | x <- [xt..(xt+3)], y <- [yt..(yt+3)] ] $ \ tilecoors -> do
-			let boardcoors = rotate4x4coors (_boardTileOrientation tile) tilecoors ]
-			return $ tileSquare
-	let sqarray = listArray (mincoors,maxcoors) (concat coorsquaress)
-	updateCivLensU (const sqarray) $ civGameLens gamename . _Just . gameBoard
+	updateCivLensU (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
 
 
 -------------- In Handler Monad

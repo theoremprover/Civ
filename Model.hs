@@ -32,6 +32,8 @@ data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Read,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''Coors)
 
+addCoors (Coors x1 y1) (Coors x2 y2) = Coors (x1+x2) (y1+y2)
+
 newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Trade)
 newtype Coins = Coins Int deriving (Show,Read,Num,Data,Typeable)
@@ -625,18 +627,18 @@ tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0
 	rR = Just Iron
 	rW = Just Wheat
 
-data LayoutTile = CT Orientation | NT
+data LayoutTile = CT Int Orientation | NT
 
 boardLayout numPlayers = case numPlayers of
 	2 -> [
-		(c 0  0,CT s), (c 4  0,NT  ),
-		(c 0  4,NT  ), (c 4  4,NT  ),
-		(c 0  8,NT  ), (c 4  8,NT  ),
-		(c 0 12,NT  ), (c 4 12,NT  ),
-		(c 0 16,NT  ), (c 4 16,NT  ),
-		(c 0 20,NT  ), (c 4 20,NT  ),
-		(c 0 24,NT  ), (c 4 24,NT  ),
-		(c 0 28,NT  ), (c 4 28,CT n) ]
+		(c 0  0,CT 0 s), (c 4  0,NT    ),
+		(c 0  4,NT    ), (c 4  4,NT    ),
+		(c 0  8,NT    ), (c 4  8,NT    ),
+		(c 0 12,NT    ), (c 4 12,NT    ),
+		(c 0 16,NT    ), (c 4 16,NT    ),
+		(c 0 20,NT    ), (c 4 20,NT    ),
+		(c 0 24,NT    ), (c 4 24,NT    ),
+		(c 0 28,NT    ), (c 4 28,CT 1 n) ]
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 	where
 	c = Coors
