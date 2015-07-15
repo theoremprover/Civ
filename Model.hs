@@ -518,80 +518,80 @@ tileSquare tileid (Coors x y) = fromJust $ lookup (x,y) $ case tileid of
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   m c_ m_ n_ rI,   f c_ m_ n_ r_ ],
 		[ w c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ rW ] ]
 	Tile Arabs -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ d c_ m_ nW r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ f c_ m_ n_ rW,   m c_ m_ n_ r_,   g c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ rL ],
+		[ f c_ m_ n_ r_,   w c_ m_ n_ rI,   m c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile Aztecs -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ f c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   d c1 m_ n_ r_,   g c_ m_ n_ rW,   w c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   g c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   d c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ rI ] ]
 	Tile China -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ m_ n_ rW ],
+		[ m c_ m_ n_ rR,   d c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ m c_ m_ nW r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ rL ] ]
 	Tile Egypt -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ f c_ m_ n_ r_,   g c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ rI ],
+		[ d c_ m_ n_ rW,   d c_ m_ n_ r_,   g c_ m_ n_ r_,   d c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ r_,   d c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ rL,   m c_ m_ n_ r_ ] ]
 	Tile English -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ r_,   m c_ m_ n_ rR,   m c_ m_ n_ r_,   w c_ m_ n_ rL ],
+		[ w c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ m_ n_ rL,   m c_ m_ n_ rW,   f c_ m_ n_ r_,   g c_ m_ nW r_ ],
+		[ g c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ rL ] ]
 	Tile French -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ r_,   w c_ m_ n_ rL,   f c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ g c_ m_ n_ rW,   g c_ m_ n_ r_,   f c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   m c_ m_ n_ rR,   d c_ m_ n_ rI ],
+		[ w c_ m_ n_ r_,   f c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile Germany -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ rL,   g c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ rR,   f c_ m_ n_ r_ ],
+		[ m c1 m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ m_ n_ rW ] ]
 	Tile Greeks -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ f c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   w c_ m_ n_ rL ],
+		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   d c_ m_ n_ r_,   w c_ m_ n_ rI ],
+		[ w c_ m_ n_ r_,   f c_ m_ n_ rW,   w c_ m_ n_ r_,   w c_ m_ nW r_ ] ]
 	Tile Indians -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ m c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   g c_ m_ n_ r_,   f c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   f c_ m_ n_ rI,   d c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile Japanese -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ rW,   w c_ m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ w c_ m_ n_ rL,   f c_ m_ n_ r_,   m c_ m_ n_ rR,   w c_ m_ n_ r_ ],
+		[ g c1 m_ n_ r_,   m c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ rW ],
+		[ m c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile Mongols -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ m c_ m_ n_ r_,   g c_ m_ nW r_,   f c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   g c_ m_ n_ rL,   m c_ m_ n_ r_,   d c_ m_ n_ r_ ],
+		[ d c_ m_ n_ rL,   d c_ m_ n_ r_,   d c_ m_ n_ rI,   d c_ m_ n_ r_ ] ]
 	Tile Rome -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ m c_ m_ n_ r_,   d c_ m_ n_ rI,   m c_ m_ n_ r_,   f c_ m_ n_ rL ],
+		[ w c_ m_ n_ r_,   m c_ m_ n_ r_,   d c_ m_ n_ r_,   m c_ m_ n_ rR ],
+		[ f c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ m_ n_ rW,   f c_ m_ n_ r_,   m c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile Russia -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_,   m c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   m c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ d c_ m_ n_ r_,   f c_ m_ n_ r_,   m c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ f c_ m_ n_ rW,   d c_ m_ n_ r_,   g c_ m_ n_ r_,   m c_ m_ n_ rR ] ]
 	Tile Spanish -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ w c_ m_ n_ r_,   w c_ m_ n_ r_,   g c_ m_ n_ rR,   g c_ m_ n_ r_ ],
+		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
+		[ w c_ m_ n_ rL,   g c_ m_ n_ rW,   g c_ m_ n_ r_,   w c_ m_ n_ rI ],
+		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   w c1 m_ n_ r_ ] ]
 	TilenZulu -> [
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
+		[ d c_ m_ n_ rI,   m c_ m_ n_ r_,   d c_ m_ n_ rL,   d c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   f c_ m_ n_ r_ ],
+		[ m c_ m_ n_ r_,   d c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
+		[ d c_ m_ n_ rL,   f c_ m_ n_ rW,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
 
 	where
 	sq terrain coin res natwon tok = Square [terrain] coin res natwon tok Nothing []
