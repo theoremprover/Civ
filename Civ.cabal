@@ -31,6 +31,8 @@ library
                      Handler.HandlerPolling
                      Polls
                      TokenStack
+                     Lenses
+                     Acidic
                      Handler.StaticResources
                      Handler.MakeRoutes
                      Paths_Civ

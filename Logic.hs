@@ -1,9 +1,14 @@
 module Logic where
 
+import Prelude
+
 import Model
 import System.Random
 import Control.Monad
-import Data.Map
+import Yesod.Core (MonadIO,liftIO)
+import qualified Data.Map as Map
+
+import TokenStack
 
 initialCivState :: IO CivState
 initialCivState = do
@@ -58,14 +63,14 @@ rotate4x4coors orientation (Coors x y) = case orientation of
 	Eastward  -> Coors (3-y) x
 	Westward  -> Coors y (3-x)
 
-shuffle :: (MonadIO m) => TokenStack a b -> m (TokenStack a b)
+shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do
 		l' <- shuffleList l
 		return (key,l')
 	return $ Map.fromList ss
 
-shuffleList :: (MonadIO m) => [a] -> [a]
+shuffleList :: (MonadIO m) => [a] -> m [a]
 shuffleList l = shufflelist' l []
 	where
 	shufflelist' [] acc = return acc

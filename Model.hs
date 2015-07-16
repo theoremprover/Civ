@@ -25,23 +25,6 @@ import qualified Data.Ix as Ix
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
 
-{-
-initialCityStack = tokenStackFromList $ replicateUnit [
-	(CityT,3),(MetropolisT,1) ]
--> [ (CityT,[(),(),()]),
--}
-replicateUnit :: [(toktyp,Int)] -> [(toktyp,[()])]
-replicateUnit = map $ \ (tt,n) -> (tt,replicate n ())
-
-{-
-initialHutStack :: TokenStack () Hut
-initialHutStack = tokenStackFromList $ replicateToken [
-	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
--> [((),[ResourceHut Spy,ResourceHut Wheat,...)]
--}
-replicateToken :: [(tok,Int)] -> [((),[tok])]
-replicateToken l = [ ( (), concatMap (\ (t,n) -> replicate n t) l ) ]
-
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Data,Typeable,Eq,Ord,Ix)
 $(deriveSafeCopy modelVersion 'base ''Coors)
@@ -169,13 +152,13 @@ $(deriveSafeCopy modelVersion 'base ''City)
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
 	MarketOrBank | Harbours | TradeStations | Shipyards
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 data Building = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradeStation | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
@@ -198,7 +181,7 @@ data Figure = Flag | Wagon
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
 initialFigureStack :: TokenStack Figure ()
-initialFigureStack = tokenStackFromList $ replicateToken [
+initialFigureStack = tokenStackFromList $ replicateUnit [
 	(Flag,6), (Wagon,2) ]
 
 data Square = Square {
@@ -403,7 +386,7 @@ data BoardTile = BoardTile {
 -}
 
 tileSquares :: TileID -> Bool -> [(Coors,Square)]
-tileSquares tileid revealed = map (\ (x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0..3])) $ zip [0..3] $ case tileid of
+tileSquares tileid revealed = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ zip [0..] $ map (zip [0..]) $ case tileid of
 	Tile1 -> [
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ],
 		[ d c_ m_ n_ r_,   f c_ m_ n_ rI,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
