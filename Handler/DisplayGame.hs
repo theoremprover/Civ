@@ -67,6 +67,7 @@ boardArea game = do
 		ycoors = map (snd.fst) ts
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
+		arr = _gameBoard game
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -90,6 +91,10 @@ boardArea game = do
               <img src=@{transparentSquareRoute}>
               $case mod x 2
                 $of 0
+                  $maybe sq <- lookup (Coors x y) arr
+                    <p>#{show sq}
+                  $nothing
+                    <p color=red>Cannot find square!!!
                 $of 1
                   <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
 |]

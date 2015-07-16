@@ -166,8 +166,8 @@ takeFromStackU gamename stacklens toktyp = do
 putOnStackU gamename stacklens toktyp tok = do
 	updateCivLensU (putOnStack toktyp tok) $ civGameLens gamename . stacklens
 
-squaresFromTile tileid tilecoors orientation = do
-	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
+squaresFromTile tileid tilecoors orientation revealed = do
+	forM (tileSquares tileid revealed) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
 				hut <- takeFromStackU gamename gameHutStack ()
@@ -182,13 +182,13 @@ createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
 	players <- queryCivLensH $ civGamePlayers gamename
 	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
-		(tileid,orientation) <- case layouttile of
+		(tileid,orientation,revealed) <- case layouttile of
 			NT -> do
 				tid <- takeFromStackU gamename boardTileStack ()
-				return (tid,Nothing)
+				return (tid,Nothing,False)
 			CT playerindex ori -> do
-				return (Tile $ _playerCiv (players!!playerindex),Just ori)
-		squaresFromTile tileid coors orientation
+				return (Tile $ _playerCiv (players!!playerindex),Just ori,True)
+		squaresFromTile tileid coors orientation revealed
 
 	let
 		coorsquares = concat coorsquaress

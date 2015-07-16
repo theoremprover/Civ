@@ -15,7 +15,7 @@ import Data.Ord
 import Data.Time
 import Control.Lens
 import qualified Data.Map as Map
---import Data.Array.IArray
+import Data.Array.IArray
 
 import Entities
 import TokenStack
@@ -29,30 +29,36 @@ replicateUnit (t,n) = replicate () n
 replicateT (t,n) = replicate n t
 
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
-	deriving (Show,Read,Data,Typeable,Eq,Ord)
+	deriving (Show,Data,Typeable,Eq,Ord,Ix)
 $(deriveSafeCopy modelVersion 'base ''Coors)
 
 addCoors (Coors x1 y1) (Coors x2 y2) = Coors (x1+x2) (y1+y2)
 
-newtype Trade = Trade Int deriving (Show,Read,Num,Data,Typeable)
+newtype Trade = Trade Int deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Trade)
-newtype Coins = Coins Int deriving (Show,Read,Num,Data,Typeable)
+newtype Coins = Coins Int deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Coins)
-newtype Culture = Culture Int deriving (Show,Read,Num,Data,Typeable)
+newtype Culture = Culture Int deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Culture)
 
+newtype PlayerName = PlayerName Text
+	deriving (Data,Typeable,Show,Eq,Ord)
+$(deriveSafeCopy modelVersion 'base ''PlayerName)
+
+playerName (PlayerName pn) = pn
+
 data Orientation = Northward | Eastward | Southward | Westward
-	deriving (Show,Read,Eq,Ord,Ix.Ix,Bounded,Data,Typeable)
+	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Orientation)
 
 data Colour = Red | Green | Blue | Violet | Yellow
-	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''Colour)
 
 data Civ =
 	America | Arabs | Aztecs | China | Egypt | English | French | Germany |
 	Greeks | Indians | Japanese | Mongols | Rome | Russia | Spanish | Zulu
-	deriving (Show,Read,Eq,Data,Typeable,Ix,Bounded,Ord)
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''Civ)
 
 data TileID =
@@ -60,11 +66,11 @@ data TileID =
 	Tile11 | Tile12 | Tile13 | Tile14 | Tile15 | Tile16 | Tile17 | Tile18 | Tile19 | Tile20 |
 	Tile21 | Tile22 | Tile23 | Tile24 | Tile25 | Tile26 | Tile27 |
 	Tile Civ
-	deriving (Show,Read,Eq,Data,Ix,Bounded,Ord,Typeable)
+	deriving (Show,Eq,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfTurn | Trading | CityManagement | Movement | Research
-	deriving (Show,Read,Eq,Ord,Enum,Data,Typeable)
+	deriving (Show,Eq,Ord,Enum,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
 data Tech =
@@ -76,7 +82,7 @@ data Tech =
 	SteamEngine | Banking | MilitaryScience | Education |
 	Computers | MassMedia | Ballistics | ReplacementParts | Flight | Plastics | CombustionEngine | AtomicTheory |
 	SpaceFlight
-	deriving (Show,Read,Data,Ord,Ix,Bounded,Typeable,Eq)
+	deriving (Show,Data,Ord,Ix,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Tech)
 
 initialTechStack :: TokenStack () Tech
@@ -84,29 +90,29 @@ initialTechStack = tokenStackFromList [ ((),allOfThem) ]
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
-	deriving (Show,Read,Eq,Ord,Enum,Data,Typeable)
+	deriving (Show,Eq,Ord,Enum,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TechLevel)
 
 data Government =
 	Anarchy | Despotism | Monarchy | Democracy |
 	Fundamentalism | Republic | Feudalism | Communism
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Government)
 
 data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Resource)
 
 data Terrain = Grassland | Desert | Mountains | Forest | Water
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Artifact)
 
 data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | FriendlyBarbarianHut
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Hut)
 
 initialHutStack :: TokenStack () Hut
@@ -118,7 +124,7 @@ initialHutStack = tokenStackFromList $ concatMap replicateT [
 
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Village)
 
 initialVillageSet :: TokenStack () Village
@@ -127,13 +133,13 @@ initialVillageSet = tokenStackFromList $ concatMap replicateT [
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
 
-data CityType = City | Metropolis
-	deriving (Show,Read,Data,Typeable,Eq)
+data CityType = CityT | MetropolisT
+	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
 $(deriveSafeCopy modelVersion 'base ''CityType)
 
 initialCityStack :: TokenStack CityType ()
 initialCityStack = tokenStackFromList $ map replicateUnit [
-	(City,3),(Metropolis,1) ]
+	(CityT,3),(MetropolisT,1) ]
 
 data City = SecondCitySquare Orientation | City {
 	_cityOwner :: PlayerName,
@@ -143,19 +149,19 @@ data City = SecondCitySquare Orientation | City {
 	_cityCaravan :: Bool,
 	_cityMetropolis :: Maybe Orientation
 	}
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
 	MarketOrBank | Harbours | TradeStations | Shipyards
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 data Building = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradeStation | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
@@ -170,18 +176,19 @@ data TokenMarker =
 	VillageMarker Village |
 	CityMarker City |
 	BuildingMarker Building
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
+
+data Figure = Flag | Wagon
+	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Figure)
 
 initialFigureStack :: TokenStack Figure ()
 initialFigureStack = tokenStackFromList $ map replicateUnit [
-	(Figure,6), (Wagon,2) ]
-
-data Figure = Flag | Wagon
-	deriving (Show,Read,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''Figure)
+	(Flag,6), (Wagon,2) ]
 
 data Square = Square {
+	_squareRevealed    :: Bool,
 	_squareTerrain     :: [Terrain],
 	_squareCoin        :: Bool,
 	_squareResource    :: Maybe Resource,
@@ -195,7 +202,10 @@ $(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square
 
 initialBoardTileStack :: TokenStack () TileID
-initialBoardTileStack = tokenStackFromList [ ((),range (Tile1,Tile27)) ]
+initialBoardTileStack = tokenStackFromList [((),
+	[ Tile1,Tile2,Tile3,Tile4,Tile5,Tile6,Tile7,Tile8,Tile9,Tile10,
+		Tile11,Tile12,Tile13,Tile14,Tile15,Tile16,Tile17,Tile18,
+		Tile19,Tile20,Tile21,Tile22,Tile23,Tile24,Tile25,Tile26,Tile27 ] )]
 
 data BoardTile = BoardTile {
 	_boardTileId :: TileID,
@@ -215,12 +225,6 @@ data TechCard = TechCard {
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''TechCard)
 makeLenses ''TechCard
-
-newtype PlayerName = PlayerName Text
-	deriving (Data,Typeable,Show,Eq,Ord)
-$(deriveSafeCopy modelVersion 'base ''PlayerName)
-
-playerName (PlayerName pn) = pn
 
 type PlayerEmail = Text
 
@@ -259,7 +263,7 @@ data Game = Game {
 	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
 	_gameBoard :: Array Coors Square,
-	_gameTileStack :: TokenStack () TileID
+	_gameTileStack :: TokenStack () TileID,
 	_gameHutStack :: TokenStack () Hut,
 	_gameVillageStack :: TokenStack () Village
 --	_gameBuildingStack :: TokenStack BuildingMarker (),
@@ -295,11 +299,11 @@ data CultureEvent =
 	KnightTournament | LongLiveTheQueen | MassDefection | Migrants | Displaced |
 	Nationalism | Disoriented | Patriotism | PrimeTime | PrincelyGift | RevoltI | RevoltII |
 	RoamingHoarde | Sabotage | SharedKnowledge | SupplyDrop
-	deriving (Show,Read,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CultureEvent)
 
 data CultureLevel = CultureLevel1 | CultureLevel2 | CultureLevel3
-	deriving (Show,Read,Data,Ord,Bounded,Ix,Typeable,Eq)
+	deriving (Show,Data,Ord,Bounded,Ix,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CultureLevel)
 
 cultureEventsOfLevel :: CultureLevel -> [CultureEvent]
@@ -384,8 +388,8 @@ data BoardTile = BoardTile {
 	_boardTileOrientation :: Orientation
 -}
 
-tileSquares :: TileID -> [(Coors,Square)]
-tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0..3])) $ zip [0..3] $ case tileid of
+tileSquares :: TileID -> Bool -> [(Coors,Square)]
+tileSquares tileid revealed = map (\ (x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0..3])) $ zip [0..3] $ case tileid of
 	Tile1 -> [
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ],
 		[ d c_ m_ n_ r_,   f c_ m_ n_ rI,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
@@ -483,7 +487,7 @@ tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0
 		[ f c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   f c_ mV n_ r_ ] ]
 	Tile20 -> [
 		[ g c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ rW ],
-		[ g c_ m_ n_ r_,   g c_ m_ n_ rR,   g c_ mA n_ r_,   g c_ m_ n_ r_ ],
+		[ g c_ m_ n_ r_,   g c_ m_ n_ rR,   g c_ mT n_ r_,   g c_ m_ n_ r_ ],
 		[ g c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ f c_ m_ n_ r_,   f c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_ ] ]
 	Tile21 -> [
@@ -596,14 +600,14 @@ tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0
 		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
 		[ w c_ m_ n_ rL,   g c_ m_ n_ rW,   g c_ m_ n_ r_,   w c_ m_ n_ rI ],
 		[ w c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   w c1 m_ n_ r_ ] ]
-	TilenZulu -> [
+	Tile Zulu -> [
 		[ d c_ m_ n_ rI,   m c_ m_ n_ r_,   d c_ m_ n_ rL,   d c_ m_ n_ r_ ],
 		[ m c_ m_ n_ r_,   g c_ m_ n_ r_,   g c_ m_ n_ r_,   f c_ m_ n_ r_ ],
 		[ m c_ m_ n_ r_,   d c_ m_ n_ r_,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
 		[ d c_ m_ n_ rL,   f c_ m_ n_ rW,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
 
 	where
-	sq terrain coin res natwon tok = Square [terrain] coin res natwon tok Nothing []
+	sq terrain coin tok natwon res = Square revealed [terrain] coin res natwon tok Nothing []
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
@@ -615,10 +619,10 @@ tileSquares tileid = map ((x,(y,sq)) -> (Coors x y,sq)) $ concatMap (map (zip [0
 	mH = Just (HutMarker undefined)
 	mV = Just (VillageMarker undefined)
 	mC = Just (ArtifactMarker ArkOfCovenant)
-	mV = Just (ArtifactMarker AttilaVillage)
+	mT = Just (ArtifactMarker AttilaVillage)
 	mG = Just (ArtifactMarker SevenCitiesOfGold)
 	mA = Just (ArtifactMarker Atlantis)
-	mS = Just (ArtifactMarker SchoolConfucius)
+	mS = Just (ArtifactMarker SchoolOfConfucius)
 	n_ = False
 	nW = True
 	r_ = Nothing
