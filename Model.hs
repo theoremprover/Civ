@@ -25,8 +25,22 @@ import qualified Data.Ix as Ix
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
 
-replicateUnit (t,n) = replicate () n
-replicateT (t,n) = replicate n t
+{-
+initialCityStack = tokenStackFromList $ replicateUnit [
+	(CityT,3),(MetropolisT,1) ]
+-> [ (CityT,[(),(),()]),
+-}
+replicateUnit :: [(toktyp,Int)] -> [(toktyp,[()])]
+replicateUnit = map $ \ (tt,n) -> (tt,replicate n ())
+
+{-
+initialHutStack :: TokenStack () Hut
+initialHutStack = tokenStackFromList $ replicateToken [
+	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
+-> [((),[ResourceHut Spy,ResourceHut Wheat,...)]
+-}
+replicateToken :: [(tok,Int)] -> [((),[tok])]
+replicateToken l = [ ( (), concatMap (\ (t,n) -> replicate n t) l ) ]
 
 data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Data,Typeable,Eq,Ord,Ix)
@@ -116,7 +130,7 @@ data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | Fri
 $(deriveSafeCopy modelVersion 'base ''Hut)
 
 initialHutStack :: TokenStack () Hut
-initialHutStack = tokenStackFromList $ concatMap replicateT [
+initialHutStack = tokenStackFromList $ replicateToken [
 	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
 	(ResourceHut Linen,6),(ResourceHut Iron,3),(ResourceHut Atom,1),
 	(CityStateHut,2),(TeacherHut,1),(ThreeCulture,1),
@@ -128,7 +142,7 @@ data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVi
 $(deriveSafeCopy modelVersion 'base ''Village)
 
 initialVillageSet :: TokenStack () Village
-initialVillageSet = tokenStackFromList $ concatMap replicateT [
+initialVillageSet = tokenStackFromList $ replicateToken [
 	(ResourceVillage Spy,4),(ResourceVillage Atom,4),(ResourceVillage Iron,3),
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
@@ -138,7 +152,7 @@ data CityType = CityT | MetropolisT
 $(deriveSafeCopy modelVersion 'base ''CityType)
 
 initialCityStack :: TokenStack CityType ()
-initialCityStack = tokenStackFromList $ map replicateUnit [
+initialCityStack = tokenStackFromList $ replicateUnit [
 	(CityT,3),(MetropolisT,1) ]
 
 data City = SecondCitySquare Orientation | City {
@@ -165,7 +179,7 @@ data Building = Barracks | Forge | Granary | Harbour | Library |
 $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
-initialBuildingStack = tokenStackFromList $ concatMap replicateUnit [
+initialBuildingStack = tokenStackFromList $ replicateUnit [
 	(BarracksOrAcademy,9),(ForgeOrForge2,9),      (GranaryOrAquaeduct,9),
 	(TempleOrCathedral,9),(LibraryOrUniversity,9),(MarketOrBank,9),
 	(Harbours,9),         (TradeStations,9),      (Shipyards,9) ]
@@ -184,7 +198,7 @@ data Figure = Flag | Wagon
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
 initialFigureStack :: TokenStack Figure ()
-initialFigureStack = tokenStackFromList $ map replicateUnit [
+initialFigureStack = tokenStackFromList $ replicateToken [
 	(Flag,6), (Wagon,2) ]
 
 data Square = Square {
