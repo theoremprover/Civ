@@ -81,3 +81,4 @@ $(makeRoutes ''Wonder "wonderRoute" toSquares)
 
 $(makeRoutes ''Terrain "terrainRoute" toSquares)
 
+figureRoute (figure,colour) = StaticR $(makeName $ "_Figures_" ++ show figure ++ "_" ++ show colour ++ "_gif")

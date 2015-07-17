@@ -192,7 +192,7 @@ data Square = Square {
 	_squareNatWonder   :: Bool,
 	_squareTokenMarker :: Maybe TokenMarker,
 	_squareBuilding    :: Maybe Building,
-	_squareFigures     :: [Figure]
+	_squareFigures     :: [(Figure,PlayerName)]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
