@@ -10,7 +10,7 @@ import Language.Haskell.TH
 
 makeRoutes :: Name -> String -> (String -> String) -> Q [Dec]
 makeRoutes name funnamestr path = do
-	TyConI (DataD _ _ _ constrs _) <- reify name
+	TyConI tok@(DataD _ _ _ constrs _) <- reify name
 	funname <- newName funnamestr
 	valname <- newName "val"
 	matches <- forM constrs $ \ (NormalC cname []) -> do
@@ -24,8 +24,8 @@ toCulture s = "_Culture_" ++ s ++ "_jpg"
 toTech s = "_Techs_" ++ s ++ "_jpg"
 toSquares s = "_Squares_" ++ s ++ "_jpg"
 toUnit s = "_Units_" ++ s ++ "_jpg"
+toGreat s = "_Great_" ++ s ++ "_jpg"
 
-makeName :: String -> String -> Q Exp
-makeName funname s = do
-	name <- newName s
-	return $ VarE name
+toFlag s = "_Figures_Flag_" ++ s ++ "_gif"
+toWagon s = "_Figures_Wagon_" ++ s ++ "_gif"
+

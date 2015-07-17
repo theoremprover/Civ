@@ -124,8 +124,8 @@ data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVi
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Village)
 
-initialVillageSet :: TokenStack () Village
-initialVillageSet = tokenStackFromList $ replicateToken [
+initialVillageStack :: TokenStack () Village
+initialVillageStack = tokenStackFromList $ replicateToken [
 	(ResourceVillage Spy,4),(ResourceVillage Atom,4),(ResourceVillage Iron,3),
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
@@ -233,13 +233,21 @@ data Player = Player {
 	_playerTrade :: Trade,
 	_playerCulture :: Culture,
 	_playerCoins :: Coins,
-	_playerTechs :: [TechCard]
+	_playerTechs :: [TechCard],
+	_playerInvestments :: TokenStack Investment (),
+	_playerGreatPersonCards :: [GreatPersonCard],
+	_playerUnits :: [Unit],
+	_playerCultureCards :: [CultureCard]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
 makeLenses ''Player
 
-makePlayer useremail colour civ = Player useremail colour civ Despotism (Trade 0) (Culture 0) (Coins 0) []
+makePlayer useremail colour civ = Player
+	useremail colour civ Despotism
+	(Trade 0) (Culture 0) (Coins 0) []
+	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
+	[] [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -358,6 +366,26 @@ data CultureCard = CultureCard {
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
+
+data GreatPerson = 
+	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlbertEinstein | AndrewCarnegie |
+	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
+	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
+	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
+	JimHenson | JoanOfArc | KhalidIbnAlWalid | Leonidas | LorenzoDiMedici | LouisPasteur |
+	MarcoPolo | MarieCurie | MarkTwain | Michelangelo | MotherTheresa | NikolaTesla |
+	OrvilleWright | SirIsaacNewton | SunTzu | SusanBAnthony | ThomasEdison | Valmiki |
+	WilliamShakespeare | ZhengHe
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''Game)
+initialGreatPersonStack = tokenStackFromList [ ((),allOfThem) ]
+
+data GreatPersonCard = GreatPersonCard {
+	_greatPerson :: GreatPerson,
+	_greatPersonCardRevealed :: Bool
+	}
+	deriving (Show,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''GreatPersonCard)
 
 -------- tileSquare
 
@@ -647,3 +675,11 @@ boardLayout numPlayers = case numPlayers of
 	s = Southward
 	e = Eastward
 	w = Westward
+
+data Investment =
+	EndowmentArts |
+	Infrastructure |
+	MilitaryIndustialComplex |
+	PublicEducation
+	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Investment)

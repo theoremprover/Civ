@@ -79,6 +79,16 @@ $(makeRoutes ''Building "buildingRoute" toSquares)
 
 $(makeRoutes ''Wonder "wonderRoute" toSquares)
 
+$(makeRoutes ''GreatPerson "greatPersonRouteRevealed" toGreat)
+greatPersonRoute greatperson revealed = case revealed of
+	False -> StaticR _Great_Back_gif
+	True  -> greatPersonRouteRevealed greatperson
 $(makeRoutes ''Terrain "terrainRoute" toSquares)
 
-figureRoute (figure,colour) = StaticR $(makeName $ "_Figures_" ++ show figure ++ "_" ++ show colour ++ "_gif")
+$(makeRoutes ''Colour "colourRouteFlag" toFlag)
+$(makeRoutes ''Colour "colourRouteWagon" toWagon)
+figureRoute figure colour = case figure of
+	Flag -> colourRouteFlag colour
+	Wagon -> colourRouteWagon colour
+
+$(makeRoutes ''Investment "colourRouteWagon" toWagon)
