@@ -21,9 +21,7 @@ makeRoutes name funnamestr path = do
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]
 
 toDial s = "_Dials_" ++ s ++ "_jpg"
-
 toCulture s = "_Culture_" ++ s ++ "_jpg"
-
 toTech s = "_Techs_" ++ s ++ "_jpg"
-
-toBuilding s = "_Squares_" ++ s ++ "_jpg"
+toSquares s = "_Squares_" ++ s ++ "_jpg"
+toUnit s = "_Units" ++ s ++ "_jpg"
