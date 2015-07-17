@@ -75,6 +75,9 @@ $(makeRoutes ''Tech "techRoute" toTech)
 
 transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
 
-$(makeRoutes ''Building "buildingRouteRevealed" toBuilding)
-buildingRoute building = buildingRouteRevealed building
+$(makeRoutes ''Building "buildingRoute" toSquares)
+
+$(makeRoutes ''Wonder "wonderRoute" toSquares)
+
+$(makeRoutes ''Terrain "terrainRoute" toSquares)
 
