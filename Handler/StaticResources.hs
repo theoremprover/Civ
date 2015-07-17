@@ -57,38 +57,43 @@ boardTileRoute boardtile = StaticR $ case _boardTileId boardtile of
 	where
 	revealed = _boardTileDiscovered boardtile
 
-$(makeRoutes ''Civ "dialRoute" toDial)
+$(makeRoutes ''Civ "dialRoute" "_Dials_" "_jpg")
 tradeDialRoute = StaticR $ _Dials_Tradedial_gif
 coinDialRoute = StaticR $ _Dials_Coindial_gif
 oneCultureRoute = StaticR $ _Dials_1Culture_gif
 fiveCultureRoute = StaticR $ _Dials_5Culture_gif
 coinRoute = StaticR $ _Dials_Coin_gif
 
-$(makeRoutes ''CultureEvent "cultureRouteRevealed" toCulture)
+$(makeRoutes ''CultureEvent "cultureRouteRevealed" "_Culture_" "_jpg")
 cultureRoute (CultureCard False ev _) = StaticR $ case cultureEventLevel ev of
 	CultureLevel1 -> _Culture_CultureLevel1_back_jpg
 	CultureLevel2 -> _Culture_CultureLevel2_back_jpg
 	CultureLevel3 -> _Culture_CultureLevel3_back_jpg
 cultureRoute (CultureCard True ev coins) = cultureRouteRevealed ev
 
-$(makeRoutes ''Tech "techRoute" toTech)
+$(makeRoutes ''Tech "techRoute" "_Techs_" "_jpg")
 
 transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
 
-$(makeRoutes ''Building "buildingRoute" toSquares)
+$(makeRoutes ''Building "buildingRoute" "_Squares_" "_jpg")
 
-$(makeRoutes ''Wonder "wonderRoute" toSquares)
+$(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_jpg")
 
-$(makeRoutes ''GreatPerson "greatPersonRouteRevealed" toGreat)
+$(makeRoutes ''GreatPerson "greatPersonRouteRevealed" "_Great_" "_jpg")
 greatPersonRoute greatperson revealed = case revealed of
 	False -> StaticR _Great_Back_gif
 	True  -> greatPersonRouteRevealed greatperson
-$(makeRoutes ''Terrain "terrainRoute" toSquares)
+$(makeRoutes ''Terrain "terrainRoute" "_Squares_")
 
-$(makeRoutes ''Colour "colourRouteFlag" toFlag)
-$(makeRoutes ''Colour "colourRouteWagon" toWagon)
+$(makeRoutes ''Colour "colourRouteFlag" "_Figures_Flag_" "_gif")
+$(makeRoutes ''Colour "colourRouteWagon" "_Figures_Wagon_" "_gif")
 figureRoute figure colour = case figure of
 	Flag -> colourRouteFlag colour
 	Wagon -> colourRouteWagon colour
 
-$(makeRoutes ''Investment "colourRouteWagon" toWagon)
+$(makeRoutes ''Investment "investmentRoute" "_Investments_" "_jpg")
+
+$(makeRoutes ''UnitCard "unitCardRouteRevealed" "_Units_" "_jpg")
+unitCardRoute unitcard revealed = case revealed of
+	True  -> unitCardRouteRevealed unitcard
+	False -> StaticR _Units_Unit_back_jpg

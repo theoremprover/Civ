@@ -151,21 +151,21 @@ $(deriveSafeCopy modelVersion 'base ''City)
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
-	MarketOrBank | Harbours | TradeStations | Shipyards
+	MarketOrBank | Harbours | TradePosts | Shipyards
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 data Building = Barracks | Forge | Granary | Harbour | Library |
-	Market | Shipyard | TradeStation | Temple |
+	Market | Shipyard | TradePost | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
 initialBuildingStack = tokenStackFromList $ replicateUnit [
-	(BarracksOrAcademy,9),(ForgeOrForge2,9),      (GranaryOrAquaeduct,9),
-	(TempleOrCathedral,9),(LibraryOrUniversity,9),(MarketOrBank,9),
-	(Harbours,9),         (TradeStations,9),      (Shipyards,9) ]
+	(BarracksOrAcademy,5),(ForgeOrForge2,6),      (GranaryOrAquaeduct,6),
+	(TempleOrCathedral,5),(LibraryOrUniversity,6),(MarketOrBank,5),
+	(Harbours,10),        (TradePosts,6),         (Shipyards,5) ]
 
 data TokenMarker =
 	ArtifactMarker Artifact |
@@ -184,8 +184,7 @@ initialFigureStack :: TokenStack Figure ()
 initialFigureStack = tokenStackFromList $ replicateUnit [
 	(Flag,6), (Wagon,2) ]
 
-data Square = Square {
-	_squareRevealed    :: Bool,
+data Square = UnrevealedSquare TileID Coors | Square {
 	_squareTerrain     :: [Terrain],
 	_squareCoin        :: Bool,
 	_squareResource    :: Maybe Resource,
@@ -208,7 +207,7 @@ data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
 	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Maybe Orientation
+	_boardTileOrientation :: Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''BoardTile)
@@ -225,76 +224,64 @@ makeLenses ''TechCard
 
 type PlayerEmail = Text
 
-data Player = Player {
-	_playerUserEmail :: PlayerEmail,
-	_playerColour :: Colour,
-	_playerCiv :: Civ,
-	_playerGovernment :: Government,
-	_playerTrade :: Trade,
-	_playerCulture :: Culture,
-	_playerCoins :: Coins,
-	_playerTechs :: [TechCard],
-	_playerInvestments :: TokenStack Investment (),
-	_playerGreatPersonCards :: [GreatPersonCard],
-	_playerUnits :: [Unit],
-	_playerCultureCards :: [CultureCard]
+data Investment =
+	EndowmentArts |
+	Infrastructure |
+	MilitaryIndustialComplex |
+	PublicEducation
+	deriving (Show,Data,Ord,Ix,Enum,Bounded,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Investment)
+
+data GreatPerson = 
+	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlbertEinstein | AndrewCarnegie |
+	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
+	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
+	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
+	JimHenson | JoanOfArc | KhalidIbnAlWalid | Leonidas | LorenzoDiMedici | LouisPasteur |
+	MarcoPolo | MarieCurie | MarkTwain | Michelangelo | MotherTheresa | NikolaTesla |
+	OrvilleWright | SirIsaacNewton | SunTzu | SusanBAnthony | ThomasEdison | Valmiki |
+	WilliamShakespeare | ZhengHe
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''GreatPerson)
+initialGreatPersonStack = tokenStackFromList [ ((),allOfThem) ]
+
+data GreatPersonCard = GreatPersonCard {
+	_greatPerson :: GreatPerson,
+	_greatPersonCardRevealed :: Bool
 	}
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''Player)
-makeLenses ''Player
+	deriving (Show,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''GreatPersonCard)
 
-makePlayer useremail colour civ = Player
-	useremail colour civ Despotism
-	(Trade 0) (Culture 0) (Coins 0) []
-	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
-	[] [] []
+{-
+data UnitLevel = UnitLevelI | UnitLevelII | UnitLevelIII | UnitLevelStar
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''UnitLevel)
+-}
 
-data GameState = Waiting | Running | Finished
-	deriving (Show,Eq,Ord,Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''GameState)
+data UnitBalance = UB_1_3 | UB_2_2 | UB_3_1
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''UnitBalance)
 
-newtype GameName = GameName Text
-	deriving (Data,Typeable,Show,Eq,Ord)
-$(deriveSafeCopy modelVersion 'base ''GameName)
+data UnitType = Infantry | Cavalry | Artillery | Aircraft
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''UnitType)
 
-gameName (GameName gn) = gn
+data UnitCard =
+	Infantry_1_3  | Infantry_2_2  | Infantry_3_1  |
+	Cavalry_1_3   | Cavalry_2_2   | Cavalry_3_1   |
+	Artillery_1_3 | Artillery_2_2 | Artillery_3_1 |
+	Aircraft_5_7  | Aircraft_6_6  | Aircraft_7_5
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''UnitCard)
 
-type Players = [(PlayerName,Player)]
-
-data Game = Game {
-	_gameCreationDate :: UTCTime,
-	_gameCreator :: UserName,
-	_gameState :: GameState,
-	_gameBoardTiles :: [BoardTile],
-	_gamePlayers :: Players,
-	_gameBoard :: Array Coors Square,
-	_gameTileStack :: TokenStack () TileID,
-	_gameHutStack :: TokenStack () Hut,
-	_gameVillageStack :: TokenStack () Village
---	_gameBuildingStack :: TokenStack BuildingMarker (),
---	_gameGreatPersonStack :: TokenStack () GreatPerson,
---	_gameUnitStack :: TokenStack UnitType Unit,
-	}
-	deriving (Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''Game)
-makeLenses ''Game
-
-instance Eq Game where
-	g1 == g2 =
-		_gameCreationDate g1 == _gameCreationDate g2 &&
-		_gameCreator g1 == _gameCreator g2
-
-instance Ord Game where
-	compare = comparing _gameCreationDate
-
-type Games = Map.Map GameName Game
-
-data CivState = CivState {
-	_civGames :: Games
-	}
-	deriving (Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''CivState)
-makeLenses ''CivState
+initialUnitStack :: TokenStack UnitType UnitCard
+initialUnitStack = tokenStackFromList $ map repl [
+	(Aircraft, [(Aircraft_5_7, 2),(Aircraft_6_6, 4),(Aircraft_7_5, 2)]),
+	(Infantry, [(Infantry_1_3, 5),(Infantry_2_2, 5),(Infantry_3_1, 5)]),
+	(Cavalry,  [(Cavalry_1_3,  5),(Cavalry_2_2,  5),(Cavalry_3_1,  5)]),
+	(Artillery,[(Artillery_1_3,5),(Artillery_2_2,5),(Artillery_3_1,5)]) ]
+	where
+	repl (t,l) = (t,concatMap (\ (a,n) -> replicate n a) l)
 
 data CultureEvent =
 	Astray | BarbarianEncampment | BankCrisis | BreadCircus | Catastrophe |
@@ -367,25 +354,76 @@ data CultureCard = CultureCard {
 $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
 
-data GreatPerson = 
-	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlbertEinstein | AndrewCarnegie |
-	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
-	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
-	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
-	JimHenson | JoanOfArc | KhalidIbnAlWalid | Leonidas | LorenzoDiMedici | LouisPasteur |
-	MarcoPolo | MarieCurie | MarkTwain | Michelangelo | MotherTheresa | NikolaTesla |
-	OrvilleWright | SirIsaacNewton | SunTzu | SusanBAnthony | ThomasEdison | Valmiki |
-	WilliamShakespeare | ZhengHe
-	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
-$(deriveSafeCopy modelVersion 'base ''Game)
-initialGreatPersonStack = tokenStackFromList [ ((),allOfThem) ]
-
-data GreatPersonCard = GreatPersonCard {
-	_greatPerson :: GreatPerson,
-	_greatPersonCardRevealed :: Bool
+data Player = Player {
+	_playerUserEmail :: PlayerEmail,
+	_playerColour :: Colour,
+	_playerCiv :: Civ,
+	_playerGovernment :: Government,
+	_playerTrade :: Trade,
+	_playerCulture :: Culture,
+	_playerCoins :: Coins,
+	_playerTechs :: [TechCard],
+	_playerInvestments :: TokenStack Investment (),
+	_playerGreatPersonCards :: [GreatPersonCard],
+	_playerUnits :: [UnitCard],
+	_playerCultureCards :: [CultureCard]
 	}
-	deriving (Show,Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''GreatPersonCard)
+	deriving (Data,Typeable,Show)
+$(deriveSafeCopy modelVersion 'base ''Player)
+makeLenses ''Player
+
+makePlayer useremail colour civ = Player
+	useremail colour civ Despotism
+	(Trade 0) (Culture 0) (Coins 0) []
+	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
+	[] [] []
+
+data GameState = Waiting | Running | Finished
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''GameState)
+
+newtype GameName = GameName Text
+	deriving (Data,Typeable,Show,Eq,Ord)
+$(deriveSafeCopy modelVersion 'base ''GameName)
+
+gameName (GameName gn) = gn
+
+type Players = [(PlayerName,Player)]
+
+data Game = Game {
+	_gameCreationDate :: UTCTime,
+	_gameCreator :: UserName,
+	_gameState :: GameState,
+	_gameBoardTiles :: [BoardTile],
+	_gamePlayers :: Players,
+	_gameBoard :: Array Coors Square,
+	_gameTileStack :: TokenStack () TileID,
+	_gameHutStack :: TokenStack () Hut,
+	_gameVillageStack :: TokenStack () Village,
+	_gameBuildingStack :: TokenStack BuildingMarker (),
+	_gameGreatPersonStack :: TokenStack () GreatPerson,
+	_gameUnitStack :: TokenStack UnitType UnitCard
+	}
+	deriving (Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''Game)
+makeLenses ''Game
+
+instance Eq Game where
+	g1 == g2 =
+		_gameCreationDate g1 == _gameCreationDate g2 &&
+		_gameCreator g1 == _gameCreator g2
+
+instance Ord Game where
+	compare = comparing _gameCreationDate
+
+type Games = Map.Map GameName Game
+
+data CivState = CivState {
+	_civGames :: Games
+	}
+	deriving (Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''CivState)
+makeLenses ''CivState
 
 -------- tileSquare
 
@@ -413,8 +451,8 @@ data BoardTile = BoardTile {
 	_boardTileOrientation :: Orientation
 -}
 
-tileSquares :: TileID -> Bool -> [(Coors,Square)]
-tileSquares tileid revealed = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ zip [0..] $ map (zip [0..]) $ case tileid of
+tileSquares :: TileID -> [(Coors,Square)]
+tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ zip [0..] $ map (zip [0..]) $ case tileid of
 	Tile1 -> [
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   g c_ m_ n_ r_ ],
 		[ d c_ m_ n_ r_,   f c_ m_ n_ rI,   f c_ m_ n_ r_,   g c_ m_ n_ r_ ],
@@ -632,7 +670,7 @@ tileSquares tileid revealed = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,s
 		[ d c_ m_ n_ rL,   f c_ m_ n_ rW,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
 
 	where
-	sq terrain coin tok natwon res = Square revealed [terrain] coin res natwon tok Nothing []
+	sq terrain coin tok natwon res = Square True [terrain] coin res natwon tok Nothing []
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
@@ -676,10 +714,3 @@ boardLayout numPlayers = case numPlayers of
 	e = Eastward
 	w = Westward
 
-data Investment =
-	EndowmentArts |
-	Infrastructure |
-	MilitaryIndustialComplex |
-	PublicEducation
-	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''Investment)

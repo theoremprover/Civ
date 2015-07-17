@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Lenses where
 
 import Prelude
@@ -5,6 +7,8 @@ import Prelude
 import Control.Lens
 import Control.Monad.State
 import Control.Monad.Error (runErrorT,throwError)
+import Data.Acid
+import Data.Acid.Advanced
 
 import Model
 
@@ -25,6 +29,9 @@ civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 updateCivLensU fval lens = do
 	modify (over lens fval)
 	return ()
+
+queryCivLensU :: Lens' CivState a -> Update CivState a
+queryCivLensU lens = gets (view lens)
 
 -------------- Conditions
 

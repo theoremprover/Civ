@@ -32,4 +32,3 @@ initialHutStack = tokenStackFromList $ replicateToken [
 -}
 replicateToken :: [(tok,Int)] -> [((),[tok])]
 replicateToken l = [ ( (), concatMap (\ (t,n) -> replicate n t) l ) ]
-

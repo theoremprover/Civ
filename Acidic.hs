@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Acidic where
 
 import Import hiding (Update,Query)
@@ -10,6 +12,8 @@ import Control.Monad.Error (throwError,runErrorT)
 import Control.Lens hiding (Action)
 import Control.Monad.State (modify,get,gets)
 import Data.Maybe
+
+import qualified Data.Array.IArray as Array
 
 import Logic
 import Lenses
@@ -59,42 +63,9 @@ setShuffledPlayers :: GameName -> Update CivState UpdateResult
 setShuffledPlayers gamename players = do
 	updateCivLensU (const players) $ civPlayersLens gamename
 
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ view lens civstate
-
-$(makeAcidic ''CivState [
-	'getCivState,
-	'setShuffledPlayers,
-	'startGame,
-	'joinGame,
-	'deleteGame,
-	'incTrade,
-	'createNewGame
-	])
-
-takeFromStackU gamename stacklens toktyp = do
-	updateCivLensU (takeFromStack toktyp) $ civGameLens gamename . stacklens
-
-putOnStackU gamename stacklens toktyp tok = do
-	updateCivLensU (putOnStack toktyp tok) $ civGameLens gamename . stacklens
-
-squaresFromTile gamename tileid tilecoors orientation revealed = do
-	forM (tileSquares tileid revealed) $ \ (tcoors,sq) -> do
-		sq' <- case _squareTokenMarker sq of
-			Just (HutMarker _) -> do
-				hut <- takeFromStackU gamename gameHutStack ()
-				return $ sq { _squareTokenMarker = Just (HutMarker hut) }
-			Just (VillageMarker _) -> do
-				village <- takeFromStackU gamename gameVillageStack ()
-				return $ sq { _squareTokenMarker = Just (VillageMarker village) }
-			_ -> return sq
-		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
-
 createBoard :: GameName -> Update CivState UpdateResult
 createBoard gamename = do
-	players <- queryCivLensH $ civPlayersLens gamename
+	players <- queryCivLensU $ civPlayersLens gamename
 	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
 		(tileid,orientation,revealed) <- case layouttile of
 			NT -> do
@@ -106,11 +77,50 @@ createBoard gamename = do
 
 	let
 		coorsquares = concat coorsquaress
-		xcoorss = map (xCoor.fst) coorsquares
-		ycoorss = map (yCoor.fst) coorsquares
-		mincoors = Coors (minimum xcoorss) (minimum ycoorss)
-		maxcoors = Coors (maximum xcoorss) (maximum ycoorss)
-		gameboardarr = array (mincoors,maxcoors) coorsquares
-
+		xcoorss = Prelude.map (xCoor.fst) coorsquares
+		ycoorss = Prelude.map (yCoor.fst) coorsquares
+		mincoors = Coors (Prelude.minimum xcoorss) (Prelude.minimum ycoorss)
+		maxcoors = Coors (Prelude.maximum xcoorss) (Prelude.maximum ycoorss)
+		gameboardarr = Array.array (mincoors,maxcoors) coorsquares
 	updateCivLensU (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
+	return oK
+
+--takeFromStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> Update CivState (Maybe tok)
+takeFromStackU stacklens toktyp = do
+	stack <- queryCivLensU stacklens
+	case takeFromStack toktyp stack of
+		Nothing -> return Nothing
+		Just (tok,stack') -> do
+			updateCivLensU (\_-> stack') stacklens
+			return $ Just tok
+
+--putOnStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> tok -> Update CivState ()
+putOnStackU stacklens toktyp tok = do
+	updateCivLensU (putOnStack toktyp tok) stacklens
+
+squaresFromTile :: GameName -> TileID -> Coors -> Orientation -> Bool -> Update CivState [(Coors,Square)]
+squaresFromTile _ tileid tilecoors Nothing False = do
+	forM (tileSquares tileid) $ \ (tcoors,_) -> do
+		return (tcoors,UnrevealedSquare tileid tilecoors)
+squaresFromTile gamename tileid tilecoors orientation revealed = do
+	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
+		sq' <- case _squareTokenMarker sq of
+			Just (HutMarker _) -> do
+				mb_hut <- takeFromStackU (civGameLens gamename . _Just . gameHutStack) ()
+				return $ sq { _squareTokenMarker = fmap HutMarker mb_hut }
+			Just (VillageMarker _) -> do
+				mb_village <- takeFromStackU (civGameLens gamename . _Just . gameVillageStack) ()
+				return $ sq { _squareTokenMarker = fmap VillageMarker mb_village }
+			_ -> return sq
+		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
+
+$(makeAcidic ''CivState [
+	'getCivState,
+	'setShuffledPlayers,
+	'startGame,
+	'joinGame,
+	'deleteGame,
+	'incTrade,
+	'createNewGame
+	])
 

@@ -36,6 +36,11 @@ updateCivH action affectedgamess event = do
 	when (isRight res) $ notifyLongPoll action affectedgamess
 	return res
 
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ view lens civstate
+
 --------- Errors
 
 errHandler :: String -> Handler a
@@ -121,8 +126,11 @@ executeAction action = do
 			hutstack     <- shuffle initialHutStack
 			villagestack <- shuffle initialVillageStack
 			tilestack    <- shuffle initialBoardTileStack
+			unitstack    <- shuffle initialUnitStack
+			personstack  <- shuffle initialGreatPersonStack
 			updateCivH action [GameAdmin] $ CreateNewGame gamename $
 				Game (userEmail user) now Waiting [] [] tilestack hutstack villagestack
+					initialBuildingStack personstack unitstack 
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
