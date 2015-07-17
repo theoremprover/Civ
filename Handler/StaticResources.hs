@@ -27,15 +27,15 @@ boardTileRoute boardtile = StaticR $ case _boardTileId boardtile of
 		Spanish  -> if revealed then _Tiles_TileSpanish_front_jpg else _Tiles_TileSpanish_back_jpg
 		Zulu     -> if revealed then _Tiles_TileZulu_front_jpg else _Tiles_TileZulu_back_jpg
 	_ | not revealed -> _Tiles_Back_jpg
-	Tile1 -> _Tiles_Tile1_jpg
-	Tile2 -> _Tiles_Tile2_jpg
-	Tile3 -> _Tiles_Tile3_jpg
-	Tile4 -> _Tiles_Tile4_jpg
-	Tile5 -> _Tiles_Tile5_jpg
-	Tile6 -> _Tiles_Tile6_jpg
-	Tile7 -> _Tiles_Tile7_jpg
-	Tile8 -> _Tiles_Tile8_jpg
-	Tile9 -> _Tiles_Tile9_jpg
+	Tile1  -> _Tiles_Tile1_jpg
+	Tile2  -> _Tiles_Tile2_jpg
+	Tile3  -> _Tiles_Tile3_jpg
+	Tile4  -> _Tiles_Tile4_jpg
+	Tile5  -> _Tiles_Tile5_jpg
+	Tile6  -> _Tiles_Tile6_jpg
+	Tile7  -> _Tiles_Tile7_jpg
+	Tile8  -> _Tiles_Tile8_jpg
+	Tile9  -> _Tiles_Tile9_jpg
 	Tile10 -> _Tiles_Tile10_jpg
 	Tile11 -> _Tiles_Tile11_jpg
 	Tile12 -> _Tiles_Tile12_jpg
@@ -69,8 +69,12 @@ cultureRoute (CultureCard False ev _) = StaticR $ case cultureEventLevel ev of
 	CultureLevel1 -> _Culture_CultureLevel1_back_jpg
 	CultureLevel2 -> _Culture_CultureLevel2_back_jpg
 	CultureLevel3 -> _Culture_CultureLevel3_back_jpg
-cultureRoute (CultureCard True ev coins) = cultureRouteRevealed True ev
+cultureRoute (CultureCard True ev coins) = cultureRouteRevealed ev
 
 $(makeRoutes ''Tech "techRoute" toTech)
 
 transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
+
+$(makeRoutes ''Building "buildingRouteRevealed" toBuilding)
+buildingRoute building = buildingRouteRevealed building
+

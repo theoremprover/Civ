@@ -8,23 +8,22 @@ import Language.Haskell.TH
 
 --putStrLn $(stringE . show =<< reify ''Bool)
 
-makeRoutes :: Name -> String -> (String -> Bool -> String) -> Q [Dec]
+makeRoutes :: Name -> String -> (String -> String) -> Q [Dec]
 makeRoutes name funnamestr path = do
 	TyConI (DataD _ _ _ constrs _) <- reify name
 	funname <- newName funnamestr
 	revealedname <- newName "revealed"
 	valname <- newName "val"
 	matches <- forM constrs $ \ (NormalC cname []) -> do
-		let revname  = mkName $ path (nameBase cname) True
-		let backname = mkName $ path (nameBase cname) False
-		caseexpr <- [e| if $(varE revealedname) then $(varE revname) else $(varE backname) |]
+		let caseexpr = varE $ mkName $ path (nameBase cname)
 		return $ Match (ConP cname []) (NormalB caseexpr) []
 	return [ FunD funname [ Clause [VarP revealedname,VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]
 
-toDial s _ = "_Dials_" ++ s ++ "_jpg"
+toDial s = "_Dials_" ++ s ++ "_jpg"
 
-toCulture s _ = "_Culture_" ++ s ++ "_jpg"
+toCulture s = "_Culture_" ++ s ++ "_jpg"
 
-toTech s True = "_Techs_" ++ s ++ "_jpg"
-toTech _ False = "_Missing_jpg"
+toTech s = "_Techs_" ++ s ++ "_jpg"
+
+toBuilding s = "_Squares_" ++ s ++ "_jpg"
