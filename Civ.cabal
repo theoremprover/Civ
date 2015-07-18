@@ -24,7 +24,6 @@ library
                      Handler.Common
                      Handler.Home
                      GameMonad
-                     ExecutePlayerAction
                      Logic
                      Version
                      Handler.DisplayGame

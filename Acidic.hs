@@ -63,17 +63,17 @@ setShuffledPlayers :: GameName -> Update CivState UpdateResult
 setShuffledPlayers gamename players = do
 	updateCivLensU (const players) $ civPlayersLens gamename
 
-createBoard :: GameName -> Update CivState UpdateResult
+createBoard :: GameName -> Update CivState ()
 createBoard gamename = do
 	players <- queryCivLensU $ civPlayersLens gamename
 	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
-		(tileid,orientation,revealed) <- case layouttile of
+		(tileid,mb_orientation,revealed) <- case layouttile of
 			NT -> do
 				tid <- takeFromStackU gamename gameTileStack ()
 				return (tid,Nothing,False)
 			CT playerindex ori -> do
 				return (Tile $ _playerCiv (players Prelude.!! playerindex),Just ori,True)
-		squaresFromTile gamename tileid coors orientation revealed
+		squaresFromTile gamename tileid coors mb_orientation revealed
 
 	let
 		coorsquares = concat coorsquaress
@@ -83,7 +83,7 @@ createBoard gamename = do
 		maxcoors = Coors (Prelude.maximum xcoorss) (Prelude.maximum ycoorss)
 		gameboardarr = Array.array (mincoors,maxcoors) coorsquares
 	updateCivLensU (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
-	return oK
+	return ()
 
 --takeFromStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> Update CivState (Maybe tok)
 takeFromStackU stacklens toktyp = do
@@ -98,11 +98,11 @@ takeFromStackU stacklens toktyp = do
 putOnStackU stacklens toktyp tok = do
 	updateCivLensU (putOnStack toktyp tok) stacklens
 
-squaresFromTile :: GameName -> TileID -> Coors -> Orientation -> Bool -> Update CivState [(Coors,Square)]
+squaresFromTile :: GameName -> TileID -> Coors -> Maybe Orientation -> Bool -> Update CivState [(Coors,Square)]
 squaresFromTile _ tileid tilecoors Nothing False = do
 	forM (tileSquares tileid) $ \ (tcoors,_) -> do
 		return (tcoors,UnrevealedSquare tileid tilecoors)
-squaresFromTile gamename tileid tilecoors orientation revealed = do
+squaresFromTile gamename tileid tilecoors (Just orientation) revealed = do
 	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
