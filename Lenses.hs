@@ -18,13 +18,15 @@ assocListLens key = lens (lookup key) setter where
 	setter ((k,a):kas) (Just val) | k==key = (k,val) : kas
 	setter (ka:kas) jval = ka : setter kas jval
 
-civStateLens = id
-civGameLens gamename = civStateLens . civGames . at gamename
+civGameLens :: GameName -> Lens' CivState (Maybe Game)
+civGameLens gamename = civGames . at gamename
 
+civPlayerLens :: GameName -> PlayerName -> Lens' CivState (Maybe Player)
 civPlayerLens gamename playername =
 	civPlayersLens gamename . assocListLens playername
 
-civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
+civPlayersLens :: GameName -> Lens' CivState (Maybe Players)
+civPlayersLens gamename = civGameLens gamename . gamePlayers
 
 updateCivLensU fval lens = do
 	modify (over lens fval)
