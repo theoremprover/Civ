@@ -53,15 +53,16 @@ startGame gamename = runErrorT $ do
 	checkCondition ("Cannot start " ++ show gamename ++ " is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
 	updateCivLensU (const Running) $ civGameLens gamename . _Just . gameState
-	createBoard gamename
+	lift $ createBoard gamename
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
 incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
-setShuffledPlayers :: GameName -> Update CivState UpdateResult
+setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = do
 	updateCivLensU (const players) $ civPlayersLens gamename
+	return oK
 
 createBoard :: GameName -> Update CivState ()
 createBoard gamename = do
@@ -69,10 +70,10 @@ createBoard gamename = do
 	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
 		(tileid,mb_orientation,revealed) <- case layouttile of
 			NT -> do
-				tid <- takeFromStackU gamename gameTileStack ()
+				Just tid <- takeFromStackU (civGameLens gamename . _Just . gameTileStack) ()
 				return (tid,Nothing,False)
 			CT playerindex ori -> do
-				return (Tile $ _playerCiv (players Prelude.!! playerindex),Just ori,True)
+				return (Tile $ _playerCiv (snd $ players Prelude.!! playerindex),Just ori,True)
 		squaresFromTile gamename tileid coors mb_orientation revealed
 
 	let

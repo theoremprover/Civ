@@ -31,7 +31,9 @@ updateCivLensU fval lens = do
 	return ()
 
 queryCivLensU :: Lens' CivState a -> Update CivState a
-queryCivLensU lens = gets (view lens)
+queryCivLensU lens = do
+	civstate <- get
+	return $ view lens civstate
 
 -------------- Conditions
 
