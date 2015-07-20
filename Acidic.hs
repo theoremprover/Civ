@@ -50,7 +50,7 @@ joinGame gamename playername email colour civ = runErrorT $ do
 
 startGame :: GameName -> Update CivState UpdateResult
 startGame gamename = runErrorT $ do
-	checkCondition ("Cannot start " ++ show gamename ++ " is not in waiting state.")
+	checkCondition ("Cannot start " ++ show gamename ++ ", it is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
 	updateCivLensU (const Running) $ civGameLens gamename . _Just . gameState
 	lift $ createBoard gamename

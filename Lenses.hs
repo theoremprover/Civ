@@ -12,30 +12,32 @@ import Data.Acid.Advanced
 
 import Model
 
-assocListLens key = lens (lookup key) setter where
+assocListLens :: key -> Prism' [(key,val)] (Maybe val)
+assocListLens key = prism (lookup key) setter where
 	setter list Nothing = filter ((==key).fst) list
 	setter [] (Just val) = [(key,val)]
 	setter ((k,a):kas) (Just val) | k==key = (k,val) : kas
 	setter (ka:kas) jval = ka : setter kas jval
 
-civGameLens :: GameName -> Lens' CivState (Maybe Game)
-civGameLens gamename = civGames . at gamename
+civGameLens :: GameName -> Prism' CivState Game
+civGameLens gamename = civGames . at gamename . _Just
 
-civPlayerLens :: GameName -> PlayerName -> Lens' CivState (Maybe Player)
+civPlayerLens :: GameName -> PlayerName -> Prism' CivState (Maybe Player)
 civPlayerLens gamename playername =
-	civPlayersLens gamename . assocListLens playername
+	civPlayersLens gamename . _Just . assocListLens playername
 
-civPlayersLens :: GameName -> Lens' CivState (Maybe Players)
+civPlayersLens :: GameName -> Prism' CivState (Maybe Players)
 civPlayersLens gamename = civGameLens gamename . gamePlayers
 
+updateCivLensU :: (val -> val) -> Prism' CivState val -> Update CivState () 
 updateCivLensU fval lens = do
 	modify (over lens fval)
 	return ()
 
-queryCivLensU :: Lens' CivState a -> Update CivState a
+queryCivLensU :: Prism' CivState a -> Update CivState (Maybe a)
 queryCivLensU lens = do
 	civstate <- get
-	return $ view lens civstate
+	return $ preview lens civstate
 
 -------------- Conditions
 
