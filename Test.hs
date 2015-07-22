@@ -2,6 +2,8 @@
 	CPP, DeriveDataTypeable, TypeFamilies, TemplateHaskell, FlexibleContexts,
 	GeneralizedNewtypeDeriving, MultiParamTypeClasses, RecordWildCards, OverloadedStrings #-}
 
+module Test where
+
 import Control.Lens
 import Control.Lens.Traversal
 import Control.Applicative
@@ -18,4 +20,6 @@ instance Traversable Test where
 	traverse f (Test1 mb_int tests) = Test1 <$> (f mb_int) <*> (traverse f tests)
 	traverse f (Test2 test) = Test2 <$> traverse f test
 
-test3 = Test1 (Just 3) [ Test2 [Test1 Nothing [],Test1 (Just 4) []], Test1 (Just 5) [] ]
+test3 = Test1 (Just 3) [ Test2 (Test1 Nothing []),Test1 (Just 4) [], Test1 (Just 5) [] ]
+
+t = toListOf test11 test3
