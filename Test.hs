@@ -1,5 +1,5 @@
 {-# LANGUAGE
-	CPP, DeriveDataTypeable, TypeFamilies, TemplateHaskell, FlexibleContexts,
+	CPP, DeriveDataTypeable, TupleSections, TypeFamilies, TemplateHaskell, FlexibleContexts,
 	GeneralizedNewtypeDeriving, MultiParamTypeClasses, RecordWildCards, OverloadedStrings #-}
 
 module Test where
@@ -28,6 +28,7 @@ traverse :: Applicative f =>   (a -> f b) -> t a -> f (t b)
 (<*>)    ::                  f (a -> b)   -> f a -> f b
 (<$>)    :: Functor f     =>   (a -> b)   -> f a -> f b 
 -}
+
 instance Traversable Test where
 	traverse f (Test1 a Nothing) = Test1 <$> (f a) <*> pure Nothing
  	traverse f (Test1 a (Just test)) = Test1 <$> (f a) <*> (Just <$> traverse f test)
