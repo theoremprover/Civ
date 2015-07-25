@@ -29,6 +29,12 @@ eRR errmsg = Left errmsg
 getCivState :: Query CivState CivState
 getCivState = ask
 
+checkCondition errmsg lens f = do
+	civstate <- get
+	case f (preview lens civstate) of
+		False -> throwError errmsg
+		True -> return ()
+
 createNewGame :: GameName -> Game -> Update CivState UpdateResult
 createNewGame gamename game = runErrorT $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
@@ -115,6 +121,7 @@ squaresFromTile gamename tileid tilecoors (Just orientation) revealed = do
 			_ -> return sq
 		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
 
+		
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,

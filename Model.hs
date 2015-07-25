@@ -646,29 +646,6 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 		[ d c_ m_ n_ rL,   f c_ m_ n_ rW,   g c_ m_ n_ r_,   g c_ m_ n_ r_ ] ]
 
 	where
-{-
-data Square = Square {
-	_squareTerrain  :: [Terrain],
-	_squareCoin     :: Bool,
-	_squareResource :: Maybe Resource,
-	_squareNatWonder  :: Bool,
-	_squareTokenMarker :: Maybe TokenMarker,
-	_squareBuilding :: Maybe Building,
-	_squareFigures  :: [Figure]
-
-data TokenMarker =
-	ArtifactMarker Artifact |
-	HutMarker Hut |
-	VillageMarker Village |
-	CityMarker City |
-	BuildingMarker Building
-
-data BoardTile = BoardTile {
-	_boardTileId :: TileID,
-	_boardTileCoors :: Coors,
-	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Orientation
--}
 
 	sq terrain coin tok natwon res = Square [terrain] coin res natwon tok Nothing []
 	d = sq Desert
