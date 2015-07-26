@@ -29,8 +29,6 @@ assocListLens key = prism' setter (lookup key) where
 	setter (ka:kas)    jval                = ka : setter kas jval
 -}
 
-data AssocList key val = AssocList [(key,val)]
-
 type instance Index   (AssocList key val) = key
 type instance IxValue (AssocList key val) = val
 

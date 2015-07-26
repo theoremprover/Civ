@@ -30,7 +30,7 @@ getCivState :: Query CivState CivState
 getCivState = ask
 
 checkCondition errmsg lens f = do
-	civstate <- get
+	civstate <- Control.Monad.State.get
 	case f (preview lens civstate) of
 		False -> throwError errmsg
 		True -> return ()
@@ -92,7 +92,7 @@ createBoard gamename = do
 	updateCivLensU (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
 	return ()
 
---takeFromStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> Update CivState (Maybe tok)
+takeFromStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> Update CivState (Maybe tok)
 takeFromStackU stacklens toktyp = do
 	stack <- queryCivLensU stacklens
 	case takeFromStack toktyp stack of
@@ -101,7 +101,7 @@ takeFromStackU stacklens toktyp = do
 			updateCivLensU (\_-> stack') stacklens
 			return $ Just tok
 
---putOnStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> tok -> Update CivState ()
+putOnStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> tok -> Update CivState ()
 putOnStackU stacklens toktyp tok = do
 	updateCivLensU (putOnStack toktyp tok) stacklens
 

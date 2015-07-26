@@ -1,6 +1,6 @@
 {-# LANGUAGE
-	CPP, DeriveDataTypeable, TypeFamilies, TemplateHaskell, FlexibleContexts,
-	GeneralizedNewtypeDeriving, MultiParamTypeClasses, RecordWildCards, OverloadedStrings #-}
+	CPP, DeriveDataTypeable, TypeFamilies, TemplateHaskell, FlexibleContexts, StandaloneDeriving, TypeSynonymInstances,
+	GeneralizedNewtypeDeriving, MultiParamTypeClasses, RecordWildCards, OverloadedStrings, FlexibleInstances #-}
 
 module Model where
 
@@ -215,8 +215,8 @@ makeLenses ''BoardTile
 
 data TechCard = TechCard {
 	_techCardTechId :: Tech,
-	_techCardLevel :: TechLevel,
-	_techCardCoins :: Coins
+	_techCardLevel  :: TechLevel,
+	_techCardCoins  :: Coins
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''TechCard)
@@ -388,7 +388,11 @@ $(deriveSafeCopy modelVersion 'base ''GameName)
 
 gameName (GameName gn) = gn
 
-type Players = [(PlayerName,Player)]
+data AssocList key val = AssocList [(key,val)]
+	deriving (Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''AssocList)
+	
+type Players = AssocList PlayerName Player
 
 data Game = Game {
 	_gameCreationDate :: UTCTime,
@@ -396,6 +400,8 @@ data Game = Game {
 	_gameState :: GameState,
 	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
+	_gameTurn :: Int,
+	_gamePlayersTurn :: Int,
 	_gameBoard :: Array Coors Square,
 	_gameTileStack :: TokenStack () TileID,
 	_gameHutStack :: TokenStack () Hut,
