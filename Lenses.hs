@@ -45,19 +45,26 @@ instance (Eq key) => At (AssocList key val)
 
 assocListLens :: (Eq key) => key -> Lens' (AssocList key val) (Maybe val)
 assocListLens key = at key
-		
+
+{-
+_fromJust :: String -> Prism' (Maybe a) a
+_fromJust errmsg = prism' Just $ \ mb_a -> case mb_a of
+	Just a -> Just a
+	Nothing -> error errmsg
+-}
+
 --civGameLens :: GameName -> Prism' CivState Game
-civGameLens gamename = civGames . at gamename . _Just
+civGameLens gamename = civGames . at gamename -- . _fromJust
 
 --civPlayerLens :: GameName -> PlayerName -> Prism' CivState Player
-civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername . _Just . _2
+civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername -- . _fromJust
 
 --civPlayersLens :: GameName -> Lens' CivState Players
-civPlayersLens gamename = civGameLens gamename . gamePlayers
+civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
 updateCivLensU :: (val -> val) -> Prism' CivState val -> Update CivState () 
 updateCivLensU fval lens = do
-	modify (over lens fval)
+	modify $ over lens fval
 	return ()
 
 queryCivLensU :: Prism' CivState a -> Update CivState (Maybe a)

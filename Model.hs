@@ -157,7 +157,7 @@ data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 data Building = Barracks | Forge | Granary | Harbour | Library |
-	Market | Shipyard | TradePost | Temple |
+	Market | Shipyard | TradeStation | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
@@ -228,15 +228,15 @@ type PlayerEmail = Text
 data Investment =
 	EndowmentArts |
 	Infrastructure |
-	MilitaryIndustialComplex |
+	MilitaryIndustrialComplex |
 	PublicEducation
 	deriving (Show,Data,Ord,Ix,Enum,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Investment)
 
 data GreatPerson = 
 	AdaLovelace | AdamSmith | AkiraKurosawa | AlanTuring | AlbertEinstein | AndrewCarnegie |
-	APGianni | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
-	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalieoGalilei |
+	APGiannini | Archimedes | CaptainJamesCook | CharlesDarwin | DrMartinLutherKing |
+	FlorenceNightingale | FranciscusOfAssisi | FrankLloydWright | FridaKahlo | GalileoGalilei |
 	GeorgyZhukov | GustavAdolf | Hannibal | HenryFord | JacquesCousteau | JerryGarcia |
 	JimHenson | JoanOfArc | KhalidIbnAlWalid | Leonidas | LorenzoDiMedici | LouisPasteur |
 	MarcoPolo | MarieCurie | MarkTwain | Michelangelo | MotherTheresa | NikolaTesla |
@@ -389,11 +389,19 @@ $(deriveSafeCopy modelVersion 'base ''GameName)
 
 gameName (GameName gn) = gn
 
-data AssocList key val = AssocList [(key,val)]
+data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''AssocList)
-	
+
 type Players = AssocList PlayerName Player
+
+emptyPlayers :: Players
+emptyPlayers = AssocList []
+
+type Board = Array Coors Square
+
+emptyBoard :: Board
+emptyBoard = listArray (Coors 1 1,Coors 0 0) []
 
 data Game = Game {
 	_gameCreationDate :: UTCTime,
@@ -402,8 +410,8 @@ data Game = Game {
 	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
 	_gameTurn :: Int,
-	_gamePlayersTurn :: Int,
-	_gameBoard :: Array Coors Square,
+	_gameStartPlayer :: Int,
+	_gameBoard :: Board,
 	_gameTileStack :: TokenStack () TileID,
 	_gameHutStack :: TokenStack () Hut,
 	_gameVillageStack :: TokenStack () Village,
@@ -431,6 +439,9 @@ data CivState = CivState {
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''CivState)
 makeLenses ''CivState
+
+initialCivState :: CivState
+initialCivState = CivState Map.empty
 
 -------- tileSquare
 
@@ -681,6 +692,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 data LayoutTile = CT Int Orientation | NT
 
 boardLayout numPlayers = case numPlayers of
+
 	2 -> [
 		(c 0  0,CT 0 s), (c 4  0,NT    ),
 		(c 0  4,NT    ), (c 4  4,NT    ),
@@ -690,7 +702,9 @@ boardLayout numPlayers = case numPlayers of
 		(c 0 20,NT    ), (c 4 20,NT    ),
 		(c 0 24,NT    ), (c 4 24,NT    ),
 		(c 0 28,NT    ), (c 4 28,CT 1 n) ]
+
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
+
 	where
 	c = Coors
 	n = Northward

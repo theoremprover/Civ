@@ -78,12 +78,14 @@ pollHandler = do
 	printLogDebug $ "Got Notification on " ++ show affected
 	return action
 
+{-
 getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
 getGamePlayer gamename playername = do
 	mb_game <- getGame gamename
 	return $ case mb_game of
 		Nothing -> Nothing
 		Just game -> Just (game,Prelude.lookup playername (_gamePlayers game))
+-}
 
 postCommandR :: Handler ()
 postCommandR = do
@@ -114,14 +116,16 @@ executeAction action = do
 
 		CreateGameA gamename -> do
 			now <- liftIO $ getCurrentTime
+			tilestack    <- shuffle initialBoardTileStack
 			hutstack     <- shuffle initialHutStack
 			villagestack <- shuffle initialVillageStack
-			tilestack    <- shuffle initialBoardTileStack
-			unitstack    <- shuffle initialUnitStack
 			personstack  <- shuffle initialGreatPersonStack
-			updateCivH action [GameAdmin] $ CreateNewGame gamename $
-				Game (userEmail user) now Waiting [] [] 1 0 tilestack hutstack villagestack
-					initialBuildingStack personstack unitstack 
+			unitstack    <- shuffle initialUnitStack
+			updateCivH action [GameAdmin] $ CreateNewGame gamename $ Game
+				now (userEmail user) Waiting [] emptyPlayers 1 0
+				emptyBoard
+				tilestack hutstack villagestack
+				initialBuildingStack personstack unitstack 
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
@@ -147,10 +151,12 @@ executeAction action = do
 			return oK
 
 		StartGameA gamename -> do
+			return oK {-
 			AssocList playerlist <- queryCivLensH (civPlayersLens gamename)
 			shuffledplayers <- shuffleList playerlist
 			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
+-}
 
 		IncTradeA gamename playername trade -> do
 			updateCivH action [GameGame gamename] $ IncTrade gamename playername trade

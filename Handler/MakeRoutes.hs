@@ -14,7 +14,7 @@ makeRoutes name funnamestr pathpre pathpost = do
 	funname <- newName funnamestr
 	valname <- newName "val"
 	matches <- forM constrs $ \ (NormalC cname []) -> do
-		let caseexpr = varE $ mkName $ pathpre ++ nameBase cname ++ pathpost
+		let caseexpr = VarE $ mkName $ pathpre ++ nameBase cname ++ pathpost
 		return $ Match (ConP cname []) (NormalB caseexpr) []
 	return [ FunD funname [ Clause [VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]

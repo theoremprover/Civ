@@ -60,7 +60,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
-    civstate <- initialCivState
+    let civstate = initialCivState
     appCivAcid <- openLocalState civstate
 
     appLongPolls <- newMVar []
@@ -203,6 +203,7 @@ db = handler . runDB
 
 -------
 
+{-
 initialCivState :: IO CivState
 initialCivState = do
 	now <- getCurrentTime
@@ -247,3 +248,4 @@ initialCivState = do
 					]
 				(createBoard tiles))
 		]
+-}

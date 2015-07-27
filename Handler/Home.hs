@@ -48,7 +48,7 @@ getHomeR = do
 	(userid,user) <- requireLoggedIn
 	let email = userEmail user
 
-	games <- queryCivLensH $ civStateLens . civGames
+	games <- queryCivLensH civGames
 
 	defaultLayout $ do
 		setTitle "Civ - Create, Join or Visit Game"
@@ -57,7 +57,7 @@ getHomeR = do
 		longPollingJulius HomeR GameAdmin
 
 		let my_players game = map playerName $ map fst $
-			Prelude.filter ((==email) . _playerUserEmail . snd) (_gamePlayers game)
+			Prelude.filter ((==email) . _playerUserEmail . snd) (fromAssocList $ _gamePlayers game)
 		[whamlet|
 <h1>Games
 <table border=1 cellspacing=10>
@@ -142,7 +142,7 @@ getWaitingR gn = do
 
 <h1>Game #{gn}
 <table>
-  $forall (PlayerName pn,player) <- _gamePlayers game
+  $forall (PlayerName pn,player) <- fromAssocList (_gamePlayers game)
     <tr>
       <td>#{pn}
       <td fgcolor=white bgcolor=#{colour2html $ _playerColour player}>#{show $ _playerColour player}

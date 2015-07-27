@@ -5,6 +5,7 @@ import Prelude (map,minimum,maximum,concat,lookup)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
+import qualified Data.Array.IArray as Array
 
 import GameMonad
 import Model
@@ -20,7 +21,7 @@ colour2html colour = show colour
 
 displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
 displayGame (userid,user,gamename,game,mb_playername) = do
-	playerareas <- mapM (playerArea game mb_playername) $ _gamePlayers game
+	playerareas <- mapM (playerArea game mb_playername) $ fromAssocList (_gamePlayers game)
 	boardarea <- boardArea game
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
@@ -53,7 +54,7 @@ playerArea game mb_playername (playername,player) = do
 <div>
   <table>
     <tr><td>#{show playername}
-    <tr><td><img src=@{dialRoute True (_playerCiv player)}>
+    <tr><td><img src=@{dialRoute (_playerCiv player)}>
 |]
 
 boardArea :: Game -> Handler Widget
@@ -68,6 +69,7 @@ boardArea game = do
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		arr = _gameBoard game
+		arrlookup coors = (Array.!) arr coors
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -91,10 +93,8 @@ boardArea game = do
               <img src=@{transparentSquareRoute}>
               $case mod x 2
                 $of 0
-                  $maybe sq <- lookup (Coors x y) arr
+                  $with sq <- arrlookup (Coors x y)
                     <p>#{show sq}
-                  $nothing
-                    <p color=red>Cannot find square!!!
                 $of 1
                   <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
 |]

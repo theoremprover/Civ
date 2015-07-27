@@ -77,13 +77,11 @@ transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
 
 $(makeRoutes ''Building "buildingRoute" "_Squares_" "_jpg")
 
-$(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_jpg")
-
 $(makeRoutes ''GreatPerson "greatPersonRouteRevealed" "_Great_" "_jpg")
 greatPersonRoute greatperson revealed = case revealed of
 	False -> StaticR _Great_Back_gif
 	True  -> greatPersonRouteRevealed greatperson
-$(makeRoutes ''Terrain "terrainRoute" "_Squares_")
+$(makeRoutes ''Terrain "terrainRoute" "_Squares_" "_jpg")
 
 $(makeRoutes ''Colour "colourRouteFlag" "_Figures_Flag_" "_gif")
 $(makeRoutes ''Colour "colourRouteWagon" "_Figures_Wagon_" "_gif")
@@ -97,3 +95,5 @@ $(makeRoutes ''UnitCard "unitCardRouteRevealed" "_Units_" "_jpg")
 unitCardRoute unitcard revealed = case revealed of
 	True  -> unitCardRouteRevealed unitcard
 	False -> StaticR _Units_Unit_back_jpg
+
+-- $(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_jpg")
