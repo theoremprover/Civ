@@ -50,8 +50,7 @@ assocListLens key = at key
 civGameLens gamename = civGames . at gamename . _Just
 
 --civPlayerLens :: GameName -> PlayerName -> Prism' CivState Player
-civPlayerLens gamename playername =
-	civPlayersLens gamename . assocListLens playername . _Just . _2
+civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername . _Just . _2
 
 --civPlayersLens :: GameName -> Lens' CivState Players
 civPlayersLens gamename = civGameLens gamename . gamePlayers

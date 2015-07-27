@@ -16,6 +16,7 @@ import Data.Time
 import Control.Lens
 import qualified Data.Map as Map
 import Data.Array.IArray
+import Data.Aeson.TH
 
 import Entities
 import TokenStack
@@ -697,3 +698,8 @@ boardLayout numPlayers = case numPlayers of
 	e = Eastward
 	w = Westward
 
+deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''GameName
+deriveJSON defaultOptions ''PlayerName
+deriveJSON defaultOptions ''Civ
+deriveJSON defaultOptions ''Colour

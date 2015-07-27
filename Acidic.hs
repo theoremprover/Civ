@@ -36,16 +36,21 @@ checkCondition errmsg lens f = do
 		True -> return ()
 
 createNewGame :: GameName -> Game -> Update CivState UpdateResult
+createNewGame _ _ = return oK {-
 createNewGame gamename game = runErrorT $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
 		(civGameLens gamename . _Just) isNothing
 	updateCivLensU (\_-> Just $ game) $ civGameLens gamename
+-}
 
 deleteGame :: GameName -> Update CivState UpdateResult
+deleteGame _ = return oK {-
 deleteGame gamename = runErrorT $ do
 	updateCivLensU (\_-> Nothing) $ civGameLens gamename
+-}
 
 joinGame :: GameName -> PlayerName -> PlayerEmail -> Colour -> Civ -> Update CivState UpdateResult
+joinGame _ _ _ _ _ = return oK {-
 joinGame gamename playername email colour civ = runErrorT $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
 		(civPlayerLens gamename playername . _Just) isNothing
@@ -53,19 +58,26 @@ joinGame gamename playername email colour civ = runErrorT $ do
 		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromJust)
 	updateCivLensU (\_ -> Just $ makePlayer email colour civ) $
 		civGameLens gamename . _Just . gamePlayers . assocListLens playername
+-}
 
 startGame :: GameName -> Update CivState UpdateResult
+startGame _ = return oK {-
 startGame gamename = runErrorT $ do
 	checkCondition ("Cannot start " ++ show gamename ++ ", it is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
 	updateCivLensU (const Running) $ civGameLens gamename . _Just . gameState
 	lift $ createBoard gamename
+-}
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
+incTrade _ _ _ = return oK {-
 incTrade gamename playername trade = runErrorT $ do
 	updateCivLensU (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
+-}
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
+setShuffledPlayers _ _ = return oK
+{-
 setShuffledPlayers gamename players = do
 	updateCivLensU (const players) $ civPlayersLens gamename
 	return oK
@@ -113,14 +125,14 @@ squaresFromTile gamename tileid tilecoors (Just orientation) revealed = do
 	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
-				mb_hut <- takeFromStackU (civGameLens gamename . _Just . gameHutStack) ()
+				mb_hut <- takeFromStackU (civGameLens gamename . gameHutStack) ()
 				return $ sq { _squareTokenMarker = fmap HutMarker mb_hut }
 			Just (VillageMarker _) -> do
-				mb_village <- takeFromStackU (civGameLens gamename . _Just . gameVillageStack) ()
+				mb_village <- takeFromStackU (civGameLens gamename . gameVillageStack) ()
 				return $ sq { _squareTokenMarker = fmap VillageMarker mb_village }
 			_ -> return sq
 		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
-
+-}
 		
 $(makeAcidic ''CivState [
 	'getCivState,

@@ -3,31 +3,22 @@
 module GameMonad where
 
 import Import
+import qualified Prelude
 
-import Data.Text as Text
-
+import Data.Aeson
+import Data.Text as Text (pack) 
+import Control.Lens hiding (Action)
 import Data.Acid
 import Data.Acid.Advanced
+import Data.Either
 
 import Model
 import Entities
-
 import Logic
 import TokenStack
-
 import Lenses
 import Polls
 import Acidic
-
-------------- Splices
-
-deriveJSON defaultOptions ''Action
-deriveJSON defaultOptions ''Affected
-deriveJSON defaultOptions ''Trade
-deriveJSON defaultOptions ''GameName
-deriveJSON defaultOptions ''PlayerName
-deriveJSON defaultOptions ''Civ
-deriveJSON defaultOptions ''Colour
 
 
 updateCivH action affectedgamess event = do
@@ -129,7 +120,7 @@ executeAction action = do
 			unitstack    <- shuffle initialUnitStack
 			personstack  <- shuffle initialGreatPersonStack
 			updateCivH action [GameAdmin] $ CreateNewGame gamename $
-				Game (userEmail user) now Waiting [] [] tilestack hutstack villagestack
+				Game (userEmail user) now Waiting [] [] 1 0 tilestack hutstack villagestack
 					initialBuildingStack personstack unitstack 
 
 		DeleteGameA gamename@(GameName gn) -> do
@@ -156,8 +147,9 @@ executeAction action = do
 			return oK
 
 		StartGameA gamename -> do
-			shuffledplayers <- queryCivLensH (civPlayersLens gamename) >>= shuffleList
-			updateCivH action [] $ SetShuffledPlayers gamename shuffledplayers
+			AssocList playerlist <- queryCivLensH (civPlayersLens gamename)
+			shuffledplayers <- shuffleList playerlist
+			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
 
 		IncTradeA gamename playername trade -> do

@@ -1,6 +1,6 @@
 module Polls where
 
-import Data.Aeson
+import Data.Aeson.TH
 
 import Control.Concurrent.MVar
 import Prelude
@@ -21,3 +21,7 @@ data Affected = GameAdmin | GameGame GameName
 	deriving (Eq,Show)
 
 type Polls = MVar [(Affected,MVar Action)]
+
+deriveJSON defaultOptions ''Action
+deriveJSON defaultOptions ''Affected
+
