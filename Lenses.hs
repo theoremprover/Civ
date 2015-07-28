@@ -5,7 +5,6 @@ module Lenses where
 import Prelude
 
 import Control.Lens
-import Control.Lens.Prism
 import Control.Lens.At
 import Control.Applicative
 import Control.Monad.State
@@ -56,18 +55,15 @@ _fromJust errmsg = prism' Just $ \ mb_a -> case mb_a of
 civGameLens :: GameName -> Lens' CivState (Maybe Game)
 civGameLens gamename = civGames . at gamename
 
---civPlayerLens :: GameName -> PlayerName -> Lens' CivState (Maybe Player)
-civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername -- . _fromJust
+civPlayerLens :: GameName -> PlayerName -> Traversal' CivState (Maybe Player)
+civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername
 
---civPlayersLens :: GameName -> Prism' CivState Players
+civPlayersLens :: GameName -> Traversal' CivState Players
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
-updateCivLensU :: (val -> val) -> Prism' CivState val -> Update CivState () 
-updateCivLensU fval lens = do
-	modify $ over lens fval
-	return ()
+civPlayerIndexLens :: GameName -> Int -> Traversal' CivState (PlayerName,Player)
+civPlayerIndexLens gamename index = civPlayersLens gamename . nthAssocListLens index
 
-queryCivLensU :: Prism' CivState a -> Update CivState (Maybe a)
-queryCivLensU lens = do
-	civstate <- get
-	return $ preview lens civstate
+nthAssocListLens :: Int -> Lens' (AssocList key val) (key,val)
+nthAssocListLens index = lens ((!!index).fromAssocList) ins where
+	ins (AssocList l) e = AssocList $ take index l ++ [e] ++ drop index l
