@@ -53,13 +53,13 @@ _fromJust errmsg = prism' Just $ \ mb_a -> case mb_a of
 	Nothing -> error errmsg
 -}
 
---civGameLens :: GameName -> Prism' CivState Game
-civGameLens gamename = civGames . at gamename -- . _fromJust
+civGameLens :: GameName -> Lens' CivState (Maybe Game)
+civGameLens gamename = civGames . at gamename
 
---civPlayerLens :: GameName -> PlayerName -> Prism' CivState Player
+--civPlayerLens :: GameName -> PlayerName -> Lens' CivState (Maybe Player)
 civPlayerLens gamename playername = civPlayersLens gamename . assocListLens playername -- . _fromJust
 
---civPlayersLens :: GameName -> Lens' CivState Players
+--civPlayersLens :: GameName -> Prism' CivState Players
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
 
 updateCivLensU :: (val -> val) -> Prism' CivState val -> Update CivState () 
