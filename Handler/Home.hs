@@ -48,7 +48,7 @@ getHomeR = do
 	(userid,user) <- requireLoggedIn
 	let email = userEmail user
 
-	games <- queryCivLensH civGames
+	Just games <- queryCivLensH civGames
 
 	defaultLayout $ do
 		setTitle "Civ - Create, Join or Visit Game"

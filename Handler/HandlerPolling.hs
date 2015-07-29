@@ -98,9 +98,8 @@ function sendAction_Fun(action_str,fun_after_response)
       }
       else
       {
-        alert("Status=" + xh.status + ":\n" +
-          "action_str = " + action_str + "\n" +
-          "Response: " + xh.responseText + "\n");
+        document.write(xh.responseText);
+        document.close();
       }
     }
   }

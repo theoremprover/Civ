@@ -24,4 +24,3 @@ type Polls = MVar [(Affected,MVar Action)]
 
 deriveJSON defaultOptions ''Action
 deriveJSON defaultOptions ''Affected
-

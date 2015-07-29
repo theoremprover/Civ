@@ -31,7 +31,9 @@ assocListLens key = prism' setter (lookup key) where
 type instance Index   (AssocList key val) = key
 type instance IxValue (AssocList key val) = val
 
-instance (Eq key) => Ixed (AssocList key val) where
+instance (Eq key) => Ixed (AssocList key val)
+{-
+ where
 	ix key f al@(AssocList l) = case Prelude.lookup key l of
 		Just val -> fmap (\ val' -> AssocList $ replacewith val' l) $ f val
 		Nothing  -> pure al
@@ -39,9 +41,17 @@ instance (Eq key) => Ixed (AssocList key val) where
 		replacewith _ [] = []
 		replacewith val' ((k,v):ls) | k==key = (k,val') : replacewith val' ls
 		replacewith val' ((k,v):ls) = (k,v) : replacewith val' ls
+-}
 
 instance (Eq key) => At (AssocList key val) where
-	at index = lens 
+	at key = lens ((Prelude.lookup key).fromAssocList) setter
+		where
+		setter (AssocList l) mb_val = AssocList $ replacewith l mb_val
+		replacewith [] Nothing    = []
+		replacewith [] (Just val) = [(key,val)]
+		replacewith ((k,v):ls) Nothing     | k==key = ls
+		replacewith ((k,v):ls) (Just val') | k==key = (k,val') : ls
+		replacewith (l:ls) mb_val = l : replacewith ls mb_val
 
 assocListLens :: (Eq key) => key -> Lens' (AssocList key val) (Maybe val)
 assocListLens key = at key

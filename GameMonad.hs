@@ -21,16 +21,19 @@ import Polls
 import Acidic
 
 
-updateCivH action affectedgamess event = do
+updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>
+	Action -> [Affected] -> event -> Handler (EventResult event)
+updateCivH action affecteds event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll action affectedgamess
+	when (isRight res) $ notifyLongPoll action affecteds
 	return res
 
+--queryCivLensH :: Traversal' CivState a -> Handler (Maybe a)
 queryCivLensH lens = do
 	app <- getYesod
 	civstate <- query' (appCivAcid app) GetCivState
-	return $ view lens civstate
+	return $ preview lens civstate
 
 --------- Errors
 
@@ -78,15 +81,6 @@ pollHandler = do
 	printLogDebug $ "Got Notification on " ++ show affected
 	return action
 
-{-
-getGamePlayer :: GameName -> PlayerName -> Handler (Maybe (Game,Maybe Player))
-getGamePlayer gamename playername = do
-	mb_game <- getGame gamename
-	return $ case mb_game of
-		Nothing -> Nothing
-		Just game -> Just (game,Prelude.lookup playername (_gamePlayers game))
--}
-
 postCommandR :: Handler ()
 postCommandR = do
 	(userid,user) <- requireLoggedIn
@@ -94,7 +88,7 @@ postCommandR = do
  	res <- executeAction action
 	sendResponse $ repJson $ encode res
 
-getGame gamename = queryCivLensH $ civGameLens gamename
+getGame gamename = queryCivLensH $ civGameLens gamename . _Just
 
 maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe PlayerName)
 maybeVisitor = do
@@ -151,17 +145,12 @@ executeAction action = do
 			return oK
 
 		StartGameA gamename -> do
-			return oK {-
-			AssocList playerlist <- queryCivLensH (civPlayersLens gamename)
+			Just (AssocList playerlist) <- queryCivLensH (civPlayersLens gamename)
 			shuffledplayers <- shuffleList playerlist
 			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
--}
 
 		IncTradeA gamename playername trade -> do
 			updateCivH action [GameGame gamename] $ IncTrade gamename playername trade
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
-
-------------
-

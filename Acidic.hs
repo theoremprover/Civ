@@ -31,7 +31,7 @@ getCivState = ask
 
 type UpdateCivM a = ErrorT String (Update CivState) a
 
---runUpdateCivM :: UpdateCivM a -> Update CivState a
+runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
 runUpdateCivM = runErrorT
 
 updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
@@ -85,8 +85,8 @@ setShuffledPlayers gamename players = runUpdateCivM $ do
 
 createBoard :: GameName -> UpdateCivM ()
 createBoard gamename = do
-	players <- queryCivLensM $ civPlayersLens gamename
-	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
+	Just players :: Maybe Players <- queryCivLensM $ civPlayersLens gamename
+	coorsquaress <- forM (boardLayout $ length $ fromAssocList players) $ \ (coors,layouttile) -> do
 		(tileid,mb_orientation,revealed) <- case layouttile of
 			NT -> do
 				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
