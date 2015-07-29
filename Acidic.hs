@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes,ScopedTypeVariables #-}
 
 module Acidic where
 
@@ -31,6 +31,9 @@ getCivState = ask
 
 type UpdateCivM a = ErrorT String (Update CivState) a
 
+--runUpdateCivM :: UpdateCivM a -> Update CivState a
+runUpdateCivM = runErrorT
+
 updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
 updateCivLensM fval lens = modify $ over lens fval
 
@@ -47,37 +50,37 @@ checkCondition errmsg lens f = do
 		_ -> throwError errmsg
 
 createNewGame :: GameName -> Game -> Update CivState UpdateResult
-createNewGame gamename game = runErrorT $ do
+createNewGame gamename game = runUpdateCivM $ do
 	checkCondition ("Cannot create " ++ show gamename ++ ": it already exists!")
 		(civGameLens gamename) isNothing
 	updateCivLensM (\_-> Just $ game) $ civGameLens gamename
 
 deleteGame :: GameName -> Update CivState UpdateResult
-deleteGame gamename = runErrorT $ do
+deleteGame gamename = runUpdateCivM $ do
 	updateCivLensM (\_-> Nothing) $ civGameLens gamename
 
 joinGame :: GameName -> PlayerName -> PlayerEmail -> Colour -> Civ -> Update CivState UpdateResult
-joinGame gamename playername email colour civ = runErrorT $ do
+joinGame gamename playername email colour civ = runUpdateCivM $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
 		(civPlayerLens gamename playername) isNothing
 	checkCondition (show colour ++ " already taken in " ++ show gamename)
-		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromJust)
+		(civGameLens gamename . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromAssocList . fromJust)
 	updateCivLensM (\_ -> Just $ makePlayer email colour civ) $
 		civGameLens gamename . _Just . gamePlayers . assocListLens playername
 
 startGame :: GameName -> Update CivState UpdateResult
-startGame gamename = runErrorT $ do
+startGame gamename = runUpdateCivM $ do
 	checkCondition ("Cannot start " ++ show gamename ++ ", it is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
 incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
-incTrade gamename playername trade = runErrorT $ do
+incTrade gamename playername trade = runUpdateCivM $ do
 	updateCivLensM (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
-setShuffledPlayers gamename players = do
+setShuffledPlayers gamename players = runUpdateCivM $ do
 	updateCivLensM (const players) $ civPlayersLens gamename
 
 createBoard :: GameName -> UpdateCivM ()
@@ -86,10 +89,10 @@ createBoard gamename = do
 	coorsquaress <- forM (boardLayout $ length players) $ \ (coors,layouttile) -> do
 		(tileid,mb_orientation,revealed) <- case layouttile of
 			NT -> do
-				Just tid <- takeFromStackU (civGameLens gamename . _Just . gameTileStack) ()
+				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
 				return (tid,Nothing,False)
 			CT playerindex ori -> do
-				(playername,player) <- civPlayerIndexLens gamename playerindex
+				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
 				return (Tile $ _playerCiv player,Just ori,True)
 		squaresFromTile gamename tileid coors mb_orientation revealed
 
@@ -102,17 +105,17 @@ createBoard gamename = do
 		gameboardarr = Array.array (mincoors,maxcoors) coorsquares
 	updateCivLensM (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
 
-takeFromStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> UpdateCivM (Maybe tok)
-takeFromStackU stacklens toktyp = do
-	stack <- queryCivLensM stacklens
+takeFromStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> toktyp -> UpdateCivM (Maybe tok)
+takeFromStackM stacklens toktyp = do
+	Just stack <- queryCivLensM stacklens
 	case takeFromStack toktyp stack of
 		Nothing -> return Nothing
 		Just (tok,stack') -> do
 			updateCivLensM (\_-> stack') stacklens
 			return $ Just tok
 
-putOnStackU :: (Ord toktyp) => Lens' CivState (TokenStack toktyp tok) -> toktyp -> tok -> UpdateCivM ()
-putOnStackU stacklens toktyp tok = do
+putOnStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> toktyp -> tok -> UpdateCivM ()
+putOnStackM stacklens toktyp tok = do
 	updateCivLensM (putOnStack toktyp tok) stacklens
 
 squaresFromTile :: GameName -> TileID -> Coors -> Maybe Orientation -> Bool -> UpdateCivM [(Coors,Square)]
@@ -123,14 +126,14 @@ squaresFromTile gamename tileid tilecoors (Just orientation) revealed = do
 	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
-				Just hut <- takeFromStackU (civGameLens gamename . gameHutStack) ()
-				return $ sq { _squareTokenMarker = fmap HutMarker hut }
+				mb_hut <- takeFromStackM (civGameLens gamename . _Just . gameHutStack) ()
+				return $ sq { _squareTokenMarker = fmap HutMarker mb_hut }
 			Just (VillageMarker _) -> do
-				Just village <- takeFromStackU (civGameLens gamename . gameVillageStack) ()
-				return $ sq { _squareTokenMarker = fmap VillageMarker village }
+				mb_village :: Maybe Village <- takeFromStackM (civGameLens gamename . _Just . gameVillageStack) ()
+				return $ sq { _squareTokenMarker = fmap VillageMarker mb_village }
 			_ -> return sq
 		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
-		
+
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,

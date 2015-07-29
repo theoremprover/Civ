@@ -45,13 +45,6 @@ instance (Eq key) => At (AssocList key val)
 assocListLens :: (Eq key) => key -> Lens' (AssocList key val) (Maybe val)
 assocListLens key = at key
 
-{-
-_fromJust :: String -> Prism' (Maybe a) a
-_fromJust errmsg = prism' Just $ \ mb_a -> case mb_a of
-	Just a -> Just a
-	Nothing -> error errmsg
--}
-
 civGameLens :: GameName -> Lens' CivState (Maybe Game)
 civGameLens gamename = civGames . at gamename
 
