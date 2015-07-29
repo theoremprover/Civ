@@ -64,14 +64,14 @@ joinGame gamename playername email colour civ = runUpdateCivM $ do
 	checkCondition (show playername ++ " already exists in " ++ show gamename)
 		(civPlayerLens gamename playername) isNothing
 	checkCondition (show colour ++ " already taken in " ++ show gamename)
-		(civGameLens gamename . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromAssocList . fromJust)
+		(civGameLens gamename . _Just . gamePlayers) ((notElem colour) . (map (_playerColour.snd)) . fromAssocList)
 	updateCivLensM (\_ -> Just $ makePlayer email colour civ) $
 		civGameLens gamename . _Just . gamePlayers . assocListLens playername
 
 startGame :: GameName -> Update CivState UpdateResult
 startGame gamename = runUpdateCivM $ do
 	checkCondition ("Cannot start " ++ show gamename ++ ", it is not in waiting state.")
-		(civGameLens gamename . _Just . gameState) (==(Just Waiting))
+		(civGameLens gamename . _Just . gameState) (==Waiting)
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 

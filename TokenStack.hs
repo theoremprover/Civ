@@ -16,19 +16,8 @@ takeFromStack toktyp stack = case Map.lookup toktyp stack of
 putOnStack :: (Ord toktyp) => toktyp -> tok -> TokenStack toktyp tok -> TokenStack toktyp tok
 putOnStack toktyp tok stack = Map.insertWith (++) toktyp [tok] stack
 
-{-
-initialCityStack = tokenStackFromList $ replicateUnit [
-	(CityT,3),(MetropolisT,1) ]
--> [ (CityT,[(),(),()]),
--}
 replicateUnit :: [(toktyp,Int)] -> [(toktyp,[()])]
 replicateUnit = map $ \ (tt,n) -> (tt,replicate n ())
 
-{-
-initialHutStack :: TokenStack () Hut
-initialHutStack = tokenStackFromList $ replicateToken [
-	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
--> [((),[ResourceHut Spy,ResourceHut Wheat,...)]
--}
 replicateToken :: [(tok,Int)] -> [((),[tok])]
 replicateToken l = [ ( (), concatMap (\ (t,n) -> replicate n t) l ) ]

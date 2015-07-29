@@ -40,7 +40,8 @@ instance (Eq key) => Ixed (AssocList key val) where
 		replacewith val' ((k,v):ls) | k==key = (k,val') : replacewith val' ls
 		replacewith val' ((k,v):ls) = (k,v) : replacewith val' ls
 
-instance (Eq key) => At (AssocList key val)
+instance (Eq key) => At (AssocList key val) where
+	at index = lens 
 
 assocListLens :: (Eq key) => key -> Lens' (AssocList key val) (Maybe val)
 assocListLens key = at key

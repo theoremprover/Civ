@@ -2,12 +2,12 @@ module Logic where
 
 import Prelude
 
-import Model
 import System.Random
 import Control.Monad
 import Yesod.Core (MonadIO,liftIO)
 import qualified Data.Map as Map
 
+import Model
 import TokenStack
 
 initialCivState :: IO CivState
