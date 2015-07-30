@@ -69,8 +69,9 @@ boardArea game = do
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		arr = _gameBoard game
-		arrlookup coors = (Array.!) arr coors
-	
+		isinarr x y = (Coors x y) `elem` (Array.indices arr)
+		arrlookup = (Array.!) arr
+
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -83,7 +84,7 @@ boardArea game = do
                 <td colspan=4 rowspan=4><img class=#{show (_boardTileOrientation tile)} src=@{boardTileRoute tile}>
               $nothing
             $nothing
-              <td><img src=@{transparentSquareRoute}>
+              <td><img src=@{transparentSquareRoute}> 
 
   <div .Child style="z-index: 2;">
     <table .NoSpacing border=1>
@@ -92,10 +93,10 @@ boardArea game = do
           $forall x <- xs
             <td style="position:relative">
               <img src=@{transparentSquareRoute}>
-              $case mod x 2
-                $of 0
-                  $with sq <- arrlookup (Coors x y)
-                    <p>#{show sq}
-                $of 1
+              $case isinarr x y
+                $of False
                   <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
+                $of True
+                  $with sq <- arrlookup (Coors x y)
+                    <p stype="font-size:8pt;">#{show sq}
 |]

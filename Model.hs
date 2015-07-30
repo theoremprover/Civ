@@ -186,6 +186,7 @@ initialFigureStack = tokenStackFromList $ replicateUnit [
 	(Flag,6), (Wagon,2) ]
 
 data Square = UnrevealedSquare TileID Coors | Square {
+	_squareTile        :: Maybe TileID,
 	_squareTerrain     :: [Terrain],
 	_squareCoin        :: Bool,
 	_squareResource    :: Maybe Resource,
@@ -204,6 +205,7 @@ initialBoardTileStack = tokenStackFromList [((),
 		Tile11,Tile12,Tile13,Tile14,Tile15,Tile16,Tile17,Tile18,
 		Tile19,Tile20,Tile21,Tile22,Tile23,Tile24,Tile25,Tile26,Tile27 ] )]
 
+{-
 data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
@@ -213,6 +215,7 @@ data BoardTile = BoardTile {
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''BoardTile)
 makeLenses ''BoardTile
+-}
 
 data TechCard = TechCard {
 	_techCardTechId :: Tech,
@@ -398,7 +401,11 @@ type Players = AssocList PlayerName Player
 emptyPlayers :: Players
 emptyPlayers = AssocList []
 
+numPlayers :: Players -> Int
+numPlayers = length . fromAssocList
+
 type Board = Array Coors Square
+instance At Board
 
 emptyBoard :: Board
 emptyBoard = listArray (Coors 1 1,Coors 0 0) []
@@ -407,7 +414,6 @@ data Game = Game {
 	_gameCreationDate :: UTCTime,
 	_gameCreator :: UserName,
 	_gameState :: GameState,
-	_gameBoardTiles :: [BoardTile],
 	_gamePlayers :: Players,
 	_gameTurn :: Int,
 	_gameStartPlayer :: Int,
@@ -665,7 +671,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 	where
 
-	sq terrain coin tok natwon res = Square [terrain] coin res natwon tok Nothing []
+	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok Nothing []
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
@@ -691,7 +697,8 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 data LayoutTile = CT Int Orientation | NT
 
-boardLayout numPlayers = case numPlayers of
+boardLayout :: Int -> [(Coors,LayoutTile)]
+boardLayout numplayers = case numplayers of
 
 	2 -> [
 		(c 0  0,CT 0 s), (c 4  0,NT    ),

@@ -8,7 +8,7 @@ import Handler.MakeRoutes
 
 import Model
 
-boardTileRoute boardtile = StaticR $ case _boardTileId boardtile of
+boardTileRoute tileid revealed = StaticR $ case tileid of
 	Tile civ -> case civ of
 		America  -> if revealed then _Tiles_TileAmerica_front_jpg else _Tiles_TileAmerica_back_jpg
 		Arabs    -> if revealed then _Tiles_TileArabs_front_jpg else _Tiles_TileArabs_back_jpg
@@ -54,8 +54,6 @@ boardTileRoute boardtile = StaticR $ case _boardTileId boardtile of
 	Tile25 -> _Tiles_Tile25_jpg
 	Tile26 -> _Tiles_Tile26_jpg
 	Tile27 -> _Tiles_Tile27_jpg
-	where
-	revealed = _boardTileDiscovered boardtile
 
 $(makeRoutes ''Civ "dialRoute" "_Dials_" "_jpg")
 tradeDialRoute = StaticR $ _Dials_Tradedial_gif
