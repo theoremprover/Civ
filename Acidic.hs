@@ -86,15 +86,18 @@ setShuffledPlayers gamename players = runUpdateCivM $ do
 createBoard :: GameName -> UpdateCivM ()
 createBoard gamename = do
 	Just players :: Maybe Players <- queryCivLensM $ civPlayersLens gamename
-	coorsquaress <- forM (boardLayout $ length $ fromAssocList players) $ \ (coors,layouttile) -> do
-		(tileid,mb_orientation,revealed) <- case layouttile of
+	boardtiles <- forM (boardLayout $ length $ fromAssocList players) $ \ (coors,layouttile) -> do
+		case layouttile of
 			NT -> do
 				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
-				return (tid,Nothing,False)
+				return (coors,tid,Nothing,False)
 			CT playerindex ori -> do
 				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
-				return (Tile $ _playerCiv player,Just ori,True)
-		squaresFromTile gamename tileid coors mb_orientation revealed
+				return (coors,Tile $ _playerCiv player,Just ori,True)
+	
+	updateCivLensM (const boardtiles) $ civGameLens gamename . _Just . gameBoardTiles
+
+	coorsquaress <- forM (squaresFromTile gamename) boardtiles
 
 	let
 		coorsquares = concat coorsquaress
@@ -118,11 +121,19 @@ putOnStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> to
 putOnStackM stacklens toktyp tok = do
 	updateCivLensM (putOnStack toktyp tok) stacklens
 
-squaresFromTile :: GameName -> TileID -> Coors -> Maybe Orientation -> Bool -> UpdateCivM [(Coors,Square)]
-squaresFromTile _ tileid tilecoors Nothing False = do
+{-
+data BoardTile = BoardTile {
+	_boardTileId :: TileID,
+	_boardTileCoors :: Coors,
+	_boardTileDiscovered :: Bool,
+	_boardTileOrientation :: Just Orientation
+	}
+-}
+squaresFromTile :: GameName -> BoardTile -> UpdateCivM [(Coors,Square)]
+squaresFromTile _ (BoardTile tileid tilecoors False Nothing) = do
 	forM (tileSquares tileid) $ \ (tcoors,_) -> do
 		return (tcoors,UnrevealedSquare tileid tilecoors)
-squaresFromTile gamename tileid tilecoors (Just orientation) revealed = do
+squaresFromTile gamename (BoardTile tileid tilecoors revealed (Just orientation)) = do
 	forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do

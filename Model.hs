@@ -208,7 +208,7 @@ data BoardTile = BoardTile {
 	_boardTileId :: TileID,
 	_boardTileCoors :: Coors,
 	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Orientation
+	_boardTileOrientation :: Maybe Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''BoardTile)
