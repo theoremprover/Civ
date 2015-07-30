@@ -32,16 +32,6 @@ type instance Index   (AssocList key val) = key
 type instance IxValue (AssocList key val) = val
 
 instance (Eq key) => Ixed (AssocList key val)
-{-
- where
-	ix key f al@(AssocList l) = case Prelude.lookup key l of
-		Just val -> fmap (\ val' -> AssocList $ replacewith val' l) $ f val
-		Nothing  -> pure al
-		where
-		replacewith _ [] = []
-		replacewith val' ((k,v):ls) | k==key = (k,val') : replacewith val' ls
-		replacewith val' ((k,v):ls) = (k,v) : replacewith val' ls
--}
 
 instance (Eq key) => At (AssocList key val) where
 	at key = lens ((Prelude.lookup key).fromAssocList) setter

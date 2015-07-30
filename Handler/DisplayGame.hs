@@ -70,6 +70,8 @@ boardArea game = do
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		arr = _gameBoard game
 		arrlookup coors = (Array.!) arr coors
+	
+	error $ show ts
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">

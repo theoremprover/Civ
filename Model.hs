@@ -390,7 +390,7 @@ $(deriveSafeCopy modelVersion 'base ''GameName)
 gameName (GameName gn) = gn
 
 data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
-	deriving (Data,Typeable)
+	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''AssocList)
 
 type Players = AssocList PlayerName Player
