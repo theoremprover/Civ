@@ -186,7 +186,7 @@ initialFigureStack = tokenStackFromList $ replicateUnit [
 	(Flag,6), (Wagon,2) ]
 
 data Square = UnrevealedSquare TileID Coors | Square {
-	_squareTile        :: Maybe TileID,
+	_squareTileIDOri   :: Maybe (TileID,Orientation),
 	_squareTerrain     :: [Terrain],
 	_squareCoin        :: Bool,
 	_squareResource    :: Maybe Resource,
@@ -405,7 +405,6 @@ numPlayers :: Players -> Int
 numPlayers = length . fromAssocList
 
 type Board = Array Coors Square
-instance At Board
 
 emptyBoard :: Board
 emptyBoard = listArray (Coors 1 1,Coors 0 0) []

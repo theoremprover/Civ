@@ -90,7 +90,13 @@ updateBoard gamename coorsquares = do
 createBoard :: GameName -> UpdateCivM ()
 createBoard gamename = do
 	Just players <- queryCivLensM $ civPlayersLens gamename
-	let layout = boardLayout (numPlayers players)
+	let
+		layout = boardLayout (numPlayers players)
+		lcoors = map fst layout
+		(lxcoors,lycoors) = (map xCoor lcoors,map yCoor lcoors)
+		lower = Coors (Prelude.minimum lxcoors) (Prelude.minimum lycoors)
+		upper = Coors (Prelude.maximum lxcoors) (Prelude.maximum lycoors)
+	updateCivLensM (const $ array (lower,upper) []) $ civGameLens gamename . _Just . gameBoard
 	forM_ layout $ \ (coors,layouttile) -> do
 		case layouttile of
 			NT -> do
@@ -107,23 +113,6 @@ createBoard gamename = do
 	squaresfromtile tileid tilecoors = (flip map) (tileSquares tileid) $
 		\ (tcoors,_) -> (tcoors,UnrevealedSquare tileid tilecoors)
 
-
-{-
-	
-	updateCivLensM (const boardtiles) $ civGameLens gamename . _Just . gameBoardTiles
-
-	coorsquaress <- forM boardtiles (squaresFromTile gamename) 
-
-	let
-		coorsquares = concat coorsquaress
-		xcoorss = Prelude.map (xCoor.fst) coorsquares
-		ycoorss = Prelude.map (yCoor.fst) coorsquares
-		mincoors = Coors (Prelude.minimum xcoorss) (Prelude.minimum ycoorss)
-		maxcoors = Coors (Prelude.maximum xcoorss) (Prelude.maximum ycoorss)
-		gameboardarr = Array.array (mincoors,maxcoors) coorsquares
-	updateCivLensM (const gameboardarr) $ civGameLens gamename . _Just . gameBoard
--}
-
 takeFromStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> toktyp -> UpdateCivM (Maybe tok)
 takeFromStackM stacklens toktyp = do
 	Just stack <- queryCivLensM stacklens
@@ -137,14 +126,6 @@ putOnStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> to
 putOnStackM stacklens toktyp tok = do
 	updateCivLensM (putOnStack toktyp tok) stacklens
 
-{-
-data BoardTile = BoardTile {
-	_boardTileId :: TileID,
-	_boardTileCoors :: Coors,
-	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Just Orientation
-	}
--}
 revealTile :: GameName -> Coors -> Orientation -> UpdateCivM ()
 revealTile gamename coors orientation = do
 	Just (UnrevealedSquare tileid tilecoors) <- getSquare gamename coors
@@ -157,16 +138,16 @@ revealTile gamename coors orientation = do
 				mb_village :: Maybe Village <- takeFromStackM (civGameLens gamename . _Just . gameVillageStack) ()
 				return $ sq { _squareTokenMarker = fmap VillageMarker mb_village }
 			_ -> return sq
-		return (addCoors tilecoors (rotate4x4coors orientation tcoors),sq')
+		let sqcoors = addCoors tilecoors (rotate4x4coors orientation tcoors)
+		let tileidori = case tilecoors==sqcoors of
+			True  -> Just (tileid,orientation)
+			False -> Nothing
+		return (sqcoors,sq' { _squareTileIDOri = tileidori } )
 	updateBoard gamename coorssquares
 
 getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $
-	civGameLens gamename . _Just . gameBoard . at coors . _Just
-
-{-
-squaresFromTile gamename (BoardTile tileid tilecoors revealed (Just orientation)) = do
--}
+	civGameLens gamename . _Just . gameBoard . ix coors
 
 $(makeAcidic ''CivState [
 	'getCivState,

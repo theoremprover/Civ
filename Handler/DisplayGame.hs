@@ -60,17 +60,21 @@ playerArea game mb_playername (playername,player) = do
 boardArea :: Game -> Handler Widget
 boardArea game = do
 	let
+{-
 		ts = concat $ (flip map) (_gameBoardTiles game) $ \ tile ->
 			let coors@(Coors x y) = _boardTileCoors tile in
 				((x,y),Just tile) : [ ((x',y'),Nothing) |
 					x' <- [x..(x+3)], y' <- [y..(y+3)], not (x' == x  && y' == y) ]
 		xcoors = map (fst.fst) ts
 		ycoors = map (snd.fst) ts
-		xs = [(minimum xcoors)..(maximum xcoors)]
-		ys = [(minimum ycoors)..(maximum ycoors)]
+-}
 		arr = _gameBoard game
 		isinarr x y = (Coors x y) `elem` (Array.indices arr)
-		arrlookup = (Array.!) arr
+		arrlookup x y = (Array.!) arr (Coors x y)
+		coors = Array.indices arr
+		(xcoors,ycoors) = (map xCoor coors,map yCoor coors)
+		xs = [(minimum xcoors)..(maximum xcoors)]
+		ys = [(minimum ycoors)..(maximum ycoors)]
 
 	return [whamlet|
 <div .Parent>
@@ -79,11 +83,15 @@ boardArea game = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            $maybe mb_tile <- lookup (x,y) ts
-              $maybe tile <- mb_tile
-                <td colspan=4 rowspan=4><img class=#{show (_boardTileOrientation tile)} src=@{boardTileRoute tile}>
-              $nothing
-            $nothing
+            $if isinarr x y
+              $case arrlookup x y
+                $of UnrevealedSquare tileid coors
+                  $if (==) coors (Coors x y)
+                    <td colspan=4 rowspan=4><img class=#{show Northward} src=@{boardTileRoute tileid False}>
+                $of sq
+                  $maybe (tileid,ori) <- _squareTileIDOri sq
+                    <td colspan=4 rowspan=4><img class=#{show ori} src=@{boardTileRoute tileid True}>
+            $else
               <td><img src=@{transparentSquareRoute}> 
 
   <div .Child style="z-index: 2;">
@@ -97,6 +105,6 @@ boardArea game = do
                 $of False
                   <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
                 $of True
-                  $with sq <- arrlookup (Coors x y)
+                  $with sq <- arrlookup x y
                     <p stype="font-size:8pt;">#{show sq}
 |]
