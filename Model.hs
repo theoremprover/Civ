@@ -185,16 +185,19 @@ initialFigureStack :: TokenStack Figure ()
 initialFigureStack = tokenStackFromList $ replicateUnit [
 	(Flag,6), (Wagon,2) ]
 
-data Square = UnrevealedSquare TileID Coors | Square {
-	_squareTileIDOri   :: Maybe (TileID,Orientation),
-	_squareTerrain     :: [Terrain],
-	_squareCoin        :: Bool,
-	_squareResource    :: Maybe Resource,
-	_squareNatWonder   :: Bool,
-	_squareTokenMarker :: Maybe TokenMarker,
-	_squareBuilding    :: Maybe Building,
-	_squareFigures     :: [(Figure,PlayerName)]
-	}
+data Square =
+	OutOfBounds |
+	UnrevealedSquare TileID Coors |
+	Square {
+		_squareTileIDOri   :: Maybe (TileID,Orientation),
+		_squareTerrain     :: [Terrain],
+		_squareCoin        :: Bool,
+		_squareResource    :: Maybe Resource,
+		_squareNatWonder   :: Bool,
+		_squareTokenMarker :: Maybe TokenMarker,
+		_squareBuilding    :: Maybe Building,
+		_squareFigures     :: [(Figure,PlayerName)]
+		}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square

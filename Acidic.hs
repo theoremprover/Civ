@@ -2,7 +2,7 @@
 
 module Acidic where
 
-import Import hiding (Update,Query)
+import Import hiding (Update,Query,array)
 
 import qualified Prelude
 
@@ -13,7 +13,8 @@ import Control.Lens hiding (Action)
 import Control.Monad.State (modify,get,gets)
 import Data.Maybe
 
-import qualified Data.Array.IArray as Array
+import Data.Array.IArray (array,(//))
+import Data.Ix
 
 import Logic
 import Lenses
@@ -85,7 +86,7 @@ setShuffledPlayers gamename players = runUpdateCivM $ do
 
 updateBoard :: GameName -> [(Coors,Square)] -> UpdateCivM ()
 updateBoard gamename coorsquares = do
-	updateCivLensM (Array.// coorsquares) $ civGameLens gamename . _Just . gameBoard
+	updateCivLensM (// coorsquares) $ civGameLens gamename . _Just . gameBoard
 	
 createBoard :: GameName -> UpdateCivM ()
 createBoard gamename = do
@@ -96,17 +97,20 @@ createBoard gamename = do
 		(lxcoors,lycoors) = (map xCoor lcoors,map yCoor lcoors)
 		lower = Coors (Prelude.minimum lxcoors) (Prelude.minimum lycoors)
 		upper = Coors (Prelude.maximum lxcoors) (Prelude.maximum lycoors)
-	updateCivLensM (const $ array (lower,upper) []) $ civGameLens gamename . _Just . gameBoard
+	updateCivLensM (const $ array (lower,upper) (zip (range (lower,upper)) $ repeat OutOfBounds)) $
+		civGameLens gamename . _Just . gameBoard
 	forM_ layout $ \ (coors,layouttile) -> do
 		case layouttile of
 			NT -> do
 				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
-				updateBoard gamename (squaresfromtile tid coors)
+				updateBoard gamename $ squaresfromtile tid coors
 			CT playerindex ori -> do
 				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
-				updateCivLensM (Array.// (squaresfromtile (Tile $ _playerCiv player) coors)) $
-					civGameLens gamename . _Just . gameBoard
+				updateBoard gamename $ squaresfromtile (Tile $ _playerCiv player) coors
 				revealTile gamename coors ori
+
+	Just board <- queryCivLensM (civGameLens gamename . _Just . gameBoard)
+	error $ show board
 
 	where
 	squaresfromtile :: TileID -> Coors -> [(Coors,Square)]
