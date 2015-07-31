@@ -13,7 +13,7 @@ import Control.Lens hiding (Action)
 import Control.Monad.State (modify,get,gets)
 import Data.Maybe
 
-import Data.Array.IArray (array,(//))
+import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
 
 import Logic
@@ -87,7 +87,11 @@ setShuffledPlayers gamename players = runUpdateCivM $ do
 updateBoard :: GameName -> [(Coors,Square)] -> UpdateCivM ()
 updateBoard gamename coorsquares = do
 	updateCivLensM (// coorsquares) $ civGameLens gamename . _Just . gameBoard
-	
+
+debugShowBoard txt gamename = do
+	Just board <- queryCivLensM (civGameLens gamename . _Just . gameBoard)
+	error $ unlines $ txt : map show (assocs board)
+
 createBoard :: GameName -> UpdateCivM ()
 createBoard gamename = do
 	Just players <- queryCivLensM $ civPlayersLens gamename
@@ -96,7 +100,7 @@ createBoard gamename = do
 		lcoors = map fst layout
 		(lxcoors,lycoors) = (map xCoor lcoors,map yCoor lcoors)
 		lower = Coors (Prelude.minimum lxcoors) (Prelude.minimum lycoors)
-		upper = Coors (Prelude.maximum lxcoors) (Prelude.maximum lycoors)
+		upper = Coors (Prelude.maximum lxcoors + 3) (Prelude.maximum lycoors + 3)
 	updateCivLensM (const $ array (lower,upper) (zip (range (lower,upper)) $ repeat OutOfBounds)) $
 		civGameLens gamename . _Just . gameBoard
 	forM_ layout $ \ (coors,layouttile) -> do
@@ -108,9 +112,6 @@ createBoard gamename = do
 				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
 				updateBoard gamename $ squaresfromtile (Tile $ _playerCiv player) coors
 				revealTile gamename coors ori
-
-	Just board <- queryCivLensM (civGameLens gamename . _Just . gameBoard)
-	error $ show board
 
 	where
 	squaresfromtile :: TileID -> Coors -> [(Coors,Square)]
@@ -132,7 +133,12 @@ putOnStackM stacklens toktyp tok = do
 
 revealTile :: GameName -> Coors -> Orientation -> UpdateCivM ()
 revealTile gamename coors orientation = do
-	Just (UnrevealedSquare tileid tilecoors) <- getSquare gamename coors
+	mb_sq <- getSquare gamename coors
+	(UnrevealedSquare tileid tilecoors) <- case mb_sq of
+		Just sq -> return sq
+		_ -> do
+			debugShowBoard (show mb_sq) gamename
+
 	coorssquares <- forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
 			Just (HutMarker _) -> do
