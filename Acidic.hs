@@ -116,7 +116,7 @@ createBoard gamename = do
 	where
 	squaresfromtile :: TileID -> Coors -> [(Coors,Square)]
 	squaresfromtile tileid tilecoors = (flip map) (tileSquares tileid) $
-		\ (tcoors,_) -> (tcoors,UnrevealedSquare tileid tilecoors)
+		\ (tcoors,_) -> (tilecoors +/+ tcoors,UnrevealedSquare tileid tilecoors)
 
 takeFromStackM :: (Ord toktyp) => Traversal' CivState (TokenStack toktyp tok) -> toktyp -> UpdateCivM (Maybe tok)
 takeFromStackM stacklens toktyp = do
@@ -135,9 +135,9 @@ revealTile :: GameName -> Coors -> Orientation -> UpdateCivM ()
 revealTile gamename coors orientation = do
 	mb_sq <- getSquare gamename coors
 	(UnrevealedSquare tileid tilecoors) <- case mb_sq of
-		Just sq -> return sq
+		Just sq@(UnrevealedSquare _ _) -> return sq
 		_ -> do
-			debugShowBoard (show mb_sq) gamename
+			debugShowBoard (show coors ++ show mb_sq) gamename
 
 	coorssquares <- forM (tileSquares tileid) $ \ (tcoors,sq) -> do
 		sq' <- case _squareTokenMarker sq of
@@ -148,7 +148,7 @@ revealTile gamename coors orientation = do
 				mb_village :: Maybe Village <- takeFromStackM (civGameLens gamename . _Just . gameVillageStack) ()
 				return $ sq { _squareTokenMarker = fmap VillageMarker mb_village }
 			_ -> return sq
-		let sqcoors = addCoors tilecoors (rotate4x4coors orientation tcoors)
+		let sqcoors = tilecoors +/+ (rotate4x4coors orientation tcoors)
 		let tileidori = case tilecoors==sqcoors of
 			True  -> Just (tileid,orientation)
 			False -> Nothing

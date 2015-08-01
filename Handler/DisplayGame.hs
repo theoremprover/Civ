@@ -70,6 +70,15 @@ boardArea game = do
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
+    <table .NoSpacing border=1>
+      $forall y <- ys
+        <tr>
+          $forall x <- xs
+            <td style="position:relative">
+              $with sq <- arrlookup x y
+                <img alt="alt" title="#{(++) (show (x,y)) (show sq)}" src=@{transparentSquareRoute}>
+
+  <div style="z-index: 2;">
     <table .NoSpacing>
       $forall y <- ys
         <tr>
@@ -84,15 +93,6 @@ boardArea game = do
                 $maybe (tileid,ori) <- _squareTileIDOri sq
                   <td colspan=4 rowspan=4><img class=#{show ori} src=@{boardTileRoute tileid True}>
 
-  <div .Child style="z-index: 2;">
-    <table .NoSpacing border=1>
-      $forall y <- ys
-        <tr>
-          $forall x <- xs
-            <td style="position:relative">
-              <img src=@{transparentSquareRoute}>
-              $with sq <- arrlookup x y
-                <p style="font-size:8pt;">#{show sq}
 |]
 {-
                 $case arrlookup x y

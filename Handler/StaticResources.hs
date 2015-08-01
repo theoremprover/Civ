@@ -71,7 +71,7 @@ cultureRoute (CultureCard True ev coins) = cultureRouteRevealed ev
 
 $(makeRoutes ''Tech "techRoute" "_Techs_" "_jpg")
 
-transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
+transparentSquareRoute = StaticR _Tiles_TransparentSquare2_gif
 
 $(makeRoutes ''Building "buildingRoute" "_Squares_" "_jpg")
 

@@ -30,7 +30,9 @@ data Coors = Coors { xCoor :: Int, yCoor :: Int }
 	deriving (Show,Data,Typeable,Eq,Ord,Ix)
 $(deriveSafeCopy modelVersion 'base ''Coors)
 
-addCoors (Coors x1 y1) (Coors x2 y2) = Coors (x1+x2) (y1+y2)
+infix 6 +/+
+(Coors x1 y1) +/+ (Coors x2 y2) = Coors (x1+x2) (y1+y2)
+
 
 newtype Trade = Trade Int deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Trade)
