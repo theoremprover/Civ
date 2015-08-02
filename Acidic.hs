@@ -108,9 +108,11 @@ createBoard gamename = do
 			NT -> do
 				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
 				updateBoard gamename $ squaresfromtile tid coors
+				revealTile gamename coors Northward
 			CT playerindex ori -> do
 				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
 				updateBoard gamename $ squaresfromtile (Tile $ _playerCiv player) coors
+				updateCivLensM (const ori) $ civPlayerLens gamename playername . _Just . playerOrientation
 				revealTile gamename coors ori
 
 	where

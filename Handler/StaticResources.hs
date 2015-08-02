@@ -71,9 +71,7 @@ cultureRoute (CultureCard True ev coins) = cultureRouteRevealed ev
 
 $(makeRoutes ''Tech "techRoute" "_Techs_" "_jpg")
 
-transparentSquareRoute = StaticR _Tiles_TransparentSquare2_gif
-
-$(makeRoutes ''Building "buildingRoute" "_Squares_" "_jpg")
+transparentSquareRoute = StaticR _Tiles_TransparentSquare_gif
 
 $(makeRoutes ''GreatPerson "greatPersonRouteRevealed" "_Great_" "_jpg")
 greatPersonRoute greatperson revealed = case revealed of
@@ -94,4 +92,11 @@ unitCardRoute unitcard revealed = case revealed of
 	True  -> unitCardRouteRevealed unitcard
 	False -> StaticR _Units_Unit_back_jpg
 
--- $(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_jpg")
+-- $(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_Building_jpg")
+
+$(makeRoutes ''BuildingType "buildingTypeRoute" "_Squares_" "_jpg")
+
+hutRoute = StaticR _Resources_Hut_gif
+villageRoute = StaticR _Resources_Village_gif
+
+$(makeRoutes ''Artifact "artifactRoute" "_Squares_" "_jpg")

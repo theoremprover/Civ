@@ -6,6 +6,8 @@ import Prelude (map,minimum,maximum,concat,lookup)
 import qualified Data.Text as Text
 import qualified Data.Map as Map
 import Data.Array.IArray ((!),indices)
+import Data.Maybe
+import Control.Lens hiding (indices)
 
 import GameMonad
 import Model
@@ -13,6 +15,7 @@ import Entities
 import Polls
 import Handler.HandlerPolling
 import Handler.StaticResources
+import Lenses
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -21,18 +24,23 @@ colour2html colour = show colour
 
 displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
 displayGame (userid,user,gamename,game,mb_playername) = do
+	let
+		toplayer playername = fromJust $ lookupAssocList playername players
+		myplayerori = maybe Northward (_playerOrientation . toplayer) mb_playername
+
 	playerareas <- mapM (playerArea game mb_playername) $ fromAssocList (_gamePlayers game)
-	boardarea <- boardArea game
+	boardarea <- boardArea gamename mb_playername
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		case playerareas of
 			[playerarea1,playerarea2] -> [whamlet|
-<table>
-  <tr><td>^{playerarea2}
-  <tr><td>^{boardarea}
-  <tr><td>^{playerarea1}
+<div class=#{show myplayerori}>
+  <table>
+    <tr><td>^{playerarea2}
+    <tr><td>^{boardarea}
+    <tr><td>^{playerarea1}
 |]
 			[playerarea1,playerarea2,playerarea3,playerarea4] -> [whamlet|
 <table>
@@ -49,16 +57,17 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 
 playerArea :: Game -> Maybe PlayerName -> (PlayerName,Player) -> Handler Widget
 playerArea game mb_playername (playername,player) = do
-	let revealed = mb_playername == Just playername
 	return [whamlet|
-<div>
+<div class=#{show (_playerOrientation player)}>
   <table>
     <tr><td>#{show playername}
     <tr><td><img src=@{dialRoute (_playerCiv player)}>
 |]
 
-boardArea :: Game -> Handler Widget
-boardArea game = do
+boardArea :: GameName -> Maybe PlayerName -> Handler Widget
+boardArea gamename mb_myplayer myplayerori = do
+	Just game <- queryCivLensH $ civGameLens gamename . _Just
+	Just players <- queryCivLensH $ civPlayersLens gamename
 	let
 		arr = _gameBoard game
 		arrlookup x y = arr!(Coors x y)
@@ -74,9 +83,19 @@ boardArea game = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            <td style="position:relative">
-              $with sq <- arrlookup x y
-                <img alt="alt" title="#{(++) (show (x,y)) (show sq)}" src=@{transparentSquareRoute}>
+            <td .SquareContainer style="position:relative">
+              $case arrlookup x y
+                $of OutOfBounds
+                $of UnrevealedSquare tileid coors
+                $of sq
+                  $maybe tokmarker <- _squareTokenMarker sq
+                    $case tokmarker
+                      $of ArtifactMarker artifact
+                        <img .Center class=#{show myplayerori} src=@{artifactRoute artifact}>
+                      $of HutMarker _
+                        <img .Center class=#{show myplayerori} src=@{hutRoute}>
+                      $of VillageMarker _
+                        <img .Center class=#{show myplayerori} src=@{villageRoute}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -85,18 +104,21 @@ boardArea game = do
           $forall x <- xs
             $case arrlookup x y
               $of OutOfBounds
-                <td><img src=@{transparentSquareRoute}> 
+                <td .TileContainer><img .Center src=@{transparentSquareRoute}> 
               $of UnrevealedSquare tileid coors
                 $if (==) coors (Coors x y)
-                  <td colspan=4 rowspan=4><img class=#{show Northward} src=@{boardTileRoute tileid False}>
+                  <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show Northward} src=@{boardTileRoute tileid False}>
               $of sq
                 $maybe (tileid,ori) <- _squareTileIDOri sq
-                  <td colspan=4 rowspan=4><img class=#{show ori} src=@{boardTileRoute tileid True}>
+                  <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 
 |]
 {-
-                $case arrlookup x y
-                $of False
-                  <img style="position: absolute; top:3px; left:3px" src=@{StaticR $ _Squares_TradeStation_jpg}>
-                $of True
+                  <img .Center alt="alt" title="#{(++) (show (x,y)) (show sq)}" src=@{transparentSquareRoute}>
+
+	ArtifactMarker Artifact |
+	HutMarker Hut |
+	VillageMarker Village |
+	CityMarker City |
+	BuildingMarker Building
 -}

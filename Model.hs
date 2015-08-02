@@ -158,10 +158,14 @@ data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
-data Building = Barracks | Forge | Granary | Harbour | Library |
+data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradeStation | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''BuildingType)
+
+data Building = Building BuildingType PlayerName
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
@@ -209,18 +213,6 @@ initialBoardTileStack = tokenStackFromList [((),
 	[ Tile1,Tile2,Tile3,Tile4,Tile5,Tile6,Tile7,Tile8,Tile9,Tile10,
 		Tile11,Tile12,Tile13,Tile14,Tile15,Tile16,Tile17,Tile18,
 		Tile19,Tile20,Tile21,Tile22,Tile23,Tile24,Tile25,Tile26,Tile27 ] )]
-
-{-
-data BoardTile = BoardTile {
-	_boardTileId :: TileID,
-	_boardTileCoors :: Coors,
-	_boardTileDiscovered :: Bool,
-	_boardTileOrientation :: Maybe Orientation
-	}
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''BoardTile)
-makeLenses ''BoardTile
--}
 
 data TechCard = TechCard {
 	_techCardTechId :: Tech,
@@ -375,7 +367,8 @@ data Player = Player {
 	_playerInvestments :: TokenStack Investment (),
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits :: [UnitCard],
-	_playerCultureCards :: [CultureCard]
+	_playerCultureCards :: [CultureCard],
+	_playerOrientation :: Orientation
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -385,7 +378,7 @@ makePlayer useremail colour civ = Player
 	useremail colour civ Despotism
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
-	[] [] []
+	[] [] [] Northward
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -400,6 +393,9 @@ gameName (GameName gn) = gn
 data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''AssocList)
+
+lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
+lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
 
 type Players = AssocList PlayerName Player
 
