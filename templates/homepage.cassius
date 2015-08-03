@@ -25,16 +25,12 @@ img
     position: absolute
 
 .TileContainer
-    min-width : 376px
-    min-height: 376px
-    max-width : 376px
-    max-height: 376px
+    width : 376px
+    height: 376px
 
 .SquareContainer
-    min-width : 94px
-    min-height: 94px
-    max-width : 94px
-    max-height: 94px
+    width : 94px
+    height: 94px
 
 .Center
     margin: auto

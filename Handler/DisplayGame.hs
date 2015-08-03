@@ -44,23 +44,23 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		case playerareas of
-			[playerarea1,playerarea2] -> [whamlet|
+			[playerarea0,playerarea1] -> [whamlet|
 <div class=#{show myplayerori}>
   <table>
-    <tr><td>^{playerarea2}
+    <tr><td>^{playerarea0}
     <tr><td>^{boardarea}
     <tr><td>^{playerarea1}
 |]
-			[playerarea1,playerarea2,playerarea3,playerarea4] -> [whamlet|
+			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
 <table>
   <tr>
-    <td rowspan="2">^{playerarea2}
-    <td colspan="2">^{playerarea3}
+    <td rowspan="2">^{playerarea1}
+    <td colspan="2">^{playerarea2}
   <tr>
     <td>^{boardarea}
-    <td rowspan="2">^{playerarea4}
+    <td rowspan="2">^{playerarea3}
   <tr>
-    <td colspan="2">^{playerarea1}
+    <td colspan="2">^{playerarea0}
 |]
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
@@ -90,19 +90,20 @@ boardArea (DisplayInfo{..}) = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            <td .SquareContainer style="position:relative">
-              $case arrlookup x y
-                $of OutOfBounds
-                $of UnrevealedSquare tileid coors
-                $of sq
-                  $maybe tokmarker <- _squareTokenMarker sq
-                    $case tokmarker
-                      $of ArtifactMarker artifact
-                        <img .Center class=#{show myPlayerOriDI} src=@{artifactRoute artifact}>
-                      $of HutMarker _
-                        <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
-                      $of VillageMarker _
-                        <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
+            $with square <- arrlookup x y
+              <td .SquareContainer alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                $case square
+                  $of OutOfBounds
+                  $of UnrevealedSquare tileid coors
+                  $of _
+                    $maybe tokmarker <- _squareTokenMarker square
+                      $case tokmarker
+                        $of ArtifactMarker artifact
+                          <img .Center class=#{show myPlayerOriDI} src=@{artifactRoute artifact}>
+                        $of HutMarker _
+                          <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
+                        $of VillageMarker _
+                          <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>
