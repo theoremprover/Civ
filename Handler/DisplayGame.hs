@@ -104,6 +104,9 @@ boardArea (DisplayInfo{..}) = do
                           <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
                         $of VillageMarker _
                           <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
+                        $of CityMarker city
+                          <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
+                        $of BuildingMarker (Building buildingtype owner)
 
   <div style="z-index: 2;">
     <table .NoSpacing>
