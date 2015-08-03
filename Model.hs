@@ -183,6 +183,34 @@ data TokenMarker =
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
 
+data Wonder =
+	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
+	ChichenItza | Pyramids | GreatLighthouse | StatueZeus |
+	AngkorWat | HimejisCastle | TajMahal | PorcelainTower | MachuPichu |
+	BrandenburgGate | Louvre | NotreDame | LeonardosWorkshop |
+	SydneyOpera | StatueLiberty | PanamaCanal | UnitedNations |
+	BigBen | CristoRedentor | Kremlin | Pentagon | Internet
+	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Wonder)
+
+type PolicyCard = (Policy,Policy)
+policyCards :: [PolicyCard]
+policyCards = [
+	(NaturalReligion,OrganizedReligion),
+	(Pacifism,MilitaryTradition),
+	(Expansionism,UrbanDevelopment),
+	(Rationalism,Patronage) ]
+
+data Policy =
+	Rationalism | NaturalReligion | MilitaryTradition | UrbanDevelopment |
+	Patronage | Pacifism | OrganizedReligion | Expansionism
+	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Policy)
+
+data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
+	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''CityState)
+
 data Figure = Flag | Wagon
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Figure)

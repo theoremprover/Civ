@@ -82,7 +82,7 @@ $(makeRoutes ''Terrain "terrainRoute" "_Squares_" "_jpg")
 $(makeRoutes ''Colour "colourRouteFlag" "_Figures_Flag_" "_gif")
 $(makeRoutes ''Colour "colourRouteWagon" "_Figures_Wagon_" "_gif")
 figureRoute figure colour = case figure of
-	Flag -> colourRouteFlag colour
+	Flag  -> colourRouteFlag colour
 	Wagon -> colourRouteWagon colour
 
 $(makeRoutes ''Investment "investmentRoute" "_Investments_" "_jpg")
@@ -92,11 +92,19 @@ unitCardRoute unitcard revealed = case revealed of
 	True  -> unitCardRouteRevealed unitcard
 	False -> StaticR _Units_Unit_back_jpg
 
--- $(makeRoutes ''Wonder "wonderRoute" "_Squares_" "_Building_jpg")
+$(makeRoutes ''Wonder "wonderBuildingRoute" "_Squares_" "_Building_jpg")
+$(makeRoutes ''Wonder "wonderCardRoute" "_Wonders_" "_jpg")
 
 $(makeRoutes ''BuildingType "buildingTypeRoute" "_Squares_" "_jpg")
 
-hutRoute = StaticR _Resources_Hut_gif
+hutRoute     = StaticR _Resources_Hut_gif
 villageRoute = StaticR _Resources_Village_gif
 
 $(makeRoutes ''Artifact "artifactRoute" "_Squares_" "_jpg")
+
+$(makeRoutes ''Policy "policyRoute" "_Policies_" "_jpg")
+
+$(makeRoutes ''Government "governmentRoute" "_Policies_" "_jpg")
+
+$(makeRoutes ''CityState "cityStateRoute" "_Squares_" "_jpg")
+
