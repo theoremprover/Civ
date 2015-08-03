@@ -22,14 +22,23 @@ colour2html colour = show colour
 
 -- <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
 
+data DisplayInfo = DisplayInfo {
+	gameDI :: Game,
+	myPlayerDI :: Maybe Player,
+	myPlayerOriDI :: Orientation,
+	playernameToPlayerDI :: (PlayerName -> Player)
+}
+
 displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
 displayGame (userid,user,gamename,game,mb_playername) = do
 	let
-		toplayer playername = fromJust $ lookupAssocList playername players
-		myplayerori = maybe Northward (_playerOrientation . toplayer) mb_playername
+		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
+		mb_myplayer = fmap toplayer mb_playername
+		myplayerori = maybe Northward _playerOrientation mb_myplayer
+		di = DisplayInfo game mb_myplayer myplayerori toplayer
 
-	playerareas <- mapM (playerArea game mb_playername) $ fromAssocList (_gamePlayers game)
-	boardarea <- boardArea gamename mb_playername
+	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
+	boardarea <- boardArea di
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
@@ -55,8 +64,8 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 |]
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
-playerArea :: Game -> Maybe PlayerName -> (PlayerName,Player) -> Handler Widget
-playerArea game mb_playername (playername,player) = do
+playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
+playerArea (DisplayInfo{..}) (playername,player) = do
 	return [whamlet|
 <div class=#{show (_playerOrientation player)}>
   <table>
@@ -64,12 +73,10 @@ playerArea game mb_playername (playername,player) = do
     <tr><td><img src=@{dialRoute (_playerCiv player)}>
 |]
 
-boardArea :: GameName -> Maybe PlayerName -> Handler Widget
-boardArea gamename mb_myplayer myplayerori = do
-	Just game <- queryCivLensH $ civGameLens gamename . _Just
-	Just players <- queryCivLensH $ civPlayersLens gamename
+boardArea :: DisplayInfo -> Handler Widget
+boardArea (DisplayInfo{..}) = do
 	let
-		arr = _gameBoard game
+		arr = _gameBoard gameDI
 		arrlookup x y = arr!(Coors x y)
 		coors = indices arr
 		(xcoors,ycoors) = (map xCoor coors,map yCoor coors)
@@ -91,11 +98,11 @@ boardArea gamename mb_myplayer myplayerori = do
                   $maybe tokmarker <- _squareTokenMarker sq
                     $case tokmarker
                       $of ArtifactMarker artifact
-                        <img .Center class=#{show myplayerori} src=@{artifactRoute artifact}>
+                        <img .Center class=#{show myPlayerOriDI} src=@{artifactRoute artifact}>
                       $of HutMarker _
-                        <img .Center class=#{show myplayerori} src=@{hutRoute}>
+                        <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
                       $of VillageMarker _
-                        <img .Center class=#{show myplayerori} src=@{villageRoute}>
+                        <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>
