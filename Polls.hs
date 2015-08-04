@@ -11,7 +11,6 @@ data Action =
 	CreateGameA GameName |
 	DeleteGameA GameName |
 	JoinGameA GameName PlayerName PlayerEmail Colour Civ |
-	IncTradeA GameName PlayerName Trade |
 	StartGameA GameName |
 	SetSessionGameA GameName |
 	SetSessionGamePlayerA GameName PlayerName

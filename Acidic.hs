@@ -76,10 +76,6 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
-incTrade :: GameName -> PlayerName -> Trade -> Update CivState UpdateResult
-incTrade gamename playername trade = runUpdateCivM $ do
-	updateCivLensM (+trade) $ civPlayerLens gamename playername . _Just . playerTrade
-
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
 	updateCivLensM (const players) $ civPlayersLens gamename
@@ -161,13 +157,18 @@ getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $
 	civGameLens gamename . _Just . gameBoard . ix coors
 
+{-
+erectBuilding :: GameName -> BuildingType -> Coors -> Owner -> UpdateCivM ()
+erectBuilding gamename buildingtype coors owner = do
+	mb_unit <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) buildingtype
+-}
+	
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,
 	'startGame,
 	'joinGame,
 	'deleteGame,
-	'incTrade,
 	'createNewGame
 	])
 

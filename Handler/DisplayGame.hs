@@ -82,7 +82,7 @@ boardArea (DisplayInfo{..}) = do
 		(xcoors,ycoors) = (map xCoor coors,map yCoor coors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
-
+		playerori owner = _playerOrientation (playernameToPlayerDI owner)
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -104,9 +104,12 @@ boardArea (DisplayInfo{..}) = do
                           <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
                         $of VillageMarker _
                           <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
-                        $of CityMarker city
-                          <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
+                        $of CityMarker (SecondCitySquare ori)
+                          <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
+                        $of CityMarker (City{..})
+                          <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
                         $of BuildingMarker (Building buildingtype owner)
+                          <img .Center class=#{show (playerori owner)} src=@{buildingTypeRoute buildingtype}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -124,12 +127,3 @@ boardArea (DisplayInfo{..}) = do
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 
 |]
-{-
-                  <img .Center alt="alt" title="#{(++) (show (x,y)) (show sq)}" src=@{transparentSquareRoute}>
-
-	ArtifactMarker Artifact |
-	HutMarker Hut |
-	VillageMarker Village |
-	CityMarker City |
-	BuildingMarker Building
--}

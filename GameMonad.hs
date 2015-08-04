@@ -150,7 +150,4 @@ executeAction action = do
 			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
 
-		IncTradeA gamename playername trade -> do
-			updateCivH action [GameGame gamename] $ IncTrade gamename playername trade
-
 		_ -> return $ eRR $ show action ++ " not implemented yet"
