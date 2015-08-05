@@ -29,6 +29,7 @@ library
                      Handler.DisplayGame
                      Handler.HandlerPolling
                      Polls
+                     Moves
                      TokenStack
                      Lenses
                      Acidic

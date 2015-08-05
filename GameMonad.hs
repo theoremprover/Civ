@@ -20,7 +20,6 @@ import Lenses
 import Polls
 import Acidic
 
-
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>
 	Action -> [Affected] -> event -> Handler (EventResult event)
 updateCivH action affecteds event = do

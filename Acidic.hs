@@ -20,6 +20,7 @@ import Logic
 import Lenses
 import TokenStack
 import Model
+import Moves
 
 
 type UpdateResult = Either String ()
@@ -29,8 +30,6 @@ eRR errmsg = Left errmsg
 
 getCivState :: Query CivState CivState
 getCivState = ask
-
-type UpdateCivM a = ErrorT String (Update CivState) a
 
 runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
 runUpdateCivM = runErrorT
@@ -75,6 +74,7 @@ startGame gamename = runUpdateCivM $ do
 		(civGameLens gamename . _Just . gameState) (==Waiting)
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
+	buildCity (Coors 2 2) 
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
