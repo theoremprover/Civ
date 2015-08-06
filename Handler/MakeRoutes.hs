@@ -18,3 +18,14 @@ makeRoutes name funnamestr pathpre pathpost = do
 		return $ Match (ConP cname []) (NormalB caseexpr) []
 	return [ FunD funname [ Clause [VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]
+
+makeMultiRoutes :: [Name] -> String -> String -> String -> Q [Dec]
+makeMultiRoutes names funnamestr -> pathpre pathpost = do
+	constrss <- forM funames $ \ name -> do
+		TyConI tok@(DataD _ _ _ constrs _) <- reify name
+		return constrs
+	funname <- newName funnamestr
+	valname <- newName "val"
+	
+	
+		

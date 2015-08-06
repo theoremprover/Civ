@@ -108,3 +108,4 @@ $(makeRoutes ''Government "governmentRoute" "_Policies_" "_jpg")
 
 $(makeRoutes ''CityState "cityStateRoute" "_Squares_" "_jpg")
 
+cityRoute :: CityType -> Bool -> 

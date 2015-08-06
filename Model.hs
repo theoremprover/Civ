@@ -146,6 +146,7 @@ data City = SecondCitySquare Orientation | City {
 	_cityType :: CityType,
 	_cityDoubleProd :: Bool,
 	_cityFortified :: Bool,
+	_cityWalls :: Bool,
 	_cityCaravan :: Bool,
 	_cityMetropolis :: Maybe Orientation
 	}
