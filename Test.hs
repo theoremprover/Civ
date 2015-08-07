@@ -4,6 +4,6 @@
 
 module Test where
 
-createproduct :: [[a]] -> [a] -> [a] 
-createproduct [] acc = acc
-createproduct (l:ls) acc = createproduct ls $ concatMap (\ ac -> map (:ac) ls) acc
+createxproduct :: [[a]] -> [[a]] -> [[a]] 
+createxproduct [] acc = acc
+createxproduct (l:ls) acc = createxproduct ls $ concat [ map (e:) acc | e <- l ]
