@@ -20,7 +20,6 @@ import Logic
 import Lenses
 import TokenStack
 import Model
-import Moves
 
 
 type UpdateResult = Either String ()
