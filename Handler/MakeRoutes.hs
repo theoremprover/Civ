@@ -19,20 +19,23 @@ makeRoutes name funnamestr pathpre pathpost = do
 	return [ FunD funname [ Clause [VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]
 
-makeMultiRoutes :: [Name] -> [String] -> String -> String -> Q [Dec]
-makeMultiRoutes names funnamestrs pathpre pathpost = do
-	cfs <- forM (zip names funnamestrs) $ \ (name,funname) -> do
+makeMultiRoutes :: [Name] -> String -> [ String ] -> Q [Dec]
+makeMultiRoutes names funnamestr pathintersperses = do
+	cnamess <- forM names $ \ name -> do
 		TyConI tok@(DataD _ _ _ constrs _) <- reify name
-		let cnames = map (\ (NormalC cname []) -> pathpre ++ nameBase cname ++ pathpost) constrs
+		return $ map (\ (NormalC cname []) -> cname) constrs
 	funname <- newName funnamestr
 	valname <- newName "val"
-	matches <- forM cfs $ \ constrs -> do
-		let caseexpr = VarE $ mkName $ 
-		return $ Match (TupP [ ConP cname [] | cname <- cnames ]) (NormalB caseexpr) []
+	matches <- forM (createxproduct cnamess [[]]) $ \ combcnames -> do
+		let imagevar = VarE $ mkName $
+			concatMap (\ combcnames -> map nameBase ) combcnamess
+		return $ Match (TupP [ ConP cname [] | cname <- combcnames ]) (NormalB imagevar) []
 	return [ FunD funname [ Clause [VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]		
 
 	where
+
+	blend :: [String] -> [String] -> String
 
 	createxproduct :: [[a]] -> [[a]] -> [[a]] 
 	createxproduct [] acc = acc
