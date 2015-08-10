@@ -27,8 +27,7 @@ makeMultiRoutes names funnamestr pathintersperses = do
 	funname <- newName funnamestr
 	valname <- newName "val"
 	matches <- forM (createxproduct cnamess [[]]) $ \ combcnames -> do
-		let imagevar = VarE $ mkName $
-			concatMap (\ combcnames -> map nameBase ) combcnamess
+		let imagevar = VarE $ mkName $ blend pathintersperses (map nameBase combcnames)
 		return $ Match (TupP [ ConP cname [] | cname <- combcnames ]) (NormalB imagevar) []
 	return [ FunD funname [ Clause [VarP valname]
 		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]		
@@ -36,6 +35,9 @@ makeMultiRoutes names funnamestr pathintersperses = do
 	where
 
 	blend :: [String] -> [String] -> String
+	blend [i] [] = [i]
+	blend (i:is) (c:cs) = i ++ c ++ blend is cs
+	blend is cs = error $ "blend: is=" ++ show is ++ " and cs=" ++ show cs ++ " have not the right length"
 
 	createxproduct :: [[a]] -> [[a]] -> [[a]] 
 	createxproduct [] acc = acc

@@ -108,4 +108,7 @@ $(makeRoutes ''Government "governmentRoute" "_Policies_" "_jpg")
 
 $(makeRoutes ''CityState "cityStateRoute" "_Squares_" "_jpg")
 
-cityRoute :: CityType -> Bool -> 
+$(makeRoutes [''CityType,''Bool,''Colour] "cityStateRoute" ["_Squares_","","_","_jpg"])
+
+cityRoute :: CityType -> Bool -> Colour -> AppRoute Static
+cityRoute citytype walls colour = 
