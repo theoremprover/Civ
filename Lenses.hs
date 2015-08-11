@@ -14,20 +14,6 @@ import Data.Acid.Advanced
 
 import Model
 
---Prism' [(key,val)] (Maybe val)
---type Prism' s a = Prism s s a a 
---prism' :: (b -> s) -> (s -> Maybe a) -> Prism s s a b
-
-{-
-assocListLens :: key -> [(key,val)] -> Prism' [(key,val)] val
-assocListLens key = prism' setter (lookup key) where
-	setter :: [(key,val)] -> Maybe val -> [(key,val)]
-	setter list        Nothing             = filter ((==key).fst) list
-	setter []          (Just val)          = [(key,val)]
-	setter ((k,a):kas) (Just val) | k==key = (k,val) : kas
-	setter (ka:kas)    jval                = ka : setter kas jval
--}
-
 type instance Index   (AssocList key val) = key
 type instance IxValue (AssocList key val) = val
 

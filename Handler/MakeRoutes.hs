@@ -41,6 +41,6 @@ makeMultiRoutes names funnamestr pathintersperses = do
 
 	createxproduct :: [[a]] -> [[a]] -> [[a]] 
 	createxproduct [] acc = acc
-	createxproduct (l:ls) acc = createxproduct ls $ concat [ map (e:) acc | e <- l ]
+	createxproduct (l:ls) acc = createxproduct ls $ concat [ map (++[e]) acc | e <- l ]
 	
 		

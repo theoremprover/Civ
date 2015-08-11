@@ -141,17 +141,24 @@ initialCityStack :: TokenStack CityType ()
 initialCityStack = tokenStackFromList $ replicateUnit [
 	(CityT,3),(MetropolisT,1) ]
 
+data Walls = NoWalls | Walls
+	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
+$(deriveSafeCopy modelVersion 'base ''Walls)
+
 data City = SecondCitySquare Orientation | City {
 	_cityOwner :: PlayerName,
 	_cityType :: CityType,
+	_cityCapital :: Bool,
 	_cityDoubleProd :: Bool,
 	_cityFortified :: Bool,
-	_cityWalls :: Bool,
+	_cityWalls :: Walls,
 	_cityCaravan :: Bool,
 	_cityMetropolis :: Maybe Orientation
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
+
+newCity playername = City 
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |

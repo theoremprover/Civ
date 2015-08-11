@@ -83,6 +83,7 @@ boardArea (DisplayInfo{..}) = do
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		playerori owner = _playerOrientation (playernameToPlayerDI owner)
+		playercolour owner = _playerColour (playernameToPlayerDI owner)
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -107,7 +108,7 @@ boardArea (DisplayInfo{..}) = do
                         $of CityMarker (SecondCitySquare ori)
                           <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
                         $of CityMarker (City{..})
-                          <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
+                          <img .Center class=#{show myPlayerOriDI} src=@{cityRoute (_cityType,_cityWalls,playercolour _cityOwner)}>
                         $of BuildingMarker (Building buildingtype owner)
                           <img .Center class=#{show (playerori owner)} src=@{buildingTypeRoute buildingtype}>
 

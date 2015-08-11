@@ -20,7 +20,7 @@ import Logic
 import Lenses
 import TokenStack
 import Model
-
+import Moves
 
 type UpdateResult = Either String ()
 
@@ -73,7 +73,10 @@ startGame gamename = runUpdateCivM $ do
 		(civGameLens gamename . _Just . gameState) (==Waiting)
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
-	buildCity (Coors 2 2) 
+
+	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
+	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
+	buildCity gamename pn0 (Coors 2 2) CityT
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
@@ -156,12 +159,6 @@ getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $
 	civGameLens gamename . _Just . gameBoard . ix coors
 
-{-
-erectBuilding :: GameName -> BuildingType -> Coors -> Owner -> UpdateCivM ()
-erectBuilding gamename buildingtype coors owner = do
-	mb_unit <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) buildingtype
--}
-	
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,

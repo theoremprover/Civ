@@ -6,7 +6,6 @@ import Prelude
 
 import Data.Maybe
 
-import Acidic
 import Logic
 import Lenses
 import TokenStack
@@ -20,4 +19,8 @@ erectBuilding :: GameName -> BuildingType -> Coors -> Owner -> (UpdateCivM Bool,
 erectBuilding gamename buildingtype coors owner = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) buildingtype
 -}
---buildCity :: 
+--	buildCity gamename pn0 (Coors 2 2) CityT
+buildCity :: GameName -> PlayerName -> Coors -> CityType -> UpdateCivM ()
+buildCity gamename playername coors citytype = do
+	let city = 
+	updateCivLensM 
