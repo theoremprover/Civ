@@ -108,7 +108,7 @@ boardArea (DisplayInfo{..}) = do
                         $of CityMarker (SecondCitySquare ori)
                           <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
                         $of CityMarker (City{..})
-                          <img .Center class=#{show myPlayerOriDI} src=@{cityRoute (_cityType,_cityWalls,playercolour _cityOwner)}>
+                          <img .Center class=#{show myPlayerOriDI} src=@{cityRoute (_cityType,_cityCapital,_cityWalls,playercolour _cityOwner)}>
                         $of BuildingMarker (Building buildingtype owner)
                           <img .Center class=#{show (playerori owner)} src=@{buildingTypeRoute buildingtype}>
 

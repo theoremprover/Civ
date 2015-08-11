@@ -47,3 +47,6 @@ civPlayerIndexLens gamename index = civPlayersLens gamename . nthAssocListLens i
 nthAssocListLens :: Int -> Lens' (AssocList key val) (key,val)
 nthAssocListLens index = lens ((!!index).fromAssocList) ins where
 	ins (AssocList l) e = AssocList $ take index l ++ [e] ++ drop index l
+
+civSquareLens :: GameName -> Coors -> Traversal' CivState Square
+civSquareLens gamename coors = civGameLens gamename . _Just . gameBoard . ix coors

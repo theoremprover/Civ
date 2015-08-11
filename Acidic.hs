@@ -9,9 +9,8 @@ import qualified Prelude
 import Data.Acid
 import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
-import Control.Lens hiding (Action)
-import Control.Monad.State (modify,get,gets)
 import Data.Maybe
+import Control.Lens hiding (Action)
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
@@ -22,24 +21,8 @@ import TokenStack
 import Model
 import Moves
 
-type UpdateResult = Either String ()
-
-oK = Right ()
-eRR errmsg = Left errmsg
-
 getCivState :: Query CivState CivState
 getCivState = ask
-
-runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
-runUpdateCivM = runErrorT
-
-updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
-updateCivLensM fval lens = modify $ over lens fval
-
-queryCivLensM :: Traversal' CivState a -> UpdateCivM (Maybe a)
-queryCivLensM lens = do
-	civstate <- Control.Monad.State.get
-	return $ preview lens civstate
 
 checkCondition :: String -> Traversal' CivState b -> (b -> Bool) -> UpdateCivM ()
 checkCondition errmsg lens f = do
@@ -156,8 +139,7 @@ revealTile gamename coors orientation = do
 	updateBoard gamename coorssquares
 
 getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
-getSquare gamename coors = queryCivLensM $
-	civGameLens gamename . _Just . gameBoard . ix coors
+getSquare gamename coors = queryCivLensM $ civSquareLens gamename coors
 
 $(makeAcidic ''CivState [
 	'getCivState,

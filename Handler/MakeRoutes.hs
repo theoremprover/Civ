@@ -6,19 +6,6 @@ import Import
 
 import Language.Haskell.TH
 
---putStrLn $(stringE . show =<< reify ''Bool)
-
-makeRoutes :: Name -> String -> String -> String -> Q [Dec]
-makeRoutes name funnamestr pathpre pathpost = do
-	TyConI tok@(DataD _ _ _ constrs _) <- reify name
-	funname <- newName funnamestr
-	valname <- newName "val"
-	matches <- forM constrs $ \ (NormalC cname []) -> do
-		let caseexpr = VarE $ mkName $ pathpre ++ nameBase cname ++ pathpost
-		return $ Match (ConP cname []) (NormalB caseexpr) []
-	return [ FunD funname [ Clause [VarP valname]
-		(NormalB $ AppE (ConE 'StaticR) $ CaseE (VarE valname) matches) [] ] ]
-
 makeMultiRoutes :: [Name] -> String -> [ String ] -> Q [Dec]
 makeMultiRoutes names funnamestr pathintersperses = do
 	cnamess <- forM names $ \ name -> do
@@ -35,7 +22,7 @@ makeMultiRoutes names funnamestr pathintersperses = do
 	where
 
 	blend :: [String] -> [String] -> String
-	blend [i] [] = [i]
+	blend [i] [] = i
 	blend (i:is) (c:cs) = i ++ c ++ blend is cs
 	blend is cs = error $ "blend: is=" ++ show is ++ " and cs=" ++ show cs ++ " have not the right length"
 
