@@ -22,5 +22,5 @@ erectBuilding gamename buildingtype coors owner = do
 --	buildCity gamename pn0 (Coors 2 2) CityT
 buildCity :: GameName -> PlayerName -> Coors -> CityType -> UpdateCivM ()
 buildCity gamename playername coors citytype = do
-	let city = 
-	updateCivLensM 
+	let city = newCity playername
+	updateCivLensM $ (const city) 

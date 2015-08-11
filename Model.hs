@@ -158,7 +158,7 @@ data City = SecondCitySquare Orientation | City {
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 
-newCity playername = City 
+newCity playername = City playername CityT False False False NoWalls False Nothing
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
