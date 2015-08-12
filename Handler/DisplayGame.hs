@@ -102,7 +102,7 @@ boardArea (DisplayInfo{..}) = do
                         $of ArtifactMarker artifact
                           <img .Center class=#{show myPlayerOriDI} src=@{artifactRoute artifact}>
                         $of HutMarker _
-                          <img .Center class=#{show myPlayerOriDI} src=@{hutRoute}>
+                          <img .Center class="#{show myPlayerOriDI} Blink" src=@{hutRoute}>
                         $of VillageMarker _
                           <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
                         $of CityMarker (SecondCitySquare ori)
