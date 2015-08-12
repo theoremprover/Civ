@@ -100,17 +100,17 @@ boardArea (DisplayInfo{..}) = do
                     $maybe tokmarker <- _squareTokenMarker square
                       $case tokmarker
                         $of ArtifactMarker artifact
-                          <img .Center class=#{show myPlayerOriDI} src=@{artifactRoute artifact}>
+                          <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
                         $of HutMarker _
-                          <img .Center class="#{show myPlayerOriDI} Blink" src=@{hutRoute}>
+                          <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
                         $of VillageMarker _
-                          <img .Center class=#{show myPlayerOriDI} src=@{villageRoute}>
+                          <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                         $of CityMarker (SecondCitySquare ori)
-                          <img .Center class=#{show myPlayerOriDI} src=@{StaticR $ _Missing_jpg}>
+                          <img .Center class="#{show (playerori owner)}" src=@{StaticR $ _Missing_jpg}>
                         $of CityMarker (City{..})
-                          <img .Center class=#{show myPlayerOriDI} src=@{cityRoute (_cityType,_cityCapital,_cityWalls,playercolour _cityOwner)}>
+                          <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (_cityType,_cityCapital,_cityWalls,playercolour _cityOwner)}>
                         $of BuildingMarker (Building buildingtype owner)
-                          <img .Center class=#{show (playerori owner)} src=@{buildingTypeRoute buildingtype}>
+                          <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>

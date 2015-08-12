@@ -145,7 +145,7 @@ data Walls = NoWalls | Walls
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
 $(deriveSafeCopy modelVersion 'base ''Walls)
 
-data City = SecondCitySquare Orientation | City {
+data City = SecondCitySquare Coors | City {
 	_cityOwner :: PlayerName,
 	_cityType :: CityType,
 	_cityCapital :: Bool,
@@ -520,7 +520,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 		[ d c_ m_ n_ rI,   d c_ m_ n_ r_,   g c_ m_ n_ r_,   w c_ m_ n_ r_ ],
 		[ d c_ m_ n_ r_,   d c_ m_ n_ r_,   g c_ mH n_ r_,   f c_ m_ n_ r_ ] ]
 	Tile7 -> [
-		[ f c_ m_ n_ r_,   w c_ m_ nW r_,   f c_ m_ n_ rW,   m c_ mH n_ r_ ],
+		[ f c_ m_ n_ r_,   w c_ m_ nW r_,   f c_ m_ n_ rW,   m c_ mV n_ r_ ],
 		[ f c_ m_ n_ r_,   w c_ m_ n_ r_,   w c_ m_ n_ r_,   m c_ m_ n_ r_ ],
 		[ f c_ m_ n_ r_,   g c_ mH n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_ ],
 		[ m c_ m_ n_ r_,   f c_ m_ n_ r_,   w c_ m_ n_ r_,   f c_ m_ n_ r_ ] ]
