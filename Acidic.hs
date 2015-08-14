@@ -11,6 +11,7 @@ import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
 import Control.Lens hiding (Action)
+import Control.Monad.State (modify,get,gets)
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
@@ -19,7 +20,6 @@ import Logic
 import Lenses
 import TokenStack
 import Model
-import Moves
 
 getCivState :: Query CivState CivState
 getCivState = ask
@@ -59,11 +59,11 @@ startGame gamename = runUpdateCivM $ do
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
-	buildCity gamename pn0 (Coors 6 13) Nothing
-	buildCity gamename pn1 (Coors 2 2) (Just $ Coors 3 2)
-	buildCity gamename pn1 (Coors 2 5) (Just $ Coors 1 5)
-	buildCity gamename pn1 (Coors 2 8) (Just $ Coors 2 9)
-	buildCity gamename pn1 (Coors 2 12) (Just $ Coors 2 11)
+	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just $ Coors 7 13)
+	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
+	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just $ Coors 3 1)
+	buildCity gamename (Coors 2 4) $ City pn1 False False False NoWalls False (Just $ Coors 7 13)
+	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False False
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
@@ -144,6 +144,38 @@ revealTile gamename coors orientation = do
 
 getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $ civSquareLens gamename coors
+
+type UpdateCivM a = ErrorT String (Update CivState) a
+
+type UpdateResult = Either String ()
+
+oK = Right ()
+eRR errmsg = Left errmsg
+
+runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
+runUpdateCivM = runErrorT
+
+updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
+updateCivLensM fval lens = modify $ over lens fval
+
+queryCivLensM :: Traversal' CivState a -> UpdateCivM (Maybe a)
+queryCivLensM lens = do
+	civstate <- Control.Monad.State.get
+	return $ preview lens civstate
+
+buildCity :: GameName -> Coors -> City -> UpdateCivM ()
+buildCity gamename coors city@(City{..}) = do
+	let coorss = case _cityMetropolisSecondSquare of
+		Nothing     -> [ coors ]
+		Just coors2 -> [ coors,coors2 ]
+	let outskirts = outskirtsOf coorss
+
+	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) ()
+	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
+	case _cityMetropolisSecondSquare of
+		Nothing  -> return ()
+		Just secondcoors -> updateCivLensM (const $ Just $ SecondCitySquare secondcoors) $
+			civSquareLens gamename coors . squareTokenMarker
 
 $(makeAcidic ''CivState [
 	'getCivState,

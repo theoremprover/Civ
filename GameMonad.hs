@@ -19,7 +19,6 @@ import TokenStack
 import Lenses
 import Polls
 import Acidic
-import Moves
 
 
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>

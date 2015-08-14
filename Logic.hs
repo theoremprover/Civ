@@ -16,6 +16,9 @@ rotate4x4coors orientation (Coors x y) = case orientation of
 	Eastward  -> Coors (3-y) x
 	Westward  -> Coors y (3-x)
 
+outskirtsOf :: [ Coors ] -> [ Coors ]
+outskirtsOf coorss = nub $ map (map (+/+) [ Coors x y | x <- [-1,0,1], y <- [-1,0,1], not (x==0 && y==0) ]) coorss
+
 shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do

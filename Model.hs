@@ -153,7 +153,7 @@ data City = SecondCitySquare Coors | City {
 	_cityFortified :: Bool,
 	_cityWalls :: Walls,
 	_cityCaravan :: Bool,
-	_cityMetropolisOri :: Maybe Orientation
+	_cityMetropolisSecondSquare :: Maybe Coors
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
