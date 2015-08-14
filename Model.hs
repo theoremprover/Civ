@@ -133,13 +133,14 @@ initialVillageStack = tokenStackFromList $ replicateToken [
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
 
+{-
 data CityType = CityT | MetropolisT
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
 $(deriveSafeCopy modelVersion 'base ''CityType)
+-}
 
-initialCityStack :: TokenStack CityType ()
-initialCityStack = tokenStackFromList $ replicateUnit [
-	(CityT,3),(MetropolisT,1) ]
+initialCityStack :: TokenStack () ()
+initialCityStack = tokenStackFromList $ replicateUnit [ ((),3) ]
 
 data Walls = NoWalls | Walls
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
@@ -147,18 +148,15 @@ $(deriveSafeCopy modelVersion 'base ''Walls)
 
 data City = SecondCitySquare Coors | City {
 	_cityOwner :: PlayerName,
-	_cityType :: CityType,
 	_cityCapital :: Bool,
 	_cityDoubleProd :: Bool,
 	_cityFortified :: Bool,
 	_cityWalls :: Walls,
 	_cityCaravan :: Bool,
-	_cityMetropolisOrientation :: Maybe Orientation
+	_cityMetropolisOri :: Maybe Orientation
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
-
-newCity playername = City playername CityT False False False NoWalls False Nothing
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
@@ -404,7 +402,8 @@ data Player = Player {
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits :: [UnitCard],
 	_playerCultureCards :: [CultureCard],
-	_playerOrientation :: Orientation
+	_playerOrientation :: Orientation,
+	_playerCityStack :: TokenStack () ()
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -414,7 +413,7 @@ makePlayer useremail colour civ = Player
 	useremail colour civ Despotism
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
-	[] [] [] Northward
+	[] [] [] Northward initialCityStack
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

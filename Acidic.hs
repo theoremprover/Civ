@@ -59,7 +59,11 @@ startGame gamename = runUpdateCivM $ do
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
-	buildCity gamename pn0 (Coors 2 2) CityT
+	buildCity gamename pn0 (Coors 6 13) Nothing
+	buildCity gamename pn1 (Coors 2 2) (Just $ Coors 3 2)
+	buildCity gamename pn1 (Coors 2 5) (Just $ Coors 1 5)
+	buildCity gamename pn1 (Coors 2 8) (Just $ Coors 2 9)
+	buildCity gamename pn1 (Coors 2 12) (Just $ Coors 2 11)
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do

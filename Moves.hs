@@ -38,8 +38,10 @@ erectBuilding :: GameName -> BuildingType -> Coors -> Owner -> (UpdateCivM Bool,
 erectBuilding gamename buildingtype coors owner = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) buildingtype
 -}
---	buildCity gamename pn0 (Coors 2 2) CityT
-buildCity :: GameName -> PlayerName -> Coors -> CityType -> UpdateCivM ()
-buildCity gamename playername coors citytype = do
-	let city = newCity playername
+--	City playername False False False NoWalls False mb_secondsquareori
+
+buildCity :: GameName -> City -> UpdateCivM ()
+buildCity gamename city = do
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
+	case _cityMetropolisOri city of
+		Nothing -> 
