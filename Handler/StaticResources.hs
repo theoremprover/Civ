@@ -108,4 +108,11 @@ $(makeMultiRoutes [''Government] "governmentRoute" ["_Policies_","_jpg"])
 
 $(makeMultiRoutes [''CityState] "cityStateRoute" ["_Squares_","_jpg"])
 
-$(makeMultiRoutes [''CityType,''Bool,''Walls,''Colour] "cityRoute" ["_Squares_","_","_","_","_jpg"])
+data CityType = CityT | MetropolisT
+	deriving (Show,Eq)
+$(makeMultiRoutes [''CityType,''Bool,''Walls,''Colour] "cityRoute'" ["_Squares_","_","_","_","_jpg"])
+cityRoute colour (City{..}) = cityRoute' (
+	maybe CityT (const MetropolisT) _cityMetropolisSecondSquare,
+	_cityFortified,
+	_cityWalls,
+	colour )

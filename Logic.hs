@@ -6,18 +6,23 @@ import System.Random
 import Control.Monad
 import Yesod.Core (MonadIO,liftIO)
 import qualified Data.Map as Map
+import Data.List
 
 import Model
 import TokenStack
 
 rotate4x4coors orientation (Coors x y) = case orientation of
-	Northward -> Coors x y
+	Northward -> Coors    x     y
 	Southward -> Coors (3-x) (3-y)
-	Eastward  -> Coors (3-y) x
-	Westward  -> Coors y (3-x)
+	Eastward  -> Coors (3-y)    x
+	Westward  -> Coors    y  (3-x)
+
+surroundingSquares :: Coor -> Coors -> [ Coors ]
+surroundingSquares radius coors = delete coors
+	[ coors +/+ Coors x y | x <- [-radius..radius], y <- [-radius..radius] ]
 
 outskirtsOf :: [ Coors ] -> [ Coors ]
-outskirtsOf coorss = nub $ map (map (+/+) [ Coors x y | x <- [-1,0,1], y <- [-1,0,1], not (x==0 && y==0) ]) coorss
+outskirtsOf coorss = nub $ concatMap (surroundingSquares 1) coorss \\ coorss
 
 shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do

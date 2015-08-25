@@ -63,7 +63,7 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
 	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just $ Coors 3 1)
 	buildCity gamename (Coors 2 4) $ City pn1 False False False NoWalls False (Just $ Coors 7 13)
-	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False False
+	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
@@ -163,6 +163,21 @@ queryCivLensM lens = do
 	civstate <- Control.Monad.State.get
 	return $ preview lens civstate
 
+{-
+data Square =
+	OutOfBounds |
+	UnrevealedSquare TileID Coors |
+	Square {
+		_squareTileIDOri   :: Maybe (TileID,Orientation),
+		_squareTerrain     :: [Terrain],
+		_squareCoin        :: Bool,
+		_squareResource    :: Maybe Resource,
+		_squareNatWonder   :: Bool,
+		_squareTokenMarker :: Maybe TokenMarker,
+		_squareBuilding    :: Maybe Building,
+		_squareFigures     :: [(Figure,PlayerName)]
+		}
+-}
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
 	let coorss = case _cityMetropolisSecondSquare of
@@ -170,11 +185,11 @@ buildCity gamename coors city@(City{..}) = do
 		Just coors2 -> [ coors,coors2 ]
 	let outskirts = outskirtsOf coorss
 
-	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) ()
+	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
 	case _cityMetropolisSecondSquare of
-		Nothing  -> return ()
-		Just secondcoors -> updateCivLensM (const $ Just $ SecondCitySquare secondcoors) $
+		Nothing -> return ()
+		Just secondcoors -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare secondcoors) $
 			civSquareLens gamename coors . squareTokenMarker
 
 $(makeAcidic ''CivState [

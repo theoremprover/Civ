@@ -26,7 +26,8 @@ import qualified Data.Ix as Ix
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
 
-data Coors = Coors { xCoor :: Int, yCoor :: Int }
+type Coor = Int
+data Coors = Coors { xCoor :: Coor, yCoor :: Coor }
 	deriving (Show,Data,Typeable,Eq,Ord,Ix)
 $(deriveSafeCopy modelVersion 'base ''Coors)
 

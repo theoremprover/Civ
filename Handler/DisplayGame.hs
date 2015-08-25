@@ -108,8 +108,8 @@ boardArea (DisplayInfo{..}) = do
                         $of CityMarker (SecondCitySquare (Coors xc yc))
                           $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup xc yc)
                             <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
-                        $of CityMarker (City{..})
-                          <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (_cityType,_cityCapital,_cityWalls,playercolour _cityOwner)}>
+                        $of CityMarker (city@(City{..}))
+                          <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (playercolour _cityOwner) city}>
                         $of BuildingMarker (Building buildingtype owner)
                           <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
 
