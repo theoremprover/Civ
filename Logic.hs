@@ -24,6 +24,16 @@ surroundingSquares radius coors = delete coors
 outskirtsOf :: [ Coors ] -> [ Coors ]
 outskirtsOf coorss = nub $ concatMap (surroundingSquares 1) coorss \\ coorss
 
+addCoorsOri :: Coors -> Orientation -> Coors
+addCoorsOri (Coors x y) ori = case ori of
+	Northward -> Coors  x    (y-1)
+	Eastward  -> Coors (x+1)  y
+	Southward -> Coors  x    (y+1)
+	Westward  -> Coors (x-1)  y
+
+addOri :: Orientation -> Orientation -> Orientation
+addOri o1 o2 = toEnum $ mod (fromEnum o1 + fromEnum o2) 4
+
 shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do

@@ -59,10 +59,10 @@ startGame gamename = runUpdateCivM $ do
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
-	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just $ Coors 7 13)
+	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
-	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just $ Coors 3 1)
-	buildCity gamename (Coors 2 4) $ City pn1 False False False NoWalls False (Just $ Coors 7 13)
+	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
+	buildCity gamename (Coors 2 4) $ City pn1 False False False NoWalls False (Just Eastward)
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
@@ -180,17 +180,17 @@ data Square =
 -}
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
-	let coorss = case _cityMetropolisSecondSquare of
-		Nothing     -> [ coors ]
-		Just coors2 -> [ coors,coors2 ]
+	let coorss = case _cityMetropolisOrientation of
+		Nothing  -> [ coors ]
+		Just ori -> [ coors, addCoorsOri coors ori ]
 	let outskirts = outskirtsOf coorss
 
 	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
-	case _cityMetropolisSecondSquare of
-		Nothing -> return ()
-		Just secondcoors -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare secondcoors) $
-			civSquareLens gamename coors . squareTokenMarker
+	case _cityMetropolisOrientation of
+		Nothing  -> return ()
+		Just ori -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
+			civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
 
 $(makeAcidic ''CivState [
 	'getCivState,

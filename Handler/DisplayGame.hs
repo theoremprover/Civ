@@ -16,6 +16,7 @@ import Polls
 import Handler.HandlerPolling
 import Handler.StaticResources
 import Lenses
+import Logic
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -77,13 +78,24 @@ boardArea :: DisplayInfo -> Handler Widget
 boardArea (DisplayInfo{..}) = do
 	let
 		arr = _gameBoard gameDI
-		arrlookup x y = arr!(Coors x y)
+		arrlookup coors = arr!coors
 		coors = indices arr
 		(xcoors,ycoors) = (map xCoor coors,map yCoor coors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		playerori owner = _playerOrientation (playernameToPlayerDI owner)
 		playercolour owner = _playerColour (playernameToPlayerDI owner)
+
+		rowcolspan coors = case arrlookup coors of
+			Square _ _ _ _ _ (Just (CityMarker city)) _ _ -> case city of
+				SecondCitySquare _          -> Nothing
+				City _ _ _ _ _ _ Nothing    -> Just (1,1)
+				City _ _ _ _ _ _ (Just ori) -> case ori of
+					Southward -> Just (2,1)
+					Eastward  -> Just (1,2)
+					_         -> error $ "Strange orientation: " ++ show coors
+			_ -> Just (1,1)
+
 	return [whamlet|
 <div .Parent>
   <div .Child style="z-index: 1;">
@@ -91,27 +103,29 @@ boardArea (DisplayInfo{..}) = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            $with square <- arrlookup x y
-              <td .SquareContainer alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
-                $case square
-                  $of OutOfBounds
-                  $of UnrevealedSquare tileid coors
-                  $of _
-                    $maybe tokmarker <- _squareTokenMarker square
-                      $case tokmarker
-                        $of ArtifactMarker artifact
-                          <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
-                        $of HutMarker _
-                          <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
-                        $of VillageMarker _
-                          <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
-                        $of CityMarker (SecondCitySquare (Coors xc yc))
-                          $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup xc yc)
-                            <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
-                        $of CityMarker (city@(City{..}))
-                          <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (playercolour _cityOwner) city}>
-                        $of BuildingMarker (Building buildingtype owner)
-                          <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
+            $with coors <- Coors x y
+            $with square <- arrlookup coors
+              $maybe (rowspan,colspan) <- rowcolspan coors
+                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                  $case square
+                    $of OutOfBounds
+                    $of UnrevealedSquare tileid coors
+                    $of _
+                      $maybe tokmarker <- _squareTokenMarker square
+                        $case tokmarker
+                          $of ArtifactMarker artifact
+                            <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
+                          $of HutMarker _
+                            <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
+                          $of VillageMarker _
+                            <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
+                          $of CityMarker (city@(City{..}))
+                            <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (playercolour _cityOwner) city}>
+                          $of CityMarker (SecondCitySquare metropolisori)
+                            $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup (addCoorsOri coors (addOri metropolisori Southward))
+                              <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
+                          $of BuildingMarker (Building buildingtype owner)
+                            <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>

@@ -49,7 +49,7 @@ $(deriveSafeCopy modelVersion 'base ''PlayerName)
 playerName (PlayerName pn) = pn
 
 data Orientation = Northward | Eastward | Southward | Westward
-	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable)
+	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable,Enum)
 $(deriveSafeCopy modelVersion 'base ''Orientation)
 
 data Colour = Red | Green | Blue | Violet | Yellow
@@ -147,14 +147,14 @@ data Walls = NoWalls | Walls
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
 $(deriveSafeCopy modelVersion 'base ''Walls)
 
-data City = SecondCitySquare Coors | City {
+data City = SecondCitySquare Orientation | City {
 	_cityOwner :: PlayerName,
 	_cityCapital :: Bool,
 	_cityDoubleProd :: Bool,
 	_cityFortified :: Bool,
 	_cityWalls :: Walls,
 	_cityCaravan :: Bool,
-	_cityMetropolisSecondSquare :: Maybe Coors
+	_cityMetropolisOrientation :: Maybe Orientation
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
