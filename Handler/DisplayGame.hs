@@ -79,12 +79,17 @@ boardArea (DisplayInfo{..}) = do
 	let
 		arr = _gameBoard gameDI
 		arrlookup coors = arr!coors
-		coors = indices arr
-		(xcoors,ycoors) = (map xCoor coors,map yCoor coors)
+		allcoors = indices arr
+		(xcoors,ycoors) = (map xCoor allcoors,map yCoor allcoors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		playerori owner = _playerOrientation (playernameToPlayerDI owner)
 		playercolour owner = _playerColour (playernameToPlayerDI owner)
+		cityori (city@City{..}) = case _cityMetropolisOrientation of
+			Nothing -> pori
+			Just metropolisori -> addOri metropolisori Westward
+			where
+			pori = playerori _cityOwner
 
 		rowcolspan coors = case arrlookup coors of
 			Square _ _ _ _ _ (Just (CityMarker city)) _ _ -> case city of
@@ -103,13 +108,12 @@ boardArea (DisplayInfo{..}) = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            $with coors <- Coors x y
-            $with square <- arrlookup coors
-              $maybe (rowspan,colspan) <- rowcolspan coors
+            $with square <- arrlookup (Coors x y)
+              $maybe (rowspan,colspan) <- rowcolspan (Coors x y)
                 <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
-                    $of UnrevealedSquare tileid coors
+                    $of UnrevealedSquare _ _
                     $of _
                       $maybe tokmarker <- _squareTokenMarker square
                         $case tokmarker
@@ -120,10 +124,8 @@ boardArea (DisplayInfo{..}) = do
                           $of VillageMarker _
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
-                            <img .Center class="#{show (playerori _cityOwner)}" src=@{cityRoute (playercolour _cityOwner) city}>
-                          $of CityMarker (SecondCitySquare metropolisori)
-                            $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup (addCoorsOri coors (addOri metropolisori Southward))
-                              <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
+                            <img .Center class="#{show (cityori city)}" src=@{cityRoute (playercolour _cityOwner) city}>
+                          $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
 
@@ -132,7 +134,7 @@ boardArea (DisplayInfo{..}) = do
       $forall y <- ys
         <tr>
           $forall x <- xs
-            $case arrlookup x y
+            $case arrlookup (Coors x y)
               $of OutOfBounds
                 <td .TileContainer><img .Center src=@{transparentSquareRoute}> 
               $of UnrevealedSquare tileid coors
@@ -141,5 +143,10 @@ boardArea (DisplayInfo{..}) = do
               $of sq
                 $maybe (tileid,ori) <- _squareTileIDOri sq
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
-
 |]
+
+{-
+                          $of CityMarker (SecondCitySquare metropolisori)
+                            $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup (addCoorsOri (Coors x y) (addOri metropolisori Southward)))
+                              <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
+-}

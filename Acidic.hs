@@ -62,7 +62,7 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
 	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
-	buildCity gamename (Coors 2 4) $ City pn1 False False False NoWalls False (Just Eastward)
+	buildCity gamename (Coors 2 4) $ City pn1 True False False NoWalls False (Just Eastward)
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult

@@ -3,20 +3,32 @@
     border-color: red
 
 .NoSpacing
-    padding: 0
-    margin : 0
-    border : 0
+    padding: 0px
+    margin : 0px
+    border : 0px
 
 img
     display: block
 
 .Northward
+    -moz-transform: rotate(0deg)
+    -webkit-transform: rotate(0deg)
+    -o-transform: rotate(0deg)
     transform: rotate(0deg)
 .Eastward
+    -moz-transform: rotate(90deg)
+    -webkit-transform: rotate(90deg)
+    -o-transform: rotate(90deg)
     transform: rotate(90deg)
 .Southward
+    -moz-transform: rotate(180deg)
+    -webkit-transform: rotate(180deg)
+    -o-transform: rotate(180deg)
     transform: rotate(180deg)
 .Westward
+    -moz-transform: rotate(270deg)
+    -webkit-transform: rotate(270deg)
+    -o-transform: rotate(270deg)
     transform: rotate(270deg)
 
 .Parent

@@ -113,6 +113,6 @@ data CityType = CityT | MetropolisT
 $(makeMultiRoutes [''CityType,''Bool,''Walls,''Colour] "cityRoute'" ["_Squares_","_","_","_","_jpg"])
 cityRoute colour (City{..}) = cityRoute' (
 	maybe CityT (const MetropolisT) _cityMetropolisOrientation,
-	_cityFortified,
+	_cityCapital,
 	_cityWalls,
 	colour )
