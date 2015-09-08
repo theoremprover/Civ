@@ -31,6 +31,11 @@ img
     -o-transform: rotate(270deg)
     transform: rotate(270deg)
 
+.Eastward:after
+    content: ""
+    display: block
+    margin: 0 0 100%
+
 .Parent
     position: relative
 .Child
