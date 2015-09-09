@@ -34,7 +34,7 @@ img
 .Eastward:after
     content: ""
     display: block
-    margin: 0 0 100%
+    margin: 0 -100% 0 -100%
 
 .Parent
     position: relative

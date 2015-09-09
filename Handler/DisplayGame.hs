@@ -109,8 +109,7 @@ boardArea (DisplayInfo{..}) = do
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
-              $maybe (rowspan,colspan) <- rowcolspan (Coors x y)
-                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -124,9 +123,8 @@ boardArea (DisplayInfo{..}) = do
                           $of VillageMarker _
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
-                            <div>
-                              <div class="#{show (cityori city)}">
-                                <img .Center src=@{cityRoute (playercolour _cityOwner) city}>
+                             <div>
+                                <img .Center class="#{show (cityori city)}" style="overflow:visible" src=@{cityRoute (playercolour _cityOwner) city}>
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
@@ -146,7 +144,10 @@ boardArea (DisplayInfo{..}) = do
                 $maybe (tileid,ori) <- _squareTileIDOri sq
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 |]
-
+{-
+              $maybe (rowspan,colspan) <- rowcolspan (Coors x y)
+                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+-}
 {-
                           $of CityMarker (SecondCitySquare metropolisori)
                             $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup (addCoorsOri (Coors x y) (addOri metropolisori Southward)))
