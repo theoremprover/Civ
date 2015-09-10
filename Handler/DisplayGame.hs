@@ -124,10 +124,10 @@ boardArea (DisplayInfo{..}) = do
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
                              <div>
-                                <img .Center class="#{show (cityori city)}" style="overflow:visible" src=@{cityRoute (playercolour _cityOwner) city}>
+                                <img .Center class="#{show (cityori city)}Square" src=@{cityRoute (playercolour _cityOwner) city}>
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
-                            <img .Center class="#{show (playerori owner)}" src=@{buildingTypeRoute buildingtype}>
+                            <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
 
   <div style="z-index: 2;">
     <table .NoSpacing>

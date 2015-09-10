@@ -11,10 +11,7 @@ img
     display: block
 
 .Northward
-    -moz-transform: rotate(0deg)
-    -webkit-transform: rotate(0deg)
-    -o-transform: rotate(0deg)
-    transform: rotate(0deg)
+
 .Eastward
     -moz-transform: rotate(90deg)
     -webkit-transform: rotate(90deg)
@@ -31,10 +28,27 @@ img
     -o-transform: rotate(270deg)
     transform: rotate(270deg)
 
-.Eastward:after
-    content: ""
-    display: block
-    margin: 0 -100% 0 -100%
+.NorthwardSquare
+    display: inline-block
+    white-space: nowrap
+
+.EastwardSquare
+    display: inline-block
+    white-space: nowrap
+    transform: translate(70px, 0px) rotate(90deg)
+    transform-origin: 0px 0px
+
+.SouthwardSquare
+    display: inline-block
+    white-space: nowrap
+    transform: rotate(180deg)
+    transform-origin: 50% 50%
+
+.WestwardSquare
+    display: inline-block
+    white-space: nowrap
+    transform: rotate(270deg) translate(-100%,0px)
+    transform-origin: 0px 0px
 
 .Parent
     position: relative
