@@ -91,15 +91,16 @@ boardArea (DisplayInfo{..}) = do
 			where
 			pori = playerori _cityOwner
 
+		rowcolspan :: Coors -> Maybe (Int,Int,String)
 		rowcolspan coors = case arrlookup coors of
 			Square _ _ _ _ _ (Just (CityMarker city)) _ _ -> case city of
 				SecondCitySquare _          -> Nothing
-				City _ _ _ _ _ _ Nothing    -> Just (1,1)
+				City _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
 				City _ _ _ _ _ _ (Just ori) -> case ori of
-					Southward -> Just (2,1)
-					Eastward  -> Just (1,2)
+					Southward -> Just (2,1,"VertDoubleSquareContainer")
+					Eastward  -> Just (1,2,"HorDoubleSquareContainer")
 					_         -> error $ "Strange orientation: " ++ show coors
-			_ -> Just (1,1)
+			_ -> Just (1,1,"SquareContainer")
 
 	return [whamlet|
 <div .Parent>
@@ -109,7 +110,8 @@ boardArea (DisplayInfo{..}) = do
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
-                <td .SquareContainer alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+              $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
+                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -123,8 +125,9 @@ boardArea (DisplayInfo{..}) = do
                           $of VillageMarker _
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
-                             <div>
-                                <img .Center class="#{show (cityori city)}Square" src=@{cityRoute (playercolour _cityOwner) city}>
+                             <div class="#{sizeclass}">
+                               <div class="#{show (cityori city)}Square">
+                                 <img .Center src=@{cityRoute (playercolour _cityOwner) city}>
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
@@ -145,8 +148,6 @@ boardArea (DisplayInfo{..}) = do
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 |]
 {-
-              $maybe (rowspan,colspan) <- rowcolspan (Coors x y)
-                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
 -}
 {-
                           $of CityMarker (SecondCitySquare metropolisori)
