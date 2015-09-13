@@ -11,7 +11,6 @@ img
     display: block
 
 .Northward
-
 .Eastward
     -moz-transform: rotate(90deg)
     -webkit-transform: rotate(90deg)
@@ -31,19 +30,16 @@ img
 .NorthwardSquare
     display: inline-block
     white-space: nowrap
-
 .EastwardSquare
     display: inline-block
     white-space: nowrap
     transform: translate(70px, 0px) rotate(90deg)
     transform-origin: 0px 0px
-
 .SouthwardSquare
     display: inline-block
     white-space: nowrap
     transform: rotate(180deg)
     transform-origin: 50% 50%
-
 .WestwardSquare
     display: inline-block
     white-space: nowrap
