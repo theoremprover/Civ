@@ -33,8 +33,8 @@ img
 .EastwardSquare
     display: inline-block
     white-space: nowrap
-    transform: translate(70px, 0px) rotate(90deg)
-    transform-origin: 0px 0px
+    transform: translate(0px, -100%) rotate(90deg)
+    transform-origin: 0px 100%
 .SouthwardSquare
     display: inline-block
     white-space: nowrap

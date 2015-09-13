@@ -126,7 +126,7 @@ boardArea (DisplayInfo{..}) = do
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
                              <div class="#{sizeclass}">
-                               <div class="#{show (cityori city)}Square">
+                               <div .Center class="#{show (cityori city)}Square">
                                  <img .Center src=@{cityRoute (playercolour _cityOwner) city}>
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
