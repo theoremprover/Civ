@@ -146,6 +146,7 @@ getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $ civSquareLens gamename coors
 
 type UpdateCivM a = ErrorT String (Update CivState) a
+type CheckPossibilityM = 
 
 type UpdateResult = Either String ()
 
@@ -178,19 +179,29 @@ data Square =
 		_squareFigures     :: [(Figure,PlayerName)]
 		}
 -}
-buildCity :: GameName -> Coors -> City -> UpdateCivM ()
-buildCity gamename coors city@(City{..}) = do
+
+{-
+buildCityPossible :: GameName -> Coors -> City -> QueryCivM ()
+buildCityPossible gamename coors city@(City{..}) = do
 	let coorss = case _cityMetropolisOrientation of
 		Nothing  -> [ coors ]
 		Just ori -> [ coors, addCoorsOri coors ori ]
 	let outskirts = outskirtsOf coorss
+-}
 
+buildCity :: GameName -> Coors -> City -> UpdateCivM ()
+buildCity gamename coors city@(City{..}) = do
 	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
 	case _cityMetropolisOrientation of
 		Nothing  -> return ()
 		Just ori -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
 			civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
+
+buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
+buildBuilding gamename playername coors buildingtype = do
+	Just () <- takeFromStackM (civGameLens gamename . gameBuildingStack) (buildingTypeToMarker buildingtype)
+	updateCivLensM (const $ Just BuildingMarker
 
 $(makeAcidic ''CivState [
 	'getCivState,

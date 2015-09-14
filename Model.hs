@@ -165,6 +165,17 @@ data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
+buildingTypeToMarker :: BuildingType -> BuildingMarker
+buildingTypeToMarker bt | bt `elem` [Barracks,Academy] = BarracksOrAcademy
+buildingTypeToMarker bt | bt `elem` [Forge,Forge2] = ForgeOrForge2
+buildingTypeToMarker bt | bt `elem` [Granary,Aquaeduct] = GranaryOrAquaeduct
+buildingTypeToMarker bt | bt `elem` [Temple,Cathedral] = TempleOrCathedral
+buildingTypeToMarker bt | bt `elem` [Library,University] = LibraryOrUniversity
+buildingTypeToMarker bt | bt `elem` [Market,Bank] = MarketOrBank
+buildingTypeToMarker bt | bt `elem` [Harbour] = Harbours
+buildingTypeToMarker bt | bt `elem` [TradePost] = TradePosts
+buildingTypeToMarker bt | bt `elem` [Shipyard] = Shipyards
+
 data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradeStation | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
