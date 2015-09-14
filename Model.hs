@@ -177,7 +177,7 @@ buildingTypeToMarker bt | bt `elem` [TradePost] = TradePosts
 buildingTypeToMarker bt | bt `elem` [Shipyard] = Shipyards
 
 data BuildingType = Barracks | Forge | Granary | Harbour | Library |
-	Market | Shipyard | TradeStation | Temple |
+	Market | Shipyard | TradePost | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
