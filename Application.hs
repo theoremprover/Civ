@@ -131,8 +131,9 @@ warpShutdownHandler app shutdownaction = do
 		shutdownaction
 
 warpShutdownAction app = do
-	putStrLn "warpShutdownAction"
+	putStrLn "warpShutdownAction: creating checkpoint..."
 	createCheckpoint $ appCivAcid app
+	putStrLn "warpShutdownAction: creating checkpoint OK."
 
 -- | For yesod devel, return the Warp settings and WAI Application.
 getApplicationDev :: IO (Settings, Application)
