@@ -57,6 +57,7 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
+{-
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
@@ -64,6 +65,7 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
 	buildCity gamename (Coors 2 4) $ City pn1 True False False NoWalls False (Just Eastward)
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
+-}
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
@@ -93,7 +95,7 @@ createBoard gamename = do
 			NT -> do
 				Just tid <- takeFromStackM (civGameLens gamename . _Just . gameTileStack) ()
 				updateBoard gamename $ squaresfromtile tid coors
-				revealTile gamename coors Northward
+--				revealTile gamename coors Northward
 			CT playerindex ori -> do
 				Just (playername,player) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
 				updateBoard gamename $ squaresfromtile (Tile $ _playerCiv player) coors

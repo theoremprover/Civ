@@ -122,16 +122,17 @@ warpSettings foundation =
 
 warpShutdownHandler :: App -> IO () -> IO ()
 warpShutdownHandler app shutdownaction = do
-	forM [sigINT,sigTERM] $ \ sig -> do
-		installHandler sig (Catch checkpoint_handler) Nothing
+	forM [sigINT,sigTERM] $ \ sig -> installHandler sig (Catch shutdownaction) Nothing
 	return ()
+{-
 	where
-	checkpoint_handler = do
-		warpShutdownAction app
+	checkpoint_handler sigstr = do
+		warpShutdownAction sigstr app
 		shutdownaction
+-}
 
-warpShutdownAction app = do
-	putStrLn "warpShutdownAction: creating checkpoint..."
+warpShutdownAction sigstr app = do
+	putStrLn $ "warpShutdownAction: " ++ fromString sigstr ++ ", creating checkpoint..."
 	createCheckpoint $ appCivAcid app
 	putStrLn "warpShutdownAction: creating checkpoint OK."
 
@@ -171,7 +172,7 @@ appMain = do
     -- Run the application with Warp
     runSettings (warpSettings foundation) app
 
-    warpShutdownAction foundation
+    warpShutdownAction "appMain terminates" foundation
 
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)
@@ -186,7 +187,7 @@ getApplicationRepl = do
 
 shutdownApp :: App -> IO ()
 shutdownApp app = do
-	warpShutdownAction app
+	warpShutdownAction "shutdownApp" app
 	return ()
 
 
