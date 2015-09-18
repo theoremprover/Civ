@@ -115,7 +115,7 @@ data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | S
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Artifact)
 
-data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | TeacherHut | FriendlyBarbarianHut
+data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | Teacher | FriendlyBarbarians
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Hut)
 
@@ -123,8 +123,8 @@ initialHutStack :: TokenStack () Hut
 initialHutStack = tokenStackFromList $ replicateToken [
 	(ResourceHut Spy,6),(ResourceHut Wheat,7),(ResourceHut Incense,6),
 	(ResourceHut Linen,6),(ResourceHut Iron,3),(ResourceHut Atom,1),
-	(CityStateHut,2),(TeacherHut,1),(ThreeCulture,1),
-	(FriendlyBarbarianHut,2) ]
+	(CityStateHut,2),(Teacher,1),(ThreeCulture,1),
+	(FriendlyBarbarians,2) ]
 
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
@@ -414,6 +414,7 @@ data Player = Player {
 	_playerCoins :: Coins,
 	_playerTechs :: [TechCard],
 	_playerInvestments :: TokenStack Investment (),
+	_playerItems :: ([Resource],[Hut],[Village],[Artifact]),
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits :: [UnitCard],
 	_playerCultureCards :: [CultureCard],
@@ -428,6 +429,7 @@ makePlayer useremail colour civ = Player
 	useremail colour civ Despotism
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
+	([],[],[],[])
 	[] [] [] Northward initialCityStack
 
 data GameState = Waiting | Running | Finished

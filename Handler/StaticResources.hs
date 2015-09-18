@@ -97,7 +97,12 @@ $(makeMultiRoutes [''Wonder] "wonderCardRoute" ["_Wonders_","_jpg"])
 
 $(makeMultiRoutes [''BuildingType] "buildingTypeRoute" ["_Squares_","_jpg"])
 
-hutRoute     = StaticR _Resources_Hut_gif
+$(makeMultiRoutes [''Resource] "resourceRoute" ["_Resources_","_gif"])
+
+$(makeMultiRoutes [''Hut] "revealedHutRoute" ["_Resources_","_gif"])
+hutRoute = StaticR _Resources_Hut_gif
+
+$(makeMultiRoutes [''Village] "revealedVillageRoute" ["_Resources_","_gif"])
 villageRoute = StaticR _Resources_Village_gif
 
 $(makeMultiRoutes [''Artifact] "artifactRoute" ["_Squares_","_jpg"])

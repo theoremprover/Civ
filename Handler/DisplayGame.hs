@@ -25,6 +25,7 @@ colour2html colour = show colour
 
 data DisplayInfo = DisplayInfo {
 	gameDI :: Game,
+	myPlayerNameDI :: Maybe PlayerName,
 	myPlayerDI :: Maybe Player,
 	myPlayerOriDI :: Orientation,
 	playernameToPlayerDI :: (PlayerName -> Player)
@@ -36,7 +37,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
-		di = DisplayInfo game mb_myplayer myplayerori toplayer
+		di = DisplayInfo game mb_playername mb_myplayer myplayerori toplayer
 
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
 	boardarea <- boardArea di
@@ -66,12 +67,93 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
 playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
-playerArea (DisplayInfo{..}) (playername,player) = do
+playerArea di@(DisplayInfo{..}) (playername,player) = do
+	let
+		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
+		policies = []
+		culturecards = []
+		greatpersons = []
+	greatpersonsrow <- vertCardRow di player reveal greatpersons
+	culturecardsrow <- vertCardRow di player reveal culturecards
+	policyrow <- vertCardRow di player reveal policies
+	techtree <- techTree di
+	items <- itemTokens di player reveal
+	unitcolumn <- unitColumn di player
+	pdial <- dial di player
+
 	return [whamlet|
+<div .NoSpacing class=#{show (_playerOrientation player)}>
+  <table .NoSpacing>
+    <tr>
+      <td>
+        <table .NoSpacing>
+          <tr>
+            <td colspan=2 align=center>
+              <table>
+                <tr>
+                  <td style="valign:top; align:right">
+                    ^{greatpersonsrow}
+                  <td style="valign:top; align:left">
+                    ^{culturecardsrow}
+          <tr>
+            <td valign=bottom .Parent .NoSpacing>
+              ^{techtree}
+            <td>
+              <table>
+                <tr>
+                  <td>
+                    <table style="max-width:100%">
+                      <tr>
+                        <td align=left>
+                          ^{items}
+                        <td align=right>
+                          ^{policyrow}
+                <tr>
+                  <td>
+                    ^{pdial}
+      <td valign=top>
+        ^{unitcolumn}
+|]
+{-
 <div class=#{show (_playerOrientation player)}>
   <table>
     <tr><td>#{show playername}
-    <tr><td><img src=@{dialRoute (_playerCiv player)}>
+    <tr><td>
+|]
+-}
+
+itemTokens :: DisplayInfo -> Player -> Bool -> Handler Widget
+itemTokens di player reveal = return [whamlet|
+<div>
+  $forall route <- routes
+    <img style="float:left" src=@{route}>
+|]
+	where
+	(resources,huts,villages,artifacts) = _playerItems player
+	routes =
+		map resourceRoute resources ++
+		map (if reveal then revealedHutRoute else const hutRoute) huts ++
+		map (if reveal then revealedVillageRoute else const villageRoute) villages ++
+		map artifactRoute artifacts
+
+dial :: DisplayInfo -> Player -> Handler Widget
+dial di player = do
+	return [whamlet|
+<img src=@{dialRoute (_playerCiv player)}>
+|]
+
+vertCardRow :: DisplayInfo -> Player -> Bool -> [a] -> Handler Widget
+vertCardRow di player reveal l = return [whamlet|
+|]
+
+unitColumn :: DisplayInfo -> Player -> Handler Widget
+unitColumn di player = do
+	return [whamlet|
+|]
+
+techTree :: DisplayInfo -> Handler Widget
+techTree di = do
+	return [whamlet|
 |]
 
 boardArea :: DisplayInfo -> Handler Widget
@@ -147,10 +229,3 @@ boardArea (DisplayInfo{..}) = do
                 $maybe (tileid,ori) <- _squareTileIDOri sq
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 |]
-{-
--}
-{-
-                          $of CityMarker (SecondCitySquare metropolisori)
-                            $maybe (CityMarker (City{..})) <- _squareTokenMarker (arrlookup (addCoorsOri (Coors x y) (addOri metropolisori Southward)))
-                              <img .Center class="#{show (playerori _cityOwner)}" src=@{StaticR $ _Missing_jpg}>
--}
