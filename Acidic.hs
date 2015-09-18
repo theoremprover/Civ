@@ -24,6 +24,13 @@ import Model
 getCivState :: Query CivState CivState
 getCivState = ask
 
+type UpdateCivM a = ErrorT String (Update CivState) a
+--type CheckPossibilityM = 
+
+--type QueryCivM a = ErrorT String (Query CivState) a
+
+checkPossibility ::
+
 checkCondition :: String -> Traversal' CivState b -> (b -> Bool) -> UpdateCivM ()
 checkCondition errmsg lens f = do
 	mb_v <- queryCivLensM lens
@@ -146,9 +153,6 @@ revealTile gamename coors orientation = do
 
 getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
 getSquare gamename coors = queryCivLensM $ civSquareLens gamename coors
-
-type UpdateCivM a = ErrorT String (Update CivState) a
---type CheckPossibilityM = 
 
 type UpdateResult = Either String ()
 

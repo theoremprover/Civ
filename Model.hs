@@ -70,9 +70,12 @@ data TileID =
 	deriving (Show,Eq,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
-data Phase = StartOfTurn | Trading | CityManagement | Movement | Research
+data Phase = StartOfGame | StartOfTurn | Trading | CityManagement | Movement | Research
 	deriving (Show,Eq,Ord,Enum,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
+
+nextPhase Research = StartOfTurn
+nextPhase phase    = succ phase
 
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
@@ -463,6 +466,7 @@ data Game = Game {
 	_gameState :: GameState,
 	_gamePlayers :: Players,
 	_gameTurn :: Int,
+	_gamePhase :: Phase,
 	_gameStartPlayer :: Int,
 	_gameBoard :: Board,
 	_gameTileStack :: TokenStack () TileID,

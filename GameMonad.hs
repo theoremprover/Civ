@@ -116,7 +116,7 @@ executeAction action = do
 			personstack  <- shuffle initialGreatPersonStack
 			unitstack    <- shuffle initialUnitStack
 			updateCivH action [GameAdmin] $ CreateNewGame gamename $ Game
-				now (userEmail user) Waiting emptyPlayers 1 0
+				now (userEmail user) Waiting emptyPlayers 1 StartOfGame 0
 				emptyBoard
 				tilestack hutstack villagestack
 				initialBuildingStack personstack unitstack 
