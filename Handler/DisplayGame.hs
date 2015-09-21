@@ -67,22 +67,19 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
 playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
-playerArea di@(DisplayInfo{..}) (playername,player) = do
+playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
-		policies = []
-		culturecards = []
-		greatpersons = []
-	greatpersonsrow <- vertCardRow di player reveal greatpersons
-	culturecardsrow <- vertCardRow di player reveal culturecards
-	policyrow <- vertCardRow di player reveal policies
+	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
+	culturecardsrow <- horRow reveal _cultureCardRevealed _cultureCardEvent _playerCultureCards
+	policyrow <- horRow True (const True) _playerPolicies
 	techtree <- techTree di
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di player
 	pdial <- dial di player
 
 	return [whamlet|
-<div .NoSpacing class=#{show (_playerOrientation player)}>
+<div .NoSpacing class=#{show _playerOrientation}>
   <table .NoSpacing>
     <tr>
       <td>
@@ -114,13 +111,15 @@ playerArea di@(DisplayInfo{..}) (playername,player) = do
       <td valign=top>
         ^{unitcolumn}
 |]
-{-
-<div class=#{show (_playerOrientation player)}>
-  <table>
-    <tr><td>#{show playername}
-    <tr><td>
+
+horRow :: Bool -> (card -> Bool) -> (card -> Bool -> Route App) -> [card] -> Handler Widget
+horRow reveal revealcard card2route cards = return [whamlet|
+<div>
+  $forall card <- cards
+    <img style="float:left" src=@{cardroute card}>
 |]
--}
+	where
+	cardroute card = card2route card (reveal || revealcard card)
 
 itemTokens :: DisplayInfo -> Player -> Bool -> Handler Widget
 itemTokens di player reveal = return [whamlet|
@@ -140,10 +139,6 @@ dial :: DisplayInfo -> Player -> Handler Widget
 dial di player = do
 	return [whamlet|
 <img src=@{dialRoute (_playerCiv player)}>
-|]
-
-vertCardRow :: DisplayInfo -> Player -> Bool -> [a] -> Handler Widget
-vertCardRow di player reveal l = return [whamlet|
 |]
 
 unitColumn :: DisplayInfo -> Player -> Handler Widget

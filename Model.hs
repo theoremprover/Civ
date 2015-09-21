@@ -6,6 +6,7 @@ module Model where
 
 import Prelude
 import Data.Data
+import Data.Maybe
 import Data.Ix
 import Data.Text (Text(..))
 import Data.Typeable
@@ -214,22 +215,33 @@ data Wonder =
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Wonder)
 
-type PolicyCard = (Policy,Policy)
+data PolicyCard =
+	NaturalOrOrganizedReligion |
+	PacifismOrMilitaryTradition |
+	ExpansionismOrUrbanDevelopment |
+	RationalismOrPatronage
+	deriving (Show,Ord,Ix,Data,Bounded,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''PolicyCard)
+
 policyCards :: [PolicyCard]
-policyCards = [
-	(NaturalReligion,OrganizedReligion),
-	(Pacifism,MilitaryTradition),
-	(Expansionism,UrbanDevelopment),
-	(Rationalism,Patronage) ]
+policyCards = allOfThem
 
 data Policy =
 	Rationalism | NaturalReligion | MilitaryTradition | UrbanDevelopment |
 	Patronage | Pacifism | OrganizedReligion | Expansionism
-	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+	deriving (Show,Ord,Ix,Data,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Policy)
 
-initialPolicyStack :: TokenStack () PolicyCard
-initialPolicyStack = tokenStackFromList policyCards
+cardPolicyBijection = [
+	(NaturalOrOrganizedReligion,[ NaturalReligion,OrganizedReligion ]),
+	(PacifismOrMilitaryTradition,[ Pacifism,MilitaryTradition ]),
+	(ExpansionismOrUrbanDevelopment,[ Expansionism,UrbanDevelopment ]),
+	(RationalismOrPatronage,[ Rationalism,Patronage ]) ]
+policy2Card p = head [ c | (c,ps) <- cardPolicyBijection, p `elem` ps ]
+card2Policies c = fromJust $ lookup c cardPolicyBijection
+
+initialPolicyStack :: TokenStack PolicyCard ()
+initialPolicyStack = tokenStackFromList $ replicateUnit $ map (,1) policyCards
 
 data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
@@ -424,7 +436,7 @@ data Player = Player {
 	_playerCultureCards :: [CultureCard],
 	_playerOrientation :: Orientation,
 	_playerCityStack :: TokenStack () (),
-		_playerPolicyStack :: TokenStack () Policy
+	_playerPolicyStack :: TokenStack PolicyCard ()
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -435,8 +447,7 @@ makePlayer useremail colour civ = Player
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
-	[] [] [] Northward initialCityStack
-	initialPolicyStack
+	[] [] [] Northward initialCityStack initialPolicyStack
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
