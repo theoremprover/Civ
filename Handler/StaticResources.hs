@@ -63,11 +63,11 @@ fiveCultureRoute = StaticR $ _Dials_5Culture_gif
 coinRoute = StaticR $ _Dials_Coin_gif
 
 $(makeMultiRoutes [''CultureEvent] "cultureRouteRevealed" ["_Culture_","_jpg"])
-cultureRoute (CultureCard False ev _) = StaticR $ case cultureEventLevel ev of
+cultureRoute ev False = StaticR $ case cultureEventLevel ev of
 	CultureLevel1 -> _Culture_CultureLevel1_back_jpg
 	CultureLevel2 -> _Culture_CultureLevel2_back_jpg
 	CultureLevel3 -> _Culture_CultureLevel3_back_jpg
-cultureRoute (CultureCard True ev coins) = cultureRouteRevealed ev
+cultureRoute ev True = cultureRouteRevealed ev
 
 $(makeMultiRoutes [''Tech] "techRoute" ["_Techs_","_jpg"])
 
@@ -77,6 +77,7 @@ $(makeMultiRoutes [''GreatPerson] "greatPersonRouteRevealed" ["_Great_","_jpg"])
 greatPersonRoute greatperson revealed = case revealed of
 	False -> StaticR _Great_Back_gif
 	True  -> greatPersonRouteRevealed greatperson
+
 $(makeMultiRoutes [''Terrain] "terrainRoute" ["_Squares_","_jpg"])
 
 $(makeMultiRoutes [''Colour] "colourRouteFlag" ["_Figures_Flag_","_gif"])

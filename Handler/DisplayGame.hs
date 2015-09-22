@@ -71,8 +71,8 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
-	culturecardsrow <- horRow reveal _cultureCardRevealed _cultureCardEvent _playerCultureCards
-	policyrow <- horRow True (const True) _playerPolicies
+	culturecardsrow <- horRow reveal _cultureCardRevealed cultureRoute _cultureCardEvent _playerCultureCards
+	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) (\a->a) _playerPolicies
 	techtree <- techTree di
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di player
@@ -112,14 +112,14 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
         ^{unitcolumn}
 |]
 
-horRow :: Bool -> (card -> Bool) -> (card -> Bool -> Route App) -> [card] -> Handler Widget
-horRow reveal revealcard card2route cards = return [whamlet|
+horRow :: Bool -> (card -> Bool) -> (val -> Bool -> Route App) -> (card -> val) -> [card] -> Handler Widget
+horRow reveal revealcard card2route card2val cards = return [whamlet|
 <div>
   $forall card <- cards
     <img style="float:left" src=@{cardroute card}>
 |]
 	where
-	cardroute card = card2route card (reveal || revealcard card)
+	cardroute card = card2route (card2val card) (reveal || revealcard card)
 
 itemTokens :: DisplayInfo -> Player -> Bool -> Handler Widget
 itemTokens di player reveal = return [whamlet|
