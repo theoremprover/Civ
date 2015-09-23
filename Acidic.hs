@@ -74,12 +74,12 @@ startGame gamename = runUpdateCivM $ do
 
 drawPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
 drawPolicy gamename playername policy = do
-	updateCivLensM (\ (cs,ps) -> (delete (policy2card policy) cs,policy:ps)) $
+	updateCivLensM (\ (cs,ps) -> (delete (policy2Card policy) cs,policy:ps)) $
 		civPlayerLens gamename playername . playerPolicies
 
 returnPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
 returnPolicy gamename playername policy = do
-	updateCivLensM (\ (cs,ps) -> (policy2card policy : cs,delete policy ps)) $
+	updateCivLensM (\ (cs,ps) -> (policy2Card policy : cs,delete policy ps)) $
 		civPlayerLens gamename playername . playerPolicies
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
