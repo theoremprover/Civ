@@ -223,8 +223,8 @@ data PolicyCard =
 	deriving (Show,Ord,Ix,Data,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''PolicyCard)
 
-policyCards :: [PolicyCard]
-policyCards = allOfThem
+allPolicyCards :: [PolicyCard]
+allPolicyCards = allOfThem
 
 data Policy =
 	Rationalism | NaturalReligion | MilitaryTradition | UrbanDevelopment |
@@ -239,9 +239,6 @@ cardPolicyBijection = [
 	(RationalismOrPatronage,[ Rationalism,Patronage ]) ]
 policy2Card p = head [ c | (c,ps) <- cardPolicyBijection, p `elem` ps ]
 card2Policies c = fromJust $ lookup c cardPolicyBijection
-
-initialPolicyStack :: TokenStack PolicyCard ()
-initialPolicyStack = tokenStackFromList $ replicateUnit $ map (,1) policyCards
 
 data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
@@ -423,7 +420,7 @@ data Player = Player {
 	_playerUserEmail :: PlayerEmail,
 	_playerColour :: Colour,
 	_playerCiv :: Civ,
-	_playerPolicies :: [Policy],
+	_playerPolicies :: ([PolicyCard],[Policy]),
 	_playerGovernment :: Government,
 	_playerTrade :: Trade,
 	_playerCulture :: Culture,
@@ -435,19 +432,18 @@ data Player = Player {
 	_playerUnits :: [UnitCard],
 	_playerCultureCards :: [CultureCard],
 	_playerOrientation :: Orientation,
-	_playerCityStack :: TokenStack () (),
-	_playerPolicyStack :: TokenStack PolicyCard ()
+	_playerCityStack :: TokenStack () ()
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
 makeLenses ''Player
 
 makePlayer useremail colour civ = Player
-	useremail colour civ [] Despotism
+	useremail colour civ (allPolicyCards,[]) Despotism
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
-	[] [] [] Northward initialCityStack initialPolicyStack
+	[] [] [] Northward initialCityStack
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

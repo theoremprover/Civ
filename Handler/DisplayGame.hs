@@ -72,7 +72,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
 	culturecardsrow <- horRow reveal _cultureCardRevealed cultureRoute _cultureCardEvent _playerCultureCards
-	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) (\a->a) _playerPolicies
+	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) snd _playerPolicies
 	techtree <- techTree di
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di player

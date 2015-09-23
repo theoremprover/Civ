@@ -72,6 +72,16 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
 
+drawPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
+drawPolicy gamename playername policy = do
+	updateCivLensM (\ (cs,ps) -> (delete (policy2card policy) cs,policy:ps)) $
+		civPlayerLens gamename playername . playerPolicies
+
+returnPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
+returnPolicy gamename playername policy = do
+	updateCivLensM (\ (cs,ps) -> (policy2card policy : cs,delete policy ps)) $
+		civPlayerLens gamename playername . playerPolicies
+
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
 	updateCivLensM (const players) $ civPlayersLens gamename
