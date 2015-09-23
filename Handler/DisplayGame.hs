@@ -48,7 +48,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		case playerareas of
 			[playerarea0,playerarea1] -> [whamlet|
 <div class=#{show myplayerori}>
-  <table>
+  <table cellspacing=20>
     <tr><td>^{playerarea0}
     <tr><td>^{boardarea}
     <tr><td>^{playerarea1}
@@ -72,7 +72,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
 	culturecardsrow <- horRow reveal _cultureCardRevealed cultureRoute _cultureCardEvent _playerCultureCards
-	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) snd _playerPolicies
+	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) id (snd _playerPolicies)
 	techtree <- techTree di
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di player

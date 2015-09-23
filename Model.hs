@@ -43,6 +43,9 @@ $(deriveSafeCopy modelVersion 'base ''Coins)
 newtype Culture = Culture Int deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Culture)
 
+addCultureDial (Culture c1) (Culture c2) = Culture $ max (c1+c2) 0
+addTradeDial (Trade t1) (Trade t2) = Trade $ max (min (t1+t2) 27) 0
+
 newtype PlayerName = PlayerName Text
 	deriving (Data,Typeable,Show,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''PlayerName)
@@ -356,12 +359,12 @@ data CultureEvent =
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CultureEvent)
 
-data CultureLevel = CultureLevel1 | CultureLevel2 | CultureLevel3
+data CultureLevel = CultureLevelI | CultureLevelII | CultureLevelIII
 	deriving (Show,Data,Ord,Bounded,Ix,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CultureLevel)
 
 cultureEventsOfLevel :: CultureLevel -> [CultureEvent]
-cultureEventsOfLevel CultureLevel1 = [
+cultureEventsOfLevel CultureLevelI = [
 	GiftFromAfar,GiftFromAfar,GiftFromAfar,
 	BarbarianEncampment,BarbarianEncampment,
 	BreadCircus,BreadCircus,
@@ -375,7 +378,7 @@ cultureEventsOfLevel CultureLevel1 = [
 	Migrants,Migrants,
 	RevoltI,
 	Sabotage,Sabotage ]
-cultureEventsOfLevel CultureLevel2 = [
+cultureEventsOfLevel CultureLevelII = [
 	GenerousGift,GenerousGift,GenerousGift,
 	Catastrophe,
 	Colonists,Colonists,
@@ -390,7 +393,7 @@ cultureEventsOfLevel CultureLevel2 = [
 	RoamingHoarde,RoamingHoarde,
 	RevoltII,
 	LongLiveTheQueen,LongLiveTheQueen ]
-cultureEventsOfLevel CultureLevel3 = [
+cultureEventsOfLevel CultureLevelIII = [
 	PrincelyGift,PrincelyGift,
 	BankCrisis,
 	Disaster,
@@ -403,9 +406,39 @@ cultureEventsOfLevel CultureLevel3 = [
 	MassDefection,
 	Ideas,Ideas ]
 
-cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel1) = CultureLevel1
-cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel2) = CultureLevel2
-cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevel3) = CultureLevel3
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelI) = CultureLevelI
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelII) = CultureLevelII
+cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelIII) = CultureLevelIII
+
+data CultureStep = DrawCultureCard CultureLevel | DrawGreatPerson
+cultureStep step = ([
+	Nothing,
+	Just $ DrawCultureCard CultureLevelI,
+	Just $ DrawCultureCard CultureLevelI,
+	Just DrawGreatPerson,
+	Just $ DrawCultureCard CultureLevelI,
+	Just $ DrawCultureCard CultureLevelI,
+	Just $ DrawCultureCard CultureLevelI,
+	Just DrawGreatPerson,
+	Just $ DrawCultureCard CultureLevelII,
+	Just $ DrawCultureCard CultureLevelII,
+	Just $ DrawCultureCard CultureLevelII,
+	Just $ DrawCultureCard CultureLevelII,
+	Just DrawGreatPerson,
+	Just $ DrawCultureCard CultureLevelII,
+	Just $ DrawCultureCard CultureLevelII,
+	Just $ DrawCultureCard CultureLevelIII,
+	Just $ DrawCultureCard CultureLevelIII,
+	Just $ DrawCultureCard CultureLevelIII,
+	Just DrawGreatPerson,
+	Just $ DrawCultureCard CultureLevelIII,
+	Just $ DrawCultureCard CultureLevelIII,
+	Nothing
+	] ++ repeat Nothing) !! step
+
+cultureStepCost step | step <= 7 =  (Culture 3,Trade 0)
+cultureStepCost step | step <= 14 = (Culture 5,Trade 3)
+cultureStepCost step =              (Culture 7,Trade 6)
 
 data CultureCard = CultureCard {
 	_cultureCardRevealed :: Bool,
@@ -432,7 +465,8 @@ data Player = Player {
 	_playerUnits :: [UnitCard],
 	_playerCultureCards :: [CultureCard],
 	_playerOrientation :: Orientation,
-	_playerCityStack :: TokenStack () ()
+	_playerCityStack :: TokenStack () (),
+	_playerCultureSteps :: Int
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -444,6 +478,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] [] Northward initialCityStack
+	0
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

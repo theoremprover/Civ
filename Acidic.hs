@@ -2,7 +2,7 @@
 
 module Acidic where
 
-import Import hiding (Update,Query,array)
+import Import hiding (Update,Query,array,delete)
 
 import qualified Prelude
 
@@ -12,6 +12,7 @@ import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
 import Control.Lens hiding (Action)
 import Control.Monad.State (modify,get,gets)
+import Data.List (delete)
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
@@ -62,9 +63,18 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
-{-
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
+	getCulture gamename pn0 10
+	getCulture gamename pn1 11
+	getTrade gamename pn0 21
+	getTrade gamename pn1 11
+	drawPolicy gamename pn0 MilitaryTradition
+	drawPolicy gamename pn0 Rationalism
+	drawPolicy gamename pn1 NaturalReligion
+	drawPolicy gamename pn1 UrbanDevelopment
+	drawPolicy gamename pn1 MilitaryTradition
+{-
 	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
 	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
@@ -72,15 +82,43 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
 
+addCulture :: GameName -> PlayerName -> Culture -> UpdateCivM ()
+addCulture gamename playername culture = do
+	updateCivLensM (addCultureDial culture) $ civPlayerLens gamename playername . _Just . playerCulture
+
+addTrade :: GameName -> PlayerName -> Trade -> UpdateCivM ()
+addTrade gamename playername trade = do
+	updateCivLensM (addTradeDial trade) $ civPlayerLens gamename playername . _Just . playerTrade
+
 drawPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
 drawPolicy gamename playername policy = do
 	updateCivLensM (\ (cs,ps) -> (delete (policy2Card policy) cs,policy:ps)) $
-		civPlayerLens gamename playername . playerPolicies
+		civPlayerLens gamename playername . _Just . playerPolicies
 
 returnPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
 returnPolicy gamename playername policy = do
 	updateCivLensM (\ (cs,ps) -> (policy2Card policy : cs,delete policy ps)) $
-		civPlayerLens gamename playername . playerPolicies
+		civPlayerLens gamename playername . _Just . playerPolicies
+
+drawCultureCard :: GameName -> PlayerName -> UpdateCivM ()
+drawCultureCard gamename playername = do
+	updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	let (culture,trade) = cultureStepCost steps
+	addCulture gamename playername (-culture)
+	addTrade gamename playername (-trade)
+	case cultureStep steps of
+		Nothing -> return ()
+		Just DrawGreatPerson -> do
+			drawGreatPerson gamename playername
+		Just (DrawCultureCard level) -> do
+			getCultureCard gamename playername level
+
+drawGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
+drawGreatPerson gamename playername = do
+
+getCultureCard :: GameName -> PlayerName -> UpdateCivM ()
+getCultureCard gamename playername = do
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
