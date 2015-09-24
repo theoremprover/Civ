@@ -63,17 +63,42 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
+	Just players <- queryCivLensM $ civPlayersLens gamename
+	updateCivLensM (const $ initialResourceStack (numPlayers players)) $
+		civGameLens gamename . _Just . gameResourceStack
+
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
-	getCulture gamename pn0 10
-	getCulture gamename pn1 11
-	getTrade gamename pn0 21
-	getTrade gamename pn1 11
+
+	addCulture gamename pn0 10
+	addTrade gamename pn0 21
+	addCulture gamename pn1 11
+	addTrade gamename pn1 11
+
+	getResource gamename pn0 Linen
+	getResource gamename pn0 Iron
+	getHut gamename pn0 $ ResourceHut Wheat
+	getHut gamename pn0 $ ThreeCulture
+	getVillage gamename pn0 $ ResourceVillage Incense
+	getVillage gamename pn0 FourHammers
+	getArtifact gamename pn0 AttilaVillage
+
+	getResource gamename pn1 Wheat
+	getHut gamename pn1 $ ResourceHut Iron
+	getVillage gamename pn1 $ ResourceVillage Incense
+	getVillage gamename pn1 SixCulture
+
+	addCoins gamename pn0 (Coins 1)
+	addCoins gamename pn1 (Coins 3)
+
 	drawPolicy gamename pn0 MilitaryTradition
 	drawPolicy gamename pn0 Rationalism
 	drawPolicy gamename pn1 NaturalReligion
 	drawPolicy gamename pn1 UrbanDevelopment
 	drawPolicy gamename pn1 MilitaryTradition
+
+	Prelude.sequence_ $ replicate 3 $ drawCultureCard gamename pn0
+	Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
 {-
 	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
@@ -103,22 +128,64 @@ returnPolicy gamename playername policy = do
 drawCultureCard :: GameName -> PlayerName -> UpdateCivM ()
 drawCultureCard gamename playername = do
 	updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerCultureSteps
-	steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	Just steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
 	let (culture,trade) = cultureStepCost steps
 	addCulture gamename playername (-culture)
 	addTrade gamename playername (-trade)
 	case cultureStep steps of
 		Nothing -> return ()
 		Just DrawGreatPerson -> do
-			drawGreatPerson gamename playername
+			getGreatPerson gamename playername
 		Just (DrawCultureCard level) -> do
 			getCultureCard gamename playername level
 
-drawGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
-drawGreatPerson gamename playername = do
+getGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
+getGreatPerson gamename playername = do
+	Just greatperson <- takeFromStackM (civGameLens gamename . _Just . gameGreatPersonStack) ()
+	updateCivLensM ((GreatPersonCard greatperson False):) $ civPlayerLens gamename playername . _Just . playerGreatPersonCards
 
-getCultureCard :: GameName -> PlayerName -> UpdateCivM ()
-getCultureCard gamename playername = do
+getCultureCard :: GameName -> PlayerName -> CultureLevel -> UpdateCivM ()
+getCultureCard gamename playername level = do
+	Just cultureevent <- takeFromStackM (civGameLens gamename . _Just . gameCultureStack) level
+	updateCivLensM ((CultureCard False cultureevent (Coins 0)):) $ civPlayerLens gamename playername . _Just . playerCultureCards
+
+getResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
+getResource gamename playername resource = do
+	Just () <- takeFromStackM (civGameLens gamename . _Just . gameResourceStack) resource
+	updateCivLensM (resource:) $ civPlayerLens gamename playername . _Just . playerItems . _1
+
+returnResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
+returnResource gamename playername resource = do
+	updateCivLensM (delete resource) $ civPlayerLens gamename playername . _Just . playerItems . _1
+	putOnStackM (civGameLens gamename . _Just . gameResourceStack) resource ()
+
+getHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
+getHut gamename playername hut = do
+	updateCivLensM (hut:) $ civPlayerLens gamename playername . _Just . playerItems . _2
+
+returnHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
+returnHut gamename playername hut = do
+	updateCivLensM (delete hut) $ civPlayerLens gamename playername . _Just . playerItems . _2
+
+getVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
+getVillage gamename playername village = do
+	updateCivLensM (village:) $ civPlayerLens gamename playername . _Just . playerItems . _3
+
+returnVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
+returnVillage gamename playername village = do
+	updateCivLensM (delete village) $ civPlayerLens gamename playername . _Just . playerItems . _3
+
+getArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
+getArtifact gamename playername artifact = do
+	updateCivLensM (artifact:) $ civPlayerLens gamename playername . _Just . playerItems . _4
+
+returnArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
+returnArtifact gamename playername artifact = do
+	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerItems . _4
+
+addCoins :: GameName -> PlayerName -> Coins -> UpdateCivM ()
+addCoins gamename playername coins = do
+	updateCivLensM (+coins) $ civPlayerLens gamename playername . _Just . playerCoins
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do

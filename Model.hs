@@ -36,11 +36,11 @@ infix 6 +/+
 (Coors x1 y1) +/+ (Coors x2 y2) = Coors (x1+x2) (y1+y2)
 
 
-newtype Trade = Trade Int deriving (Show,Num,Data,Typeable)
+newtype Trade = Trade {tradeTrade::Int} deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Trade)
-newtype Coins = Coins Int deriving (Show,Num,Data,Typeable)
+newtype Coins = Coins {coinsCoins::Int} deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Coins)
-newtype Culture = Culture Int deriving (Show,Num,Data,Typeable)
+newtype Culture = Culture {cultureCulture::Int} deriving (Show,Num,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Culture)
 
 addCultureDial (Culture c1) (Culture c2) = Culture $ max (c1+c2) 0
@@ -108,8 +108,12 @@ data Government =
 $(deriveSafeCopy modelVersion 'base ''Government)
 
 data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''Resource)
+
+initialResourceStack :: Int -> TokenStack Resource ()
+initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
+	(Wheat,numplayers),(Incense,numplayers),(Linen,numplayers),(Iron,numplayers) ]
 
 data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Data,Typeable,Eq)
@@ -410,6 +414,12 @@ cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelI) = CultureL
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelII) = CultureLevelII
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelIII) = CultureLevelIII
 
+initialCultureStack :: TokenStack CultureLevel CultureEvent
+initialCultureStack = tokenStackFromList [
+	(CultureLevelI,  cultureEventsOfLevel CultureLevelI),
+	(CultureLevelII, cultureEventsOfLevel CultureLevelII),
+	(CultureLevelIII,cultureEventsOfLevel CultureLevelIII) ]	
+
 data CultureStep = DrawCultureCard CultureLevel | DrawGreatPerson
 cultureStep step = ([
 	Nothing,
@@ -524,7 +534,9 @@ data Game = Game {
 	_gameVillageStack :: TokenStack () Village,
 	_gameBuildingStack :: TokenStack BuildingMarker (),
 	_gameGreatPersonStack :: TokenStack () GreatPerson,
-	_gameUnitStack :: TokenStack UnitType UnitCard
+	_gameUnitStack :: TokenStack UnitType UnitCard,
+	_gameCultureStack :: TokenStack CultureLevel CultureEvent,
+	_gameResourceStack :: TokenStack Resource ()
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)

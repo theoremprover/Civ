@@ -115,11 +115,13 @@ executeAction action = do
 			villagestack <- shuffle initialVillageStack
 			personstack  <- shuffle initialGreatPersonStack
 			unitstack    <- shuffle initialUnitStack
+			culturestack <- shuffle initialCultureStack
 			updateCivH action [GameAdmin] $ CreateNewGame gamename $ Game
 				now (userEmail user) Waiting emptyPlayers 1 StartOfGame 0
 				emptyBoard
 				tilestack hutstack villagestack
-				initialBuildingStack personstack unitstack 
+				initialBuildingStack personstack unitstack culturestack
+				(initialResourceStack 0)
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename

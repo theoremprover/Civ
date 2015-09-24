@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Handler.DisplayGame where
 
 import Import hiding (map,minimum,maximum,concat,lookup)
@@ -136,9 +138,19 @@ itemTokens di player reveal = return [whamlet|
 		map artifactRoute artifacts
 
 dial :: DisplayInfo -> Player -> Handler Widget
-dial di player = do
+dial di player@(Player{..}) = do
+	let
+		tradeangle :: Float = fromIntegral (tradeTrade _playerTrade - 1) * (28/360)
+		coinangle :: Float = tradeangle + fromIntegral (coinsCoins _playerCoins - 1) * (16/360)
+		Culture culture = _playerCulture
+		(culturefivers,cultureones) = (div culture 5, mod culture 5)
+		Coins coins = _playerCoins
 	return [whamlet|
-<img src=@{dialRoute (_playerCiv player)}>
+<div .Child>
+  <div .Parent>
+    <img .Child style="left:0px; top:0px" src=@{dialRoute _playerCiv}>
+    <img .Child style="left:343px; top:19px; transform: rotate(#{tradeangle}deg); transform-origin: 50% 50%" src=@{tradeDialRoute}>
+    <img .Child style="left:385px; top:65px; transform: rotate(#{coinangle}deg); transform-origin: 50% 50%" src=@{coinDialRoute}>
 |]
 
 unitColumn :: DisplayInfo -> Player -> Handler Widget

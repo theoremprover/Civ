@@ -64,9 +64,9 @@ coinRoute = StaticR $ _Dials_Coin_gif
 
 $(makeMultiRoutes [''CultureEvent] "cultureRouteRevealed" ["_Culture_","_jpg"])
 cultureRoute ev False = StaticR $ case cultureEventLevel ev of
-	CultureLevel1 -> _Culture_CultureLevel1_back_jpg
-	CultureLevel2 -> _Culture_CultureLevel2_back_jpg
-	CultureLevel3 -> _Culture_CultureLevel3_back_jpg
+	CultureLevelI   -> _Culture_CultureLevel1_back_jpg
+	CultureLevelII  -> _Culture_CultureLevel2_back_jpg
+	CultureLevelIII -> _Culture_CultureLevel3_back_jpg
 cultureRoute ev True = cultureRouteRevealed ev
 
 $(makeMultiRoutes [''Tech] "techRoute" ["_Techs_","_jpg"])
