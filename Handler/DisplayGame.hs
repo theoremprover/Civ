@@ -2,8 +2,8 @@
 
 module Handler.DisplayGame where
 
-import Import hiding (map,minimum,maximum,concat,lookup)
-import Prelude (map,minimum,maximum,concat,lookup)
+import Import hiding (map,minimum,maximum,concat,lookup,replicate)
+import Prelude (map,minimum,maximum,concat,lookup,replicate)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -140,17 +140,30 @@ itemTokens di player reveal = return [whamlet|
 dial :: DisplayInfo -> Player -> Handler Widget
 dial di player@(Player{..}) = do
 	let
-		tradeangle :: Float = fromIntegral (tradeTrade _playerTrade - 1) * (28/360)
-		coinangle :: Float = tradeangle + fromIntegral (coinsCoins _playerCoins - 1) * (16/360)
+		tradeangle = div ((tradeTrade _playerTrade - 1) * 360) 28
+		coinangle = tradeangle + div ((coinsCoins _playerCoins - 1) * 360) 16
 		Culture culture = _playerCulture
-		(culturefivers,cultureones) = (div culture 5, mod culture 5)
-		Coins coins = _playerCoins
+		culturerow =
+			replicate (div culture 5) fiveCultureRoute ++
+			replicate (mod culture 5) oneCultureRoute
+		coinrow = replicate (coinsCoins _playerCoins) coinRoute
 	return [whamlet|
-<div .Child>
-  <div .Parent>
+<div style="width:570px; height:380px;" alt="alt" title="#{show player}">
+  <div .Center .Parent>
     <img .Child style="left:0px; top:0px" src=@{dialRoute _playerCiv}>
-    <img .Child style="left:343px; top:19px; transform: rotate(#{tradeangle}deg); transform-origin: 50% 50%" src=@{tradeDialRoute}>
-    <img .Child style="left:385px; top:65px; transform: rotate(#{coinangle}deg); transform-origin: 50% 50%" src=@{coinDialRoute}>
+    <img .Child style="left:343px; top:19px; #{rotateStyle tradeangle}" src=@{tradeDialRoute}>
+    <img .Child style="left:385px; top:65px; #{rotateStyle coinangle}" src=@{coinDialRoute}>
+    <img .Child style="left:15px; top:165px" src=@{governmentRoute _playerGovernment}>
+    <div .Child style="left:180px; top:270px">
+      <table .Parent .NoSpacing>
+        <tr>
+          $forall route <- coinrow
+            <td><img .Parent style="float:left" src=@{route}>
+    <div .Child style="left:180px; top:315px">
+      <table .Parent .NoSpacing>
+        <tr>
+          $forall route <- culturerow
+            <td><img .Parent style="float:left" src=@{route}>
 |]
 
 unitColumn :: DisplayInfo -> Player -> Handler Widget
@@ -236,3 +249,10 @@ boardArea (DisplayInfo{..}) = do
                 $maybe (tileid,ori) <- _squareTileIDOri sq
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show ori} src=@{boardTileRoute tileid True}>
 |]
+
+rotateStyle deg =
+	"-moz-transform: rotate(" ++ show deg ++ "deg); " ++
+	"-webkit-transform: rotate(" ++ show deg ++ "deg); " ++
+    "-o-transform: rotate(" ++ show deg ++ "deg); " ++
+    "transform: rotate(" ++ show deg ++ "deg); " ++
+	"transform-origin: 50% 50%; "

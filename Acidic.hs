@@ -70,9 +70,9 @@ startGame gamename = runUpdateCivM $ do
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
-	addCulture gamename pn0 10
+	addCulture gamename pn0 20
 	addTrade gamename pn0 21
-	addCulture gamename pn1 11
+	addCulture gamename pn1 31
 	addTrade gamename pn1 11
 
 	getResource gamename pn0 Linen
