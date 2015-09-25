@@ -221,7 +221,9 @@ createBoard gamename = do
 				updateBoard gamename $ squaresfromtile (Tile $ _playerCiv player) coors
 				updateCivLensM (const ori) $ civPlayerLens gamename playername . _Just . playerOrientation
 				revealTile gamename coors ori
-
+				let firstcitycoors = [ coors +/+ (Coors xo yo) | xo <- [1..2], yo <- [1..2] ]
+				updateCivLensM (const $ Just firstcitycoors) $
+					civPlayerLens gamename playername . _Just . playerFirstCityCoors
 	where
 	squaresfromtile :: TileID -> Coors -> [(Coors,Square)]
 	squaresfromtile tileid tilecoors = (flip map) (tileSquares tileid) $

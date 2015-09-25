@@ -476,7 +476,8 @@ data Player = Player {
 	_playerCultureCards :: [CultureCard],
 	_playerOrientation :: Orientation,
 	_playerCityStack :: TokenStack () (),
-	_playerCultureSteps :: Int
+	_playerCultureSteps :: Int,
+	_playerFirstCityCoors :: Maybe [Coors]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -488,7 +489,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] [] Northward initialCityStack
-	0
+	0 Nothing
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

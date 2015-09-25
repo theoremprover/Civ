@@ -25,6 +25,7 @@ library
                      Handler.Home
                      GameMonad
                      Logic
+                     Actions
                      Version
                      Handler.DisplayGame
                      Handler.HandlerPolling
