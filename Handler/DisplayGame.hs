@@ -163,7 +163,7 @@ dial di player@(Player{..}) = do
       <table .Parent .NoSpacing>
         <tr>
           $forall route <- culturerow
-            <td><img .Parent style="float:left" src=@{route}>
+            <td><img .Parent style="float:left;" src=@{route}>
 |]
 
 unitColumn :: DisplayInfo -> Player -> Handler Widget
