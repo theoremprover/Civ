@@ -56,8 +56,8 @@ boardTileRoute tileid revealed = StaticR $ case tileid of
 	Tile27 -> _Tiles_Tile27_jpg
 
 $(makeMultiRoutes [''Civ] "dialRoute" ["_Dials_","_jpg"])
-tradeDialRoute = StaticR $ _Dials_Tradedial_gif
-coinDialRoute = StaticR $ _Dials_Coindial_gif
+tradeDialRoute = StaticR $ _Dials_Tradedial2_gif
+coinDialRoute = StaticR $ _Dials_Coindial2_gif
 oneCultureRoute = StaticR $ _Dials_1Culture_gif
 fiveCultureRoute = StaticR $ _Dials_5Culture_gif
 coinRoute = StaticR $ _Dials_Coin_gif
