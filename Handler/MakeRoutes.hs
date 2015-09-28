@@ -8,6 +8,7 @@ import Import
 
 import Language.Haskell.TH
 
+
 makeMultiRoutes :: [Name] -> String -> [ String ] -> Q [Dec]
 makeMultiRoutes names funnamestr pathintersperses = do
 	cnamess <- forM names getconstrname

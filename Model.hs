@@ -71,7 +71,7 @@ data TileID =
 	Tile11 | Tile12 | Tile13 | Tile14 | Tile15 | Tile16 | Tile17 | Tile18 | Tile19 | Tile20 |
 	Tile21 | Tile22 | Tile23 | Tile24 | Tile25 | Tile26 | Tile27 |
 	Tile Civ
-	deriving (Show,Eq,Data,Ord,Typeable)
+	deriving (Eq,Show,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfGame | StartOfTurn | Trading | CityManagement | Movement | Research
