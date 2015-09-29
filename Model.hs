@@ -343,6 +343,10 @@ data UnitCard =
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitCard)
 
+data UnitLevel = UnitLevelI | UnitLevelII | UnitLevelIII | UnitLevelStar
+	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+$(deriveSafeCopy modelVersion 'base ''UnitLevel)
+
 initialUnitStack :: TokenStack UnitType UnitCard
 initialUnitStack = tokenStackFromList $ map repl [
 	(Aircraft, [(Aircraft_5_7, 2),(Aircraft_6_6, 4),(Aircraft_7_5, 2)]),

@@ -5,6 +5,7 @@ module Actions where
 import Prelude
 
 import Model
+import Acidic
 
 data ActionAlgebra =
 	Atomic Action |
@@ -26,6 +27,25 @@ phaseActions :: Phase -> ActionAlgebra
 phaseActions StartOfGame = Atomic BuildFirstCity
 phaseActions _ = OneOf []
 
+{-
+data (Ord a) => Value a = SetValue a | ModifyValue (a -> a)
+
+class Card a where
+	unitLevel :: UnitType -> Value UnitLevel
+	unitLevel _ = SetValue UnitLevelI
+
+	unitStackLimit :: Value Int
+	unitStackLimit = SetValue 2
+
+	moveRange :: Value Coor
+	moveRange = SetValue 2
+
+	cardCoins :: Value Coins
+	cardCoins = SetValue (Coins 0)
+
+	cardActions :: Phase -> [(String,UpdateCivM ())]
+	cardActions _ = []
+-}
 
 
 {-
