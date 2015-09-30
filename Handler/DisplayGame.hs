@@ -42,12 +42,15 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		di = DisplayInfo game mb_playername mb_myplayer myplayerori toplayer
 
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
+	playerlist <- playerList di
 	boardarea <- boardArea di
+	actionarea <- actionArea di mb_playername
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
-		case playerareas of
+
+		let arena = case playerareas of
 			[playerarea0,playerarea1] -> [whamlet|
 <div class=#{show myplayerori}>
   <table cellspacing=20>
@@ -67,6 +70,42 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     <td colspan="2">^{playerarea0}
 |]
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
+
+		[whamlet|
+<table>
+  <tr>
+    <td><div style="overflow:auto">^{arena}
+    <td valign=bottom>
+      <table>
+        <tr><td>^{playerlist}
+        <tr><td>^{actionarea}
+|]
+
+
+actionArea :: DisplayInfo -> Maybe PlayerName -> Handler Widget
+actionArea _ Nothing = return [whamlet|
+Visitor
+|]
+actionArea di@(DisplayInfo{..}) (Just playername) = do
+	let actions = map (("Action "++).show) [1..5]
+	return [whamlet|
+<table>
+  $forall action <- actions
+    <tr><td>#{action}
+|]
+
+playerList :: DisplayInfo -> Handler Widget
+playerList di@(DisplayInfo{..}) = do
+	let players = fromAssocList $ _gamePlayers gameDI
+	let playerlist = map (\ (playername,player@Player{..}) -> (_playerCiv,playername,_playerColour)) players
+	return [whamlet|
+<table>
+  $forall (civ,playername,colour) <- playerlist
+    <tr bgcolor="#{colour2html colour}">
+      <td>#{show civ}
+      <td>#{show playername}
+|]
+
 
 playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do

@@ -29,7 +29,7 @@ updateCivH action affecteds event = do
 	when (isRight res) $ notifyLongPoll action affecteds
 	return res
 
---queryCivLensH :: Traversal' CivState a -> Handler (Maybe a)
+--queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
 queryCivLensH lens = do
 	app <- getYesod
 	civstate <- query' (appCivAcid app) GetCivState

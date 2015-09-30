@@ -36,11 +36,11 @@ infix 6 +/+
 (Coors x1 y1) +/+ (Coors x2 y2) = Coors (x1+x2) (y1+y2)
 
 
-newtype Trade = Trade {tradeTrade::Int} deriving (Show,Num,Data,Typeable)
+newtype Trade = Trade {tradeTrade::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Trade)
-newtype Coins = Coins {coinsCoins::Int} deriving (Show,Num,Data,Typeable)
+newtype Coins = Coins {coinsCoins::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Coins)
-newtype Culture = Culture {cultureCulture::Int} deriving (Show,Num,Data,Typeable)
+newtype Culture = Culture {cultureCulture::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Culture)
 
 addCultureDial (Culture c1) (Culture c2) = Culture $ max (c1+c2) 0

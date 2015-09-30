@@ -7,6 +7,7 @@ import Prelude
 import Model
 import Acidic
 
+{-
 data ActionAlgebra =
 	Atomic Action |
 	OneOf [ActionAlgebra] |
@@ -26,27 +27,27 @@ data Action =
 phaseActions :: Phase -> ActionAlgebra
 phaseActions StartOfGame = Atomic BuildFirstCity
 phaseActions _ = OneOf []
-
-{-
-data (Ord a) => Value a = SetValue a | ModifyValue (a -> a)
-
-class Card a where
-	unitLevel :: UnitType -> Value UnitLevel
-	unitLevel _ = SetValue UnitLevelI
-
-	unitStackLimit :: Value Int
-	unitStackLimit = SetValue 2
-
-	moveRange :: Value Coor
-	moveRange = SetValue 2
-
-	cardCoins :: Value Coins
-	cardCoins = SetValue (Coins 0)
-
-	cardActions :: Phase -> [(String,UpdateCivM ())]
-	cardActions _ = []
 -}
 
+data (Ord a) => Value a = SetValue a | ModifyValue (a -> a)
+
+data Abilities = Abilities {
+	unitLevel      :: UnitType -> Value UnitLevel,
+	unitStackLimit :: Value Int,
+	moveRange      :: Value Coor,
+	cardCoins      :: Value Coins,
+	cardActions    :: Phase -> [(String,UpdateCivM ())]
+	}
+defaultAbilities = Abilities {
+	unitLevel      = const $ SetValue UnitLevelI,
+	unitStackLimit = SetValue 2,
+	moveRange      = SetValue 2,
+	cardCoins      = SetValue (Coins 0),
+	cardActions    = const []
+	}
+
+possibleActions :: PlayerName -> UpdateCivM [()]
+possibleActions playername = return []
 
 {-
 
