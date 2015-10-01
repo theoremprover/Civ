@@ -108,6 +108,8 @@ startGame gamename = runUpdateCivM $ do
 
 	Prelude.sequence_ $ replicate 3 $ drawCultureCard gamename pn0
 	Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
+
+	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
 {-
 	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
 	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing

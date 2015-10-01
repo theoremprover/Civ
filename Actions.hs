@@ -2,7 +2,7 @@
 
 module Actions where
 
-import Import hiding (Value)
+import Import(App,getYesod,Handler,MonadHandler,appCivAcid,HandlerSite)
 import Prelude
 
 import Control.Lens hiding (Action)
@@ -11,6 +11,7 @@ import Data.Acid.Advanced
 
 import Model
 import Acidic
+import Lenses
 
 {-
 data ActionAlgebra =
@@ -55,9 +56,17 @@ defaultAbilities = Abilities {
 	cardActions    = const []
 	}
 
-possibleActions :: PlayerName -> UpdateCivM [Action]
-possibleActions playername = do
-	return []
+possibleActions :: GameName -> PlayerName -> Handler [Action]
+possibleActions gamename playername = do
+	Just (game@(Game{..})) <- queryCivLensH $ civGameLens gamename . _Just
+	let playername_turn = fst $ nthAssocList _gamePlayersTurn _gamePlayers
+	case playername == playername_turn of
+		False -> return []
+		True -> case _gamePhase of
+			StartOfGame -> return []
+			BuildingFirstCity -> return [BuildFirstCity]
+			GettingFirstTrade -> return [GetFirstTrade]
+			_ -> return []
 
 {-
 

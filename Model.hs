@@ -74,7 +74,13 @@ data TileID =
 	deriving (Eq,Show,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
-data Phase = StartOfGame | StartOfTurn | Trading | CityManagement | Movement | Research
+data Phase = StartOfGame |
+	BuildingFirstCity | GettingFirstTrade |
+	StartOfTurn |
+	Trading |
+	CityManagement |
+	Movement |
+	Research
 	deriving (Show,Eq,Ord,Enum,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
@@ -512,6 +518,9 @@ $(deriveSafeCopy modelVersion 'base ''AssocList)
 lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
 lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
 
+nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
+nthAssocList i assoclist = (fromAssocList assoclist)!!i
+
 type Players = AssocList PlayerName Player
 
 emptyPlayers :: Players
@@ -533,15 +542,16 @@ data Game = Game {
 	_gameTurn :: Int,
 	_gamePhase :: Phase,
 	_gameStartPlayer :: Int,
+	_gamePlayersTurn :: Int,
 	_gameBoard :: Board,
-	_gameTileStack :: TokenStack () TileID,
-	_gameHutStack :: TokenStack () Hut,
-	_gameVillageStack :: TokenStack () Village,
-	_gameBuildingStack :: TokenStack BuildingMarker (),
+	_gameTileStack        :: TokenStack () TileID,
+	_gameHutStack         :: TokenStack () Hut,
+	_gameVillageStack     :: TokenStack () Village,
+	_gameBuildingStack    :: TokenStack BuildingMarker (),
 	_gameGreatPersonStack :: TokenStack () GreatPerson,
-	_gameUnitStack :: TokenStack UnitType UnitCard,
-	_gameCultureStack :: TokenStack CultureLevel CultureEvent,
-	_gameResourceStack :: TokenStack Resource ()
+	_gameUnitStack        :: TokenStack UnitType UnitCard,
+	_gameCultureStack     :: TokenStack CultureLevel CultureEvent,
+	_gameResourceStack    :: TokenStack Resource ()
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)
