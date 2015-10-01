@@ -19,21 +19,16 @@ import TokenStack
 import Lenses
 import Polls
 import Acidic
+import Actions
 
 
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>
-	Action -> [Affected] -> event -> Handler (EventResult event)
-updateCivH action affecteds event = do
+	ActionA -> [Affected] -> event -> Handler (EventResult event)
+updateCivH actiona affecteds event = do
 	app <- getYesod
 	res <- update' (appCivAcid app) event
-	when (isRight res) $ notifyLongPoll action affecteds
+	when (isRight res) $ notifyLongPoll actiona affecteds
 	return res
-
---queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ preview lens civstate
 
 --------- Errors
 
@@ -57,7 +52,7 @@ requireLoggedIn = do
 getPollsMVar :: Handler Polls
 getPollsMVar = getYesod >>= (return . appLongPolls)
 
-notifyLongPoll :: Action -> [Affected] -> Handler ()
+notifyLongPoll :: ActionA -> [Affected] -> Handler ()
 notifyLongPoll action affecteds = do
 	pollsmvar <- getPollsMVar
 	polls <- liftIO $ takeMVar pollsmvar
@@ -69,7 +64,7 @@ notifyLongPoll action affecteds = do
 	printLogDebug $ "PutMVar remaining polls: " ++ show (map fst remainingpolls)
 	return ()
 
-pollHandler :: Handler Action
+pollHandler :: Handler ActionA
 pollHandler = do
 	(userid,user) <- requireLoggedIn
 	affected :: Affected <- requireJsonBody
@@ -84,7 +79,7 @@ pollHandler = do
 postCommandR :: Handler ()
 postCommandR = do
 	(userid,user) <- requireLoggedIn
-	action :: Action <- requireJsonBody
+	action :: ActionA <- requireJsonBody
  	res <- executeAction action
 	sendResponse $ repJson $ encode res
 
@@ -102,7 +97,7 @@ maybeVisitor = do
 				Nothing -> errHandler $ "There is no game " ++ show gamename
 				Just game -> return (userid,user,gamename,game,mb_playername)
 
-executeAction :: Action -> Handler UpdateResult
+executeAction :: ActionA -> Handler UpdateResult
 executeAction action = do
 	(userid,user) <- requireLoggedIn
 	printLogDebug $ "executeAction " ++ show action

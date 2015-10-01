@@ -11,7 +11,7 @@ import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
 import Control.Lens hiding (Action)
-import Control.Monad.State (modify,get,gets)
+import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
 
 import Data.Array.IArray (array,(//),assocs)
@@ -21,6 +21,8 @@ import Logic
 import Lenses
 import TokenStack
 import Model
+--import Polls
+
 
 getCivState :: Query CivState CivState
 getCivState = ask
@@ -28,7 +30,14 @@ getCivState = ask
 type UpdateCivM a = ErrorT String (Update CivState) a
 --type CheckPossibilityM = 
 
---type QueryCivM a = ErrorT String (Query CivState) a
+{-
+type QueryCivM a = ErrorT String (Query CivState) a
+
+queryCivQ :: Traversal' CivState a -> QueryCivM a
+queryCivQ lens = do
+	civstate <- Control.Monad.Reader.ask
+	return $ preview lens civstate
+-}
 
 checkCondition :: String -> Traversal' CivState b -> (b -> Bool) -> UpdateCivM ()
 checkCondition errmsg lens f = do
@@ -280,7 +289,7 @@ runUpdateCivM = runErrorT
 updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
 updateCivLensM fval lens = modify $ over lens fval
 
-queryCivLensM :: Traversal' CivState a -> UpdateCivM (Maybe a)
+queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
 queryCivLensM lens = do
 	civstate <- Control.Monad.State.get
 	return $ preview lens civstate

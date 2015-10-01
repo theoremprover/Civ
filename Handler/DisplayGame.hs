@@ -20,6 +20,7 @@ import Handler.StaticResources
 import Lenses
 import Logic
 
+
 colour2html :: Colour -> String
 colour2html colour = show colour
 

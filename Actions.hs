@@ -1,8 +1,13 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies,Rank2Types #-}
 
 module Actions where
 
+import Import hiding (Value)
 import Prelude
+
+import Control.Lens hiding (Action)
+import Data.Acid
+import Data.Acid.Advanced
 
 import Model
 import Acidic
@@ -18,16 +23,20 @@ data ActionAlgebra =
 --data Phase = StartOfGame | StartOfTurn | Trading | CityManagement | Movement | Research
 
 --data StartOfGame_SubPhase = BuildCity | 
+-}
+
+
+queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ preview lens civstate
+
 
 data Action =
 	BuildFirstCity | GetFirstTrade |   -- StartOfGame
 	GetTrade   -- StartOfTurn
 	deriving (Show,Eq,Ord)
-
-phaseActions :: Phase -> ActionAlgebra
-phaseActions StartOfGame = Atomic BuildFirstCity
-phaseActions _ = OneOf []
--}
 
 data (Ord a) => Value a = SetValue a | ModifyValue (a -> a)
 
@@ -36,7 +45,7 @@ data Abilities = Abilities {
 	unitStackLimit :: Value Int,
 	moveRange      :: Value Coor,
 	cardCoins      :: Value Coins,
-	cardActions    :: Phase -> [(String,UpdateCivM ())]
+	cardActions    :: Phase -> [(String,PlayerName -> UpdateCivM ())]
 	}
 defaultAbilities = Abilities {
 	unitLevel      = const $ SetValue UnitLevelI,
@@ -46,8 +55,9 @@ defaultAbilities = Abilities {
 	cardActions    = const []
 	}
 
-possibleActions :: PlayerName -> UpdateCivM [()]
-possibleActions playername = return []
+possibleActions :: PlayerName -> UpdateCivM [Action]
+possibleActions playername = do
+	return []
 
 {-
 

@@ -7,7 +7,7 @@ import Prelude
 
 import Model
 
-data Action =
+data ActionA =
 	CreateGameA GameName |
 	DeleteGameA GameName |
 	JoinGameA GameName PlayerName PlayerEmail Colour Civ |
@@ -19,7 +19,7 @@ data Action =
 data Affected = GameAdmin | GameGame GameName
 	deriving (Eq,Show)
 
-type Polls = MVar [(Affected,MVar Action)]
+type Polls = MVar [(Affected,MVar ActionA)]
 
-deriveJSON defaultOptions ''Action
+deriveJSON defaultOptions ''ActionA
 deriveJSON defaultOptions ''Affected
