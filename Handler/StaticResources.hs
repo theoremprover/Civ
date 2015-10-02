@@ -79,3 +79,8 @@ $(makeMultiRoutes [''Walls,''Colour] "metropolisRoute'" ["_Squares_MetropolisT_"
 cityRoute colour (City{..}) = case _cityMetropolisOrientation of
 	Nothing  -> cityRoute' (_cityCapital,_cityWalls,colour)
 	Just ori -> metropolisRoute' (_cityWalls,colour)
+
+startPlayerRoute = StaticR _Table_StartPlayer_gif
+
+$(makeMultiRoutes [''Colour] "wagonRoute" ["_Figures_Wagon_","_gif"])
+$(makeMultiRoutes [''Colour] "flagRoute" ["_Figures_Flag_","_gif"])

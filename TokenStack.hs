@@ -21,3 +21,11 @@ replicateUnit = map $ \ (tt,n) -> (tt,replicate n ())
 
 replicateToken :: [(tok,Int)] -> [((),[tok])]
 replicateToken l = [ ( (), concatMap (\ (t,n) -> replicate n t) l ) ]
+
+tokenStackHeights :: TokenStack toktyp tok -> [(toktyp,Int)]
+tokenStackHeights stack = map countvals $ Map.assocs stack where
+	countvals (key,val) = (key,length val)
+
+tokenStackToList = Map.assocs
+
+tokenStackLookup = Map.lookup

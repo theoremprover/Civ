@@ -64,6 +64,17 @@ img
 .Center
     margin: auto
 
+.Wagon
+    width : 65px
+    height: 56px
+.Flag
+    width : 45px
+    height: 57px
+
+.TechCoinPos
+    left: 10px
+    top : 70px
+
 .Blink
     -webkit-animation: blink 1s
     -webkit-animation-iteration-count: infinite

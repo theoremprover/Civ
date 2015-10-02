@@ -116,7 +116,7 @@ executeAction action = do
 				emptyBoard
 				tilestack hutstack villagestack
 				initialBuildingStack personstack unitstack culturestack
-				(initialResourceStack 0)
+				(initialResourceStack 0) False
 
 		DeleteGameA gamename@(GameName gn) -> do
 			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename

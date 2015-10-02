@@ -46,6 +46,7 @@ data Abilities = Abilities {
 	unitStackLimit :: Value Int,
 	moveRange      :: Value Coor,
 	cardCoins      :: Value Coins,
+	maxCities      :: Value Int,
 	cardActions    :: Phase -> [(String,PlayerName -> UpdateCivM ())]
 	}
 defaultAbilities = Abilities {
@@ -53,6 +54,7 @@ defaultAbilities = Abilities {
 	unitStackLimit = SetValue 2,
 	moveRange      = SetValue 2,
 	cardCoins      = SetValue (Coins 0),
+	maxCities      = SetValue 2,
 	cardActions    = const []
 	}
 

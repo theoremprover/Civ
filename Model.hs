@@ -99,13 +99,30 @@ data Tech =
 	deriving (Show,Data,Ord,Ix,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Tech)
 
+{-
 initialTechStack :: TokenStack () Tech
 initialTechStack = tokenStackFromList [ ((),allOfThem) ]
+-}
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
 	deriving (Show,Eq,Ord,Enum,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TechLevel)
+
+techLevelMap :: Map.Map TechLevel [Tech]
+techLevelMap = Map.fromList [
+	(TechLevelI,   [ Pottery,Writing,CodeOfLaws,Currency,Metalworking,Masonry,HorsebackRiding,
+		AnimalHusbandry,Philosophy,Navigation,Navy ]),
+	(TechLevelII,  [ PublicAdministration,Mysticism,MonarchyTech,DemocracyTech,Chivalry,
+		Mathematics,Logistics,PrintingPress,Sailing,Construction,Engineering,Irrigation,Bureaucracy ]),
+	(TechLevelIII, [ Theology,CommunismTech,Gunpowder,Railroad,MetalCasting,Ecology,
+		Biology,SteamEngine,Banking,MilitaryScience,Education ]),
+	(TechLevelIV,  [ Computers,MassMedia,Ballistics,ReplacementParts,Flight,
+		Plastics,CombustionEngine,AtomicTheory ]),
+	(TechLevelV,   [ SpaceFlight ]) ]
+
+techsOfLevel level = fromJust $ Map.lookup level techLevelMap
+levelOfTech tech = fst $ head $ filter ((elem tech).snd) (Map.assocs techLevelMap)
 
 data Government =
 	Anarchy | Despotism | Monarchy | Democracy |
@@ -327,12 +344,6 @@ data GreatPersonCard = GreatPersonCard {
 	deriving (Show,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''GreatPersonCard)
 
-{-
-data UnitLevel = UnitLevelI | UnitLevelII | UnitLevelIII | UnitLevelStar
-	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
-$(deriveSafeCopy modelVersion 'base ''UnitLevel)
--}
-
 data UnitBalance = UB_1_3 | UB_2_2 | UB_3_1
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitBalance)
@@ -483,6 +494,7 @@ data Player = Player {
 	_playerItems :: ([Resource],[Hut],[Village],[Artifact]),
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits :: [UnitCard],
+	_playerFigures :: TokenStack Figure (),
 	_playerCultureCards :: [CultureCard],
 	_playerOrientation :: Orientation,
 	_playerCityStack :: TokenStack () (),
@@ -498,7 +510,7 @@ makePlayer useremail colour civ = Player
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
-	[] [] [] Northward initialCityStack
+	[] [] initialFigureStack [] Northward initialCityStack
 	0 Nothing
 
 data GameState = Waiting | Running | Finished
@@ -551,7 +563,8 @@ data Game = Game {
 	_gameGreatPersonStack :: TokenStack () GreatPerson,
 	_gameUnitStack        :: TokenStack UnitType UnitCard,
 	_gameCultureStack     :: TokenStack CultureLevel CultureEvent,
-	_gameResourceStack    :: TokenStack Resource ()
+	_gameResourceStack    :: TokenStack Resource (),
+	_gameSpaceFlightTaken :: Bool
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)

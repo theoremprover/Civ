@@ -19,6 +19,7 @@ import Handler.HandlerPolling
 import Handler.StaticResources
 import Lenses
 import Logic
+import TokenStack
 
 
 colour2html :: Colour -> String
@@ -115,7 +116,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
 	culturecardsrow <- horRow reveal _cultureCardRevealed cultureRoute _cultureCardEvent _playerCultureCards
 	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) id (snd _playerPolicies)
-	techtree <- techTree di
+	techtree <- techTree di (playername,player)
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di player
 	pdial <- dial di player
@@ -157,8 +158,10 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 horRow :: Bool -> (card -> Bool) -> (val -> Bool -> Route App) -> (card -> val) -> [card] -> Handler Widget
 horRow reveal revealcard card2route card2val cards = return [whamlet|
 <div>
-  $forall card <- cards
-    <img style="float:left" src=@{cardroute card}>
+  <table>
+    <tr>
+      $forall card <- cards
+        <td><img src=@{cardroute card}>
 |]
 	where
 	cardroute card = card2route (card2val card) (reveal || revealcard card)
@@ -211,9 +214,58 @@ unitColumn di player = do
 	return [whamlet|
 |]
 
-techTree :: DisplayInfo -> Handler Widget
-techTree di = do
+coinRow :: Coins -> Widget
+coinRow coins = [whamlet|
+<table .NoSpacing>
+  <tr>
+    $forall route <- coinroutes
+      <td><img src=@{route}>
+|]
+	where
+	coinroutes = replicate (coinsCoins coins) coinRoute
+
+techTree :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
+techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
+	let
+		game@(Game{..}) = gameDI
+		startplayer = playername == fst (nthAssocList _gameStartPlayer _gamePlayers)
+		unusedflags = tokenStackLookup Flag _playerFigures
+		unusedwagons = tokenStackLookup Wagon _playerFigures
+		techss :: [(Int,[TechCard])]
+		techss = map projecttechlevel
+			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
+		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
+		columns = fromJust $ lookup 0 techss
 	return [whamlet|
+<div>
+  <div .Parent .NoSpacing>
+    <table border=0>
+      <colgroup>
+        $forall j <- columns
+          <col width=94px>
+      $forall (i,techcards) <- techss
+        <tr>
+          $forall j <- replicate i 0
+            <td><br>
+          $forall techcard@TechCard{..} <- techcards
+            <td colspan=2>
+              <div .Parent>
+                <img src=@{techRoute _techCardTechId}>
+                <div .TechCoinPos>
+                  ^{coinRow _techCardCoins}
+  $if startplayer
+    <img style="position:absolute; left:5px; top:0px;" src=@{startPlayerRoute}>
+  <div style="position:absolute; right:5px; top:0px;">
+    <table .NoSpacing>
+      <tr>
+        <td valign=top>
+          <table .NoSpacing>
+            $forall i <- unusedwagons
+              <tr><td><img .Wagon src=@{wagonRoute _playerColour}>
+        <td valign=top>
+          <table .NoSpacing>
+            $forall i <- unusedflags
+              <tr><td><img .Flag src=@{flagRoute _playerColour}>
 |]
 
 boardArea :: DisplayInfo -> Handler Widget

@@ -79,6 +79,12 @@ startGame gamename = runUpdateCivM $ do
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
+	forM_ [HorsebackRiding,Writing,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
+	addCoinToTech gamename pn0 DemocracyTech
+	addCoinToTech gamename pn0 DemocracyTech
+	forM_ [Pottery,Currency,CodeOfLaws,MonarchyTech,Mathematics,Banking] $ addTech gamename pn1 Nothing
+	addCoinToTech gamename pn1 CodeOfLaws
+
 	addCulture gamename pn0 20
 	addTrade gamename pn0 21
 	addCulture gamename pn1 31
@@ -197,6 +203,25 @@ returnArtifact gamename playername artifact = do
 addCoins :: GameName -> PlayerName -> Coins -> UpdateCivM ()
 addCoins gamename playername coins = do
 	updateCivLensM (+coins) $ civPlayerLens gamename playername . _Just . playerCoins
+
+addTech :: GameName -> PlayerName -> Maybe TechLevel -> Tech -> UpdateCivM ()
+addTech gamename playername mb_level tech = do
+	let techlevel = case mb_level of
+		Nothing -> levelOfTech tech
+		Just level -> level
+	updateCivLensM ((TechCard tech techlevel (Coins 0)):) $
+		civPlayerLens gamename playername . _Just . playerTechs
+	when (tech==SpaceFlight) $ updateCivLensM (const True) $
+		civGameLens gamename . _Just . gameSpaceFlightTaken
+
+addCoinToTech :: GameName -> PlayerName -> Tech -> UpdateCivM ()
+addCoinToTech gamename playername tech = do
+	updateCivLensM addcoin $ civPlayerLens gamename playername . _Just . playerTechs
+	where
+	addcoin [] = error $ "addCoinToTech: Couldn't find " ++ show tech
+	addcoin (techcard:ts) | _techCardTechId techcard == tech =
+		techcard { _techCardCoins = _techCardCoins techcard + 1 } : ts 
+	addcoin (t:ts) = t : addcoin ts
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
