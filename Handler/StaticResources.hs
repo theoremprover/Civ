@@ -48,9 +48,9 @@ figureRoute figure colour = case figure of
 
 $(makeMultiRoutes [''Investment] "investmentRoute" ["_Investments_","_jpg"])
 
-$(makeMultiRoutes [''UnitCard] "unitCardRouteRevealed" ["_Units_","_jpg"])
-unitCardRoute unitcard revealed = case revealed of
-	True  -> unitCardRouteRevealed unitcard
+$(makeMultiRoutes [''UnitType,''UnitBalance] "unitCardRouteRevealed" ["_Units_","_","_jpg"])
+unitCardRoute (UnitCard{..}) revealed = case revealed of
+	True  -> unitCardRouteRevealed (unitType,unitBalance)
 	False -> StaticR _Units_Unit_back_jpg
 
 $(makeMultiRoutes [''Wonder] "wonderBuildingRoute" ["_Squares_","_Building_jpg"])

@@ -88,7 +88,7 @@ nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
 
 data Tech =
-	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry |
+	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry | Agriculture |
 	HorsebackRiding | AnimalHusbandry | Philosophy | Navigation | Navy |
 	PublicAdministration | Mysticism | MonarchyTech | DemocracyTech | Chivalry | Mathematics | Logistics |
 	PrintingPress | Sailing | Construction | Engineering | Irrigation | Bureaucracy |
@@ -98,11 +98,6 @@ data Tech =
 	SpaceFlight
 	deriving (Show,Data,Ord,Ix,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Tech)
-
-{-
-initialTechStack :: TokenStack () Tech
-initialTechStack = tokenStackFromList [ ((),allOfThem) ]
--}
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
@@ -352,24 +347,30 @@ data UnitType = Infantry | Cavalry | Artillery | Aircraft
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitType)
 
-data UnitCard =
-	Infantry_1_3  | Infantry_2_2  | Infantry_3_1  |
-	Cavalry_1_3   | Cavalry_2_2   | Cavalry_3_1   |
-	Artillery_1_3 | Artillery_2_2 | Artillery_3_1 |
-	Aircraft_5_7  | Aircraft_6_6  | Aircraft_7_5
-	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
+data UnitCard = UnitCard { unitType::UnitType, unitBalance::UnitBalance }
+	deriving (Show,Eq,Data,Typeable,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitCard)
+
+unit2Ori :: UnitLevel -> Orientation
+unit2Ori UnitLevelI    = Northward
+unit2Ori UnitLevelII   = Westward
+unit2Ori UnitLevelIII  = Southward
+unit2Ori UnitLevelStar = Eastward
 
 data UnitLevel = UnitLevelI | UnitLevelII | UnitLevelIII | UnitLevelStar
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitLevel)
 
+type Strength = Int
+data UnitStrength = UnitStrength { attackStrength::Strength, defenceStrength::Strength }
+	deriving (Show,Eq)
+
 initialUnitStack :: TokenStack UnitType UnitCard
 initialUnitStack = tokenStackFromList $ map repl [
-	(Aircraft, [(Aircraft_5_7, 2),(Aircraft_6_6, 4),(Aircraft_7_5, 2)]),
-	(Infantry, [(Infantry_1_3, 5),(Infantry_2_2, 5),(Infantry_3_1, 5)]),
-	(Cavalry,  [(Cavalry_1_3,  5),(Cavalry_2_2,  5),(Cavalry_3_1,  5)]),
-	(Artillery,[(Artillery_1_3,5),(Artillery_2_2,5),(Artillery_3_1,5)]) ]
+	(Aircraft, [(UnitCard Aircraft  UB_1_3,2),(UnitCard Aircraft  UB_2_2,4),(UnitCard Aircraft  UB_3_1,2)]),
+	(Infantry, [(UnitCard Infantry  UB_1_3,5),(UnitCard Infantry  UB_2_2,5),(UnitCard Infantry  UB_3_1,5)]),
+	(Cavalry,  [(UnitCard Cavalry   UB_1_3,5),(UnitCard Cavalry   UB_2_2,5),(UnitCard Cavalry   UB_3_1,5)]),
+	(Artillery,[(UnitCard Artillery UB_1_3,5),(UnitCard Artillery UB_2_2,5),(UnitCard Artillery UB_3_1,5)]) ]
 	where
 	repl (t,l) = (t,concatMap (\ (a,n) -> replicate n a) l)
 
@@ -481,25 +482,25 @@ $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
 
 data Player = Player {
-	_playerUserEmail :: PlayerEmail,
-	_playerColour :: Colour,
-	_playerCiv :: Civ,
-	_playerPolicies :: ([PolicyCard],[Policy]),
-	_playerGovernment :: Government,
-	_playerTrade :: Trade,
-	_playerCulture :: Culture,
-	_playerCoins :: Coins,
-	_playerTechs :: [TechCard],
-	_playerInvestments :: TokenStack Investment (),
-	_playerItems :: ([Resource],[Hut],[Village],[Artifact]),
+	_playerUserEmail        :: PlayerEmail,
+	_playerColour           :: Colour,
+	_playerCiv              :: Civ,
+	_playerPolicies         :: ([PolicyCard],[Policy]),
+	_playerGovernment       :: Government,
+	_playerTrade            :: Trade,
+	_playerCulture          :: Culture,
+	_playerCoins            :: Coins,
+	_playerTechs            :: [TechCard],
+	_playerInvestments      :: TokenStack Investment (),
+	_playerItems            :: ([Resource],[Hut],[Village],[Artifact]),
 	_playerGreatPersonCards :: [GreatPersonCard],
-	_playerUnits :: [UnitCard],
-	_playerFigures :: TokenStack Figure (),
-	_playerCultureCards :: [CultureCard],
-	_playerOrientation :: Orientation,
-	_playerCityStack :: TokenStack () (),
-	_playerCultureSteps :: Int,
-	_playerFirstCityCoors :: Maybe [Coors]
+	_playerUnits            :: [UnitCard],
+	_playerFigures          :: TokenStack Figure (),
+	_playerCultureCards     :: [CultureCard],
+	_playerOrientation      :: Orientation,
+	_playerCityStack        :: TokenStack () (),
+	_playerCultureSteps     :: Int,
+	_playerFirstCityCoors   :: Maybe [Coors]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -547,15 +548,15 @@ emptyBoard :: Board
 emptyBoard = listArray (Coors 1 1,Coors 0 0) []
 
 data Game = Game {
-	_gameCreationDate :: UTCTime,
-	_gameCreator :: UserName,
-	_gameState :: GameState,
-	_gamePlayers :: Players,
-	_gameTurn :: Int,
-	_gamePhase :: Phase,
-	_gameStartPlayer :: Int,
-	_gamePlayersTurn :: Int,
-	_gameBoard :: Board,
+	_gameCreationDate     :: UTCTime,
+	_gameCreator          :: UserName,
+	_gameState            :: GameState,
+	_gamePlayers          :: Players,
+	_gameTurn             :: Int,
+	_gamePhase            :: Phase,
+	_gameStartPlayer      :: Int,
+	_gamePlayersTurn      :: Int,
+	_gameBoard            :: Board,
 	_gameTileStack        :: TokenStack () TileID,
 	_gameHutStack         :: TokenStack () Hut,
 	_gameVillageStack     :: TokenStack () Village,
@@ -589,6 +590,24 @@ makeLenses ''CivState
 
 initialCivState :: CivState
 initialCivState = CivState Map.empty
+
+civStartTechAndGov civ = case civ of
+	America  -> (Currency,       Despotism)
+	Arabs    -> (Mathematics,    Despotism)
+	Aztecs   -> (Irrigation,     Despotism)
+	China    -> (Writing,        Despotism)
+	Egypt    -> (Construction,   Despotism)
+	English  -> (Navy,           Despotism)
+	French   -> (Pottery,        Despotism)
+	Germany  -> (Metalworking,   Despotism)
+	Greeks   -> (DemocracyTech,  Democracy)
+	Indians  -> (Agriculture,    Despotism)
+	Japanese -> (Chivalry,       Feudalism)
+	Mongols  -> (HorsebackRiding,Despotism)
+	Rome     -> (CodeOfLaws,     Republic)
+	Russia   -> (CommunismTech,  Communism)
+	Spanish  -> (Navigation,     Despotism)
+	Zulu     -> (AnimalHusbandry,Despotism)
 
 -------- tileSquare
 

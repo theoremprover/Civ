@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies,Rank2Types #-}
+{-# LANGUAGE TypeFamilies,Rank2Types,LambdaCase #-}
 
 module Actions where
 
@@ -39,24 +39,119 @@ data Action =
 	GetTrade   -- StartOfTurn
 	deriving (Show,Eq,Ord)
 
-data (Ord a) => Value a = SetValue a | ModifyValue (a -> a)
+data (Ord a) => Value a = ModifyValue (a -> a) | Unchanged | SetValue a
+	deriving (Show,Eq,Ord)
 
 data Abilities = Abilities {
-	unitLevel      :: UnitType -> Value UnitLevel,
-	unitStackLimit :: Value Int,
-	moveRange      :: Value Coor,
-	cardCoins      :: Value Coins,
-	maxCities      :: Value Int,
-	cardActions    :: Phase -> [(String,PlayerName -> UpdateCivM ())]
-	}
+	unitLevel       :: UnitType -> Value UnitLevel,
+	unitAttackBonus :: UnitType -> Value Strength,
+	unitStackLimit  :: Value Int,
+	moveRange       :: Value Coor,
+	cardCoins       :: Value Coins,
+	maxCities       :: Value Int,
+	cardActions     :: Phase -> [(String,PlayerName -> UpdateCivM ())] }
+
 defaultAbilities = Abilities {
-	unitLevel      = const $ SetValue UnitLevelI,
-	unitStackLimit = SetValue 2,
-	moveRange      = SetValue 2,
-	cardCoins      = SetValue (Coins 0),
-	maxCities      = SetValue 2,
-	cardActions    = const []
-	}
+	unitLevel       = const $ SetValue UnitLevelI,
+	unitAttackBonus = const $ SetValue 0,
+	unitStackLimit  = SetValue 2,
+	moveRange       = SetValue 2,
+	cardCoins       = SetValue (Coins 0),
+	maxCities       = SetValue 2,
+	cardActions     = const [] }
+
+unchangedAbilities = Abilities {
+	unitLevel       = const Unchanged,
+	unitAttackBonus = const Unchanged,
+	unitStackLimit  = Unchanged,
+	moveRange       = Unchanged,
+	cardCoins       = Unchanged,
+	maxCities       = Unchanged,
+	cardActions     = const [] }
+
+civAbilities civ = case civ of
+	America  -> defaultAbilities
+	Arabs    -> defaultAbilities
+	Aztecs   -> defaultAbilities
+	China    -> defaultAbilities
+	Egypt    -> defaultAbilities
+	English  -> defaultAbilities
+	French   -> defaultAbilities
+	Germany  -> defaultAbilities
+	Greeks   -> defaultAbilities
+	Indians  -> defaultAbilities
+	Japanese -> defaultAbilities {
+		unitAttackBonus = \case
+			Infantry -> ModifyValue (+1)
+			_        -> SetValue 0 }
+	Mongols  -> defaultAbilities
+	Rome     -> defaultAbilities
+	Russia   -> defaultAbilities
+	Spanish  -> defaultAbilities {
+		moveRange = SetValue 3 }
+	Zulu     -> defaultAbilities
+
+techAbilities tech = case tech of
+	Pottery              -> unchangedAbilities
+	Writing              -> unchangedAbilities
+	CodeOfLaws           -> unchangedAbilities
+	Currency             -> unchangedAbilities
+	Metalworking         -> unchangedAbilities
+	Masonry              -> unchangedAbilities
+	Agriculture          -> unchangedAbilities
+	HorsebackRiding      -> unchangedAbilities
+	AnimalHusbandry      -> unchangedAbilities
+	Philosophy           -> unchangedAbilities
+	Navigation           -> unchangedAbilities
+	Navy                 -> unchangedAbilities
+	PublicAdministration -> unchangedAbilities
+	Mysticism            -> unchangedAbilities
+	MonarchyTech         -> unchangedAbilities
+	DemocracyTech        -> unchangedAbilities {
+		unitLevel = \case
+			Infantry -> SetValue UnitLevelII
+			_        -> Unchanged }
+	Chivalry             -> unchangedAbilities
+	Mathematics          -> unchangedAbilities
+	Logistics            -> unchangedAbilities
+	PrintingPress        -> unchangedAbilities
+	Sailing              -> unchangedAbilities
+	Construction         -> unchangedAbilities
+	Engineering          -> unchangedAbilities
+	Irrigation           -> unchangedAbilities
+	Bureaucracy          -> unchangedAbilities
+	Theology             -> unchangedAbilities
+	CommunismTech        -> unchangedAbilities
+	Gunpowder            -> unchangedAbilities
+	Railroad             -> unchangedAbilities
+	MetalCasting         -> unchangedAbilities
+	Ecology              -> unchangedAbilities
+	Biology              -> unchangedAbilities
+	SteamEngine          -> unchangedAbilities
+	Banking              -> unchangedAbilities
+	MilitaryScience      -> unchangedAbilities
+	Education            -> unchangedAbilities
+	Computers            -> unchangedAbilities
+	MassMedia            -> unchangedAbilities
+	Ballistics           -> unchangedAbilities
+	ReplacementParts     -> unchangedAbilities
+	Flight               -> unchangedAbilities
+	Plastics             -> unchangedAbilities
+	CombustionEngine     -> unchangedAbilities
+	AtomicTheory         -> unchangedAbilities
+	SpaceFlight          -> unchangedAbilities
+
+valueAbilities :: [Value a] -> a
+valueAbilities values = foldl1 (\ x f -> f x) a modvalues
+	where
+	SetValue a = maximum values
+	modvalues = map ismod values
+	ismod (ModifyValue f) = f
+	ismod _ = id
+
+unitLevelAbilities :: Player -> UnitType -> UnitLevel
+unitLevelAbilities player@(Player{..}) unittype = valueAbilities $
+	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map techAbilities _playerTechs
 
 possibleActions :: GameName -> PlayerName -> Handler [Action]
 possibleActions gamename playername = do

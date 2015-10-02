@@ -83,7 +83,6 @@ displayGame (userid,user,gamename,game,mb_playername) = do
         <tr><td>^{actionarea}
 |]
 
-
 actionArea :: DisplayInfo -> Maybe PlayerName -> Handler Widget
 actionArea _ Nothing = return [whamlet|
 Visitor
@@ -108,7 +107,6 @@ playerList di@(DisplayInfo{..}) = do
       <td>#{show playername}
 |]
 
-
 playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
@@ -118,7 +116,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	policyrow <- horRow True (const True) (\ pol _ -> policyRoute pol) id (snd _playerPolicies)
 	techtree <- techTree di (playername,player)
 	items <- itemTokens di player reveal
-	unitcolumn <- unitColumn di player
+	unitcolumn <- unitColumn di (playername,player)
 	pdial <- dial di player
 
 	return [whamlet|
@@ -209,9 +207,19 @@ dial di player@(Player{..}) = do
             <td><img .Parent style="float:left;" src=@{route}>
 |]
 
-unitColumn :: DisplayInfo -> Player -> Handler Widget
-unitColumn di player = do
+unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
+unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
+	let
+		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
+		unitlevel unitcard = UnitLevelIII
+		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (unitlevel uc))) $ sort _playerUnits
 	return [whamlet|
+<table>
+  $forall (unitcard,ori) <- unitcards
+    <tr>
+      <td>
+        <div style="height:44px; width:205px; overflow:visible" >
+          <img class="#{show ori}" src=@{unitCardRoute unitcard reveal}>
 |]
 
 coinRow :: Coins -> Widget
@@ -249,7 +257,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
             <td><br>
           $forall techcard@TechCard{..} <- techcards
             <td colspan=2>
-              <div .Parent>
+              <div>
                 <img src=@{techRoute _techCardTechId}>
                 <div .TechCoinPos>
                   ^{coinRow _techCardCoins}

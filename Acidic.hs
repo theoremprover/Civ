@@ -76,6 +76,12 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const $ initialResourceStack (numPlayers players)) $
 		civGameLens gamename . _Just . gameResourceStack
 
+	forM (fromAssocList players) $ \ (playername,player@(Player{..})) -> do
+		forM [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
+		let (starttech,startgov) = civStartTechAndGov _playerCiv
+		addTech gamename playername (Just TechLevelI) starttech
+		setGovernment gamename playername startgov
+
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
@@ -156,6 +162,20 @@ drawCultureCard gamename playername = do
 		Just (DrawCultureCard level) -> do
 			getCultureCard gamename playername level
 
+drawUnit :: GameName -> PlayerName -> UnitType -> UpdateCivM Bool
+drawUnit gamename playername unittype = do
+	mb_unit <- takeFromStackM (civGameLens gamename . _Just . gameUnitStack) unittype
+	case mb_unit of
+		Nothing -> return False
+		Just unit -> do
+			updateCivLensM (unit:) $ civPlayerLens gamename playername . _Just . playerUnits
+			return True
+
+returnUnit :: GameName -> PlayerName -> UnitCard -> UpdateCivM ()
+returnUnit gamename playername unit = do
+	updateCivLensM (delete unit) $ civPlayerLens gamename playername . _Just . playerUnits
+	putOnStackM (civGameLens gamename . _Just . gameUnitStack) (unitType unit) unit
+
 getGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
 getGreatPerson gamename playername = do
 	Just greatperson <- takeFromStackM (civGameLens gamename . _Just . gameGreatPersonStack) ()
@@ -222,6 +242,10 @@ addCoinToTech gamename playername tech = do
 	addcoin (techcard:ts) | _techCardTechId techcard == tech =
 		techcard { _techCardCoins = _techCardCoins techcard + 1 } : ts 
 	addcoin (t:ts) = t : addcoin ts
+
+setGovernment :: GameName -> PlayerName -> Government -> UpdateCivM ()
+setGovernment gamename playername government = do
+	updateCivLensM (const government) $ civPlayerLens gamename playername . _Just . playerGovernment
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
 setShuffledPlayers gamename players = runUpdateCivM $ do
