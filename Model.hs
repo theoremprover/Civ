@@ -81,8 +81,9 @@ data Phase = StartOfGame |
 	Trading |
 	CityManagement |
 	Movement |
-	Research
-	deriving (Show,Eq,Ord,Enum,Data,Typeable)
+	Research |
+	Battle
+	deriving (Show,Eq,Ord,Enum,Bounded,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
 nextPhase Research = StartOfTurn
@@ -221,6 +222,8 @@ initialBuildingStack = tokenStackFromList $ replicateUnit [
 	(BarracksOrAcademy,5),(ForgeOrForge2,6),      (GranaryOrAquaeduct,6),
 	(TempleOrCathedral,5),(LibraryOrUniversity,6),(MarketOrBank,5),
 	(Harbours,10),        (TradePosts,6),         (Shipyards,5) ]
+
+starBuildingType building = building `elem` [Barracks,Academy,Market,Bank,Shipyard,Temple,Cathedral]
 
 data TokenMarker =
 	ArtifactMarker Artifact |

@@ -56,32 +56,61 @@ instance (Eq a) => Eq (Value a) where
 	SetValue a == SetValue b = a==b
 	_ == _ = False
 
+data ResourcePattern = One Resource | AnyResource
+	deriving (Show,Eq)
+
 data Abilities = Abilities {
-	unitLevel       :: UnitType -> Value UnitLevel,
+	unitLevel       :: UnitType -> Value (Maybe UnitLevel),
 	unitAttackBonus :: UnitType -> Value Strength,
+	battleHandSize  :: Player -> Value Int,
+	cultureCardLimit :: Player -> Value Int,
+	cultureTrackTradeBonus :: Player -> Value Int,
+	cultureTrackCultureBonus :: Player -> Value Int,
 	unitStackLimit  :: Value Int,
 	moveRange       :: Value Coor,
-	cardCoins       :: Value Coins,
+	cardCoins       :: Coins,
 	maxCities       :: Value Int,
-	cardActions     :: Phase -> [(String,PlayerName -> UpdateCivM ())] }
+	buildWonderHook :: GameName -> PlayerName -> UpdateCivM (),
+	enabledGovernments :: [Government],
+	enabledBuildings :: [BuildingType],
+	cardAbilities     :: Phase -> [(String,GameName -> PlayerName -> UpdateCivM ())],
+	resourceAbilities :: Phase -> [(String,[ResourcePattern],GameName -> PlayerName -> UpdateCivM ())] }
 
 defaultAbilities = Abilities {
-	unitLevel       = const $ SetValue UnitLevelI,
+	unitLevel       = \case
+		Aircraft -> SetValue Nothing
+		_        -> SetValue (Just UnitLevelI),
 	unitAttackBonus = const $ SetValue 0,
+	battleHandSize  = const $ SetValue 3,
+	cultureCardLimit = const $ SetValue 2,
+	cultureTrackTradeBonus = const $ SetValue 0,
+	cultureTrackCultureBonus = const $ SetValue 0,
 	unitStackLimit  = SetValue 2,
 	moveRange       = SetValue 2,
-	cardCoins       = SetValue (Coins 0),
+	cardCoins       = Coins 0,
 	maxCities       = SetValue 2,
-	cardActions     = const [] }
+	buildWonderHook = \ _ _ -> return (),
+	enabledGovernments = [Despotism,Anarchy],
+	enabledBuildings = [],
+	cardAbilities   = const [],
+	resourceAbilities = const [] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
 	unitAttackBonus = const Unchanged,
+	battleHandSize  = const Unchanged,
+	cultureCardLimit = const Unchanged,
+	cultureTrackTradeBonus = const Unchanged,
+	cultureTrackCultureBonus = const Unchanged,
 	unitStackLimit  = Unchanged,
 	moveRange       = Unchanged,
-	cardCoins       = Unchanged,
+	cardCoins       = Coins 0,
 	maxCities       = Unchanged,
-	cardActions     = const [] }
+	buildWonderHook = \ _ _ -> return (),
+	enabledGovernments = [],
+	enabledBuildings = [],
+	cardAbilities   = const [],
+	resourceAbilities = const [] }
 
 civAbilities civ = case civ of
 	America  -> defaultAbilities
@@ -97,7 +126,7 @@ civAbilities civ = case civ of
 	Japanese -> defaultAbilities {
 		unitAttackBonus = \case
 			Infantry -> ModifyValue (+1)
-			_        -> SetValue 0 }
+			_        -> ModifyValue id }
 	Mongols  -> defaultAbilities
 	Rome     -> defaultAbilities
 	Russia   -> defaultAbilities
@@ -108,8 +137,13 @@ civAbilities civ = case civ of
 techAbilities tech = case tech of
 	Pottery              -> unchangedAbilities
 	Writing              -> unchangedAbilities
-	CodeOfLaws           -> unchangedAbilities
-	Currency             -> unchangedAbilities
+	CodeOfLaws           -> unchangedAbilities {
+		enabledGovernments = [Republic],
+		enabledBuildings   = [TradePost],
+		cardAbilities      = cardAbility [Research] "Code Of Laws: Add Coin" addCoinAfterWonBattle_CodeOfLaws $ const [] }
+	Currency             -> unchangedAbilities {
+		enabledBuildings   = [Market],
+		resourceAbilities  = resourceAbility [CityManagement] "Currency: Gain 3 Culture" [One Incense] (addCulture 3) $ const [] }
 	Metalworking         -> unchangedAbilities
 	Masonry              -> unchangedAbilities
 	Agriculture          -> unchangedAbilities
@@ -120,43 +154,119 @@ techAbilities tech = case tech of
 	Navy                 -> unchangedAbilities
 	PublicAdministration -> unchangedAbilities
 	Mysticism            -> unchangedAbilities
-	MonarchyTech         -> unchangedAbilities
+	MonarchyTech         -> unchangedAbilities {
+		enabledGovernments = [Monarchy] }
 	DemocracyTech        -> unchangedAbilities {
-		unitLevel = \case
-			Infantry -> SetValue UnitLevelII
-			_        -> Unchanged }
-	Chivalry             -> unchangedAbilities
-	Mathematics          -> unchangedAbilities
-	Logistics            -> unchangedAbilities
+		unitLevel = setUnitLevel [Infantry] UnitLevelII,
+		enabledGovernments = [Democracy],
+ 		cardAbilities      = cardAbility [CityManagement] "Democracy: Add Coin" addCoin_Democracy $ const [] }
+	Chivalry             -> unchangedAbilities {
+		unitLevel = setUnitLevel [Cavalry] UnitLevelII,
+		enabledGovernments = [Feudalism],
+		resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 5 Culture" [One Incense] (addCulture 5) $ const [] }
+	Mathematics          -> unchangedAbilities {
+		unitLevel = setUnitLevel [Artillery] UnitLevelII }
+	Logistics            -> unchangedAbilities {
+		unitLevel = setUnitLevel [Infantry,Cavalry,Artillery] UnitLevelII }
 	PrintingPress        -> unchangedAbilities
 	Sailing              -> unchangedAbilities
-	Construction         -> unchangedAbilities
+	Construction         -> unchangedAbilities {
+		enabledBuildings   = [Forge],
+		resourceAbilities  = resourceAbility [CityManagement] "Construction: +5 Hammers" [One Wheat] (plusHammers 5) $ const [] }
 	Engineering          -> unchangedAbilities
 	Irrigation           -> unchangedAbilities
-	Bureaucracy          -> unchangedAbilities
-	Theology             -> unchangedAbilities
-	CommunismTech        -> unchangedAbilities
+	Bureaucracy          -> unchangedAbilities {
+		cardCoins          = Coins 1,
+		cardAbilities      = cardAbility [Research] "Bureaucracy: Switch Policy" switchPolicy_Bureaucracy $ const [] }
+	Theology             -> unchangedAbilities {
+		enabledGovernments = [Fundamentalism] }
+	CommunismTech        -> unchangedAbilities {
+		enabledGovernments = [Communism],
+		cardAbilities      = cardAbility [Movement] "Communism: Lock Square" lockSquare_CommunismTech $ const [] }
 	Gunpowder            -> unchangedAbilities {
-		unitLevel = \case
-			Infantry -> SetValue UnitLevelIII
-			_        -> Unchanged }
-	Railroad             -> unchangedAbilities
-	MetalCasting         -> unchangedAbilities
-	Ecology              -> unchangedAbilities
-	Biology              -> unchangedAbilities
+		unitLevel          = setUnitLevel [Infantry] UnitLevelIII }
+	Railroad             -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Cavalry] UnitLevelIII }
+	MetalCasting         -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Artillery] UnitLevelIII,
+		resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 7 Culture" [One Incense] (addCulture 7) $ const [] }
+	Ecology              -> unchangedAbilities {
+		cultureTrackTradeBonus = modifyValuePerNCoins 3,
+		resourceAbilities  = resourceAbility [StartOfTurn] "Ecology: Change Terrain" [One Wheat] (changeTerrain_Ecology) $ const [] }
+	Biology              -> unchangedAbilities {
+		unitStackLimit     = SetValue 5 }
 	SteamEngine          -> unchangedAbilities
-	Banking              -> unchangedAbilities
+	Banking              -> unchangedAbilities {
+		resourceAbilities  = resourceAbility [CityManagement] "Banking: +7 Hammers" [One Wheat] (plusHammers 7) $ const [],
+		enabledBuildings   = [Bank] }
 	MilitaryScience      -> unchangedAbilities
-	Education            -> unchangedAbilities
-	Computers            -> unchangedAbilities
+	Education            -> unchangedAbilities {
+		buildWonderHook = addCoinToCard Education,
+		resourceAbilities  = resourceAbility [CityManagement] "Education: Learn Tech" [One Wheat,One Incense,One Iron,One Linen] learnTech_Education $ const [] }
+	Computers            -> unchangedAbilities {
+		cardCoins          = Coins 1,
+		battleHandSize     = modifyValuePerNCoins 5,
+		cultureCardLimit   = modifyValuePerNCoins 5 }
 	MassMedia            -> unchangedAbilities
-	Ballistics           -> unchangedAbilities
-	ReplacementParts     -> unchangedAbilities
-	Flight               -> unchangedAbilities
+	Ballistics           -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Artillery] UnitLevelStar,
+		resourceAbilities  = resourceAbility [Battle] "Ballistics: Deal 6 Damage" [One Iron] (dealDamage 6) $ const [] }
+	ReplacementParts     -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Infantry] UnitLevelStar }
+	Flight               -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Aircraft] UnitLevelStar }
 	Plastics             -> unchangedAbilities
-	CombustionEngine     -> unchangedAbilities
-	AtomicTheory         -> unchangedAbilities
+	CombustionEngine     -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Cavalry] UnitLevelStar,
+		cardAbilities      =
+			cardAbility [Movement] "Combustion Engine: Destroy Building" destroyBuilding_CombustionEngine $
+			cardAbility [Battle] "Combustion Engine: Destroy Walls" destroyWalls_CombustionEngine $ const [] }
+	AtomicTheory         -> unchangedAbilities {
+		resourceAbilities  =
+			resourceAbility [CityManagement] "Atomic Theory: Additional City Actions" [One Atom] additionalCityActions_AtomicTheory $
+			resourceAbility [Movement] "Atomic Theory: Nuke City" [One Atom] nukeCity_AtomicTheory $ const [] }
 	SpaceFlight          -> unchangedAbilities
+
+	where
+
+	setUnitLevel unittypes unitlevel ut | ut `elem` unittypes = SetValue (Just unitlevel)
+	setUnitLevel _ _ _ = Unchanged
+
+	resourceAbility phases name respats action f phase | phase `elem` phases = [(name,respats,action)]
+	resourceAbility _ _ _ _ f phase = f phase
+
+	cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
+	cardAbility _ _ _ f phase = f phase
+
+modifyValuePerNCoins n player = ModifyValue (+(mod (numberOfCoins player) n))
+
+additionalCityActions_AtomicTheory gamename playername = error "Not implemented yet"
+
+nukeCity_AtomicTheory gamename playername = error "Not implemented yet"
+
+dealDamage damage gamename playername = error "Not implemented yet"
+
+plusHammers hammers gamename playername = error "Not implemented yet"
+
+switchPolicy_Bureaucracy gamename playername = error "Not implemented yet"
+
+addCoinAfterWonBattle_CodeOfLaws gamename playername = error "Not implemented yet"
+
+destroyBuilding_CombustionEngine gamename playername = error "Not implemented yet"
+
+destroyWalls_CombustionEngine gamename playername = error "Not implemented yet"
+
+lockSquare_CommunismTech gamename playername = error "Not implemented yet"
+
+addCoin_Democracy gamename playername = do
+	addTrade (-6) gamename playername
+	addCoinToCard Democracy gamename playername
+
+addCoinToCard tech gamename playername = error "Not implemented yet"
+
+changeTerrain_Ecology gamename playername = error "Not implemented yet"
+
+learnTech_Education gamename playername = error "Not implemented yet"
 
 valueAbilities :: (Ord a) => [Value a] -> a
 valueAbilities values = foldl (\ x f -> f x) a modvalues
@@ -166,9 +276,13 @@ valueAbilities values = foldl (\ x f -> f x) a modvalues
 	ismod (ModifyValue f) = f
 	ismod _ = id
 
-unitLevelAbilities :: Player -> UnitType -> UnitLevel
+unitLevelAbilities :: Player -> UnitType -> Maybe UnitLevel
 unitLevelAbilities player@(Player{..}) unittype = valueAbilities $
 	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map (techAbilities._techCardTechId) _playerTechs
+
+numberOfCoins :: Player -> Int
+numberOfCoins player@(Player{..}) = coinsCoins _playerCoins + sum (map (coinsCoins.cardCoins.techAbilities._techCardTechId) _playerTechs)
+	-- TODO: Add Coins auf dem Battlefield
 
 moveGen :: GameName -> Game -> Maybe PlayerName -> [Action]
 moveGen _ _ Nothing = []

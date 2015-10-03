@@ -219,7 +219,7 @@ unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 		unitlevel = unitLevelAbilities player
-		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (unitlevel unitType))) $ sort _playerUnits
+		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (fromJust $ unitlevel unitType))) $ sort _playerUnits
 	return [whamlet|
 <table>
   $forall (unitcard,ori) <- unitcards
