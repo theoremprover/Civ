@@ -39,8 +39,26 @@ data Action =
 	GetTrade   -- StartOfTurn
 	deriving (Show,Eq,Ord)
 
-data (Ord a) => Value a = ModifyValue (a -> a) | Unchanged | SetValue a
-	deriving (Show,Eq,Ord)
+data Value a = ModifyValue (a -> a) | Unchanged | SetValue a
+instance (Ord a) => Ord (Value a) where
+	ModifyValue _ <= ModifyValue _ = True
+	ModifyValue f <= _ = True
+	_ <= ModifyValue g = False
+	SetValue a <= SetValue b = a<=b
+	SetValue a <= _ = False
+	_ <= SetValue b = True
+	Unchanged <= Unchanged = True
+
+instance (Show a) => Show (Value a) where
+	show (ModifyValue f) = "ModifyValue <fn>"
+	show Unchanged = "Unchanged"
+	show (SetValue a) = "SetValue " ++ show a
+instance (Eq a) => Eq (Value a) where
+	ModifyValue _ == _ = False
+	_ == ModifyValue _ = False
+	Unchanged == Unchanged = True
+	SetValue a == SetValue b = a==b
+	_ == _ = False
 
 data Abilities = Abilities {
 	unitLevel       :: UnitType -> Value UnitLevel,
@@ -122,7 +140,10 @@ techAbilities tech = case tech of
 	Bureaucracy          -> unchangedAbilities
 	Theology             -> unchangedAbilities
 	CommunismTech        -> unchangedAbilities
-	Gunpowder            -> unchangedAbilities
+	Gunpowder            -> unchangedAbilities {
+		unitLevel = \case
+			Infantry -> SetValue UnitLevelIII
+			_        -> Unchanged }
 	Railroad             -> unchangedAbilities
 	MetalCasting         -> unchangedAbilities
 	Ecology              -> unchangedAbilities
@@ -141,8 +162,8 @@ techAbilities tech = case tech of
 	AtomicTheory         -> unchangedAbilities
 	SpaceFlight          -> unchangedAbilities
 
-valueAbilities :: [Value a] -> a
-valueAbilities values = foldl1 (\ x f -> f x) a modvalues
+valueAbilities :: (Ord a) => [Value a] -> a
+valueAbilities values = foldl (\ x f -> f x) a modvalues
 	where
 	SetValue a = maximum values
 	modvalues = map ismod values
@@ -151,7 +172,7 @@ valueAbilities values = foldl1 (\ x f -> f x) a modvalues
 
 unitLevelAbilities :: Player -> UnitType -> UnitLevel
 unitLevelAbilities player@(Player{..}) unittype = valueAbilities $
-	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map techAbilities _playerTechs
+	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map (techAbilities._techCardTechId) _playerTechs
 
 possibleActions :: GameName -> PlayerName -> Handler [Action]
 possibleActions gamename playername = do

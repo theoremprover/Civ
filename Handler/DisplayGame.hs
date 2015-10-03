@@ -20,6 +20,7 @@ import Handler.StaticResources
 import Lenses
 import Logic
 import TokenStack
+import Actions
 
 
 colour2html :: Colour -> String
@@ -211,15 +212,15 @@ unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
-		unitlevel unitcard = UnitLevelIII
-		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (unitlevel uc))) $ sort _playerUnits
+		unitlevel = unitLevelAbilities player
+		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (unitlevel unitType))) $ sort _playerUnits
 	return [whamlet|
 <table>
   $forall (unitcard,ori) <- unitcards
     <tr>
       <td>
         <div style="height:44px; width:205px; overflow:visible" >
-          <img class="#{show ori}" src=@{unitCardRoute unitcard reveal}>
+          <img class="#{show ori}" style="transform-origin: 50% 50%" src=@{unitCardRoute unitcard reveal}>
 |]
 
 coinRow :: Coins -> Widget
