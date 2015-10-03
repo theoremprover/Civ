@@ -16,16 +16,19 @@ img
     -webkit-transform: rotate(90deg)
     -o-transform: rotate(90deg)
     transform: rotate(90deg)
+    transform-origin: 50% 50%
 .Southward
     -moz-transform: rotate(180deg)
     -webkit-transform: rotate(180deg)
     -o-transform: rotate(180deg)
     transform: rotate(180deg)
+    transform-origin: 50% 50%
 .Westward
     -moz-transform: rotate(270deg)
     -webkit-transform: rotate(270deg)
     -o-transform: rotate(270deg)
     transform: rotate(270deg)
+    transform-origin: 50% 50%
 
 .NorthwardSquare
     white-space: nowrap

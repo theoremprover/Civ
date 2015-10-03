@@ -64,13 +64,13 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
 <table>
   <tr>
-    <td rowspan="2">^{playerarea1}
-    <td colspan="2">^{playerarea2}
-  <tr>
-    <td>^{boardarea}
-    <td rowspan="2">^{playerarea3}
-  <tr>
     <td colspan="2">^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="2">^{playerarea3}
+    <td>^{boardarea}
+  <tr>
+    <td colspan="2">^{playerarea2}
 |]
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
