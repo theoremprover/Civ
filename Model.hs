@@ -870,6 +870,16 @@ boardLayout numplayers = case numplayers of
 		(c 0 24,NT    ), (c 4 24,NT    ),
 		(c 0 28,NT    ), (c 4 28,CT 1 n) ]
 
+	4 -> [
+		(c 0  0,CT 0 s), (c 4  0,NT    ), (c 8  0,NT    ), (c 12  0,CT 1 w),
+		(c 0  4,NT    ), (c 4  4,NT    ), (c 8  4,NT    ), (c 12  4,NT    ),
+		(c 0  8,NT    ), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
+		(c 0 12,NT    ), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,NT    ),
+		(c 0 16,NT    ), (c 4 16,NT    ), (c 8 16,NT    ), (c 12 16,NT    ),
+		(c 0 20,NT    ), (c 4 20,NT    ), (c 8 20,NT    ), (c 12 20,NT    ),
+		(c 0 24,NT    ), (c 4 24,NT    ), (c 8 24,NT    ), (c 12 24,NT    ),
+		(c 0 28,CT 3 e), (c 4 28,NT    ), (c 8 28,NT    ), (c 12 28,CT 2 n) ]
+
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 
 	where
