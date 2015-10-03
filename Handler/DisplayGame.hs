@@ -1,15 +1,18 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables,OverloadedStrings #-}
 
 module Handler.DisplayGame where
 
 import Import hiding (map,minimum,maximum,concat,lookup,replicate)
-import Prelude (map,minimum,maximum,concat,lookup,replicate)
+import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
 import Data.Array.IArray ((!),indices)
 import Data.Maybe
-import Control.Lens hiding (indices)
+import Control.Lens hiding (indices,Action)
+import Data.Aeson
+import Data.ByteString.Lazy.Char8(unpack)
+--import Text.Blaze (toValue)
 
 import GameMonad
 import Model
@@ -22,6 +25,8 @@ import Logic
 import TokenStack
 import Actions
 
+
+data2markup a = Prelude.tail $ Prelude.init $ show $ Data.ByteString.Lazy.Char8.unpack $ encode a
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -43,10 +48,11 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo game mb_playername mb_myplayer myplayerori toplayer
-
+		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
+		moves = moveGen gamename game mb_playername
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
 	playerlist <- playerList di
-	boardarea <- boardArea di
+	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
@@ -238,8 +244,8 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		game@(Game{..}) = gameDI
 		startplayer = playername == fst (nthAssocList _gameStartPlayer _gamePlayers)
-		unusedflags = tokenStackLookup Flag _playerFigures
-		unusedwagons = tokenStackLookup Wagon _playerFigures
+		Just unusedflags = tokenStackLookup Flag _playerFigures
+		Just unusedwagons = tokenStackLookup Wagon _playerFigures
 		techss :: [(Int,[TechCard])]
 		techss = map projecttechlevel
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
@@ -270,15 +276,19 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
         <td valign=top>
           <table .NoSpacing>
             $forall i <- unusedwagons
-              <tr><td><img .Wagon src=@{wagonRoute _playerColour}>
+              <tr><td><img .Wagon data-source=#{data2markup WagonSource} src=@{wagonRoute _playerColour}>
         <td valign=top>
           <table .NoSpacing>
             $forall i <- unusedflags
-              <tr><td><img .Flag src=@{flagRoute _playerColour}>
+              <tr><td><img .Flag data-source=#{data2markup FlagSource} src=@{flagRoute _playerColour}>
+        <td valign=top>
+          <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
+        <td valign=top>
+          <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
-boardArea :: DisplayInfo -> Handler Widget
-boardArea (DisplayInfo{..}) = do
+boardArea :: DisplayInfo -> [Action] -> Handler Widget
+boardArea (DisplayInfo{..}) actions = do
 	let
 		arr = _gameBoard gameDI
 		arrlookup coors = arr!coors
@@ -314,7 +324,7 @@ boardArea (DisplayInfo{..}) = do
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _

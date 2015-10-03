@@ -12,6 +12,7 @@ import Data.Acid.Advanced
 import Model
 import Acidic
 import Lenses
+import Polls
 
 {-
 data ActionAlgebra =
@@ -33,11 +34,6 @@ queryCivLensH lens = do
 	civstate <- query' (appCivAcid app) GetCivState
 	return $ preview lens civstate
 
-
-data Action =
-	BuildFirstCity | GetFirstTrade |   -- StartOfGame
-	GetTrade   -- StartOfTurn
-	deriving (Show,Eq,Ord)
 
 data Value a = ModifyValue (a -> a) | Unchanged | SetValue a
 instance (Ord a) => Ord (Value a) where
@@ -174,17 +170,18 @@ unitLevelAbilities :: Player -> UnitType -> UnitLevel
 unitLevelAbilities player@(Player{..}) unittype = valueAbilities $
 	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map (techAbilities._techCardTechId) _playerTechs
 
-possibleActions :: GameName -> PlayerName -> Handler [Action]
-possibleActions gamename playername = do
-	Just (game@(Game{..})) <- queryCivLensH $ civGameLens gamename . _Just
-	let playername_turn = fst $ nthAssocList _gamePlayersTurn _gamePlayers
-	case playername == playername_turn of
-		False -> return []
-		True -> case _gamePhase of
-			StartOfGame -> return []
-			BuildingFirstCity -> return [BuildFirstCity]
-			GettingFirstTrade -> return [GetFirstTrade]
-			_ -> return []
+moveGen :: GameName -> Game -> Maybe PlayerName -> [Action]
+moveGen _ _ Nothing = []
+moveGen gamename game@(Game{..}) (Just my_playername) = do
+	let
+		(playername_turn,player_turn@(Player{..})) = nthAssocList _gamePlayersTurn _gamePlayers
+		in case my_playername == playername_turn of
+			False -> []
+			True -> case _gamePhase of
+				StartOfGame -> []
+				BuildingFirstCity -> map (BuildFirstCity gamename playername_turn) _playerFirstCityCoors
+				GettingFirstTrade -> [GetFirstTrade gamename playername_turn]
+				_ -> []
 
 {-
 

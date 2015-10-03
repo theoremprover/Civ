@@ -31,6 +31,7 @@ type Coor = Int
 data Coors = Coors { xCoor :: Coor, yCoor :: Coor }
 	deriving (Show,Data,Typeable,Eq,Ord,Ix)
 $(deriveSafeCopy modelVersion 'base ''Coors)
+deriveJSON defaultOptions ''Coors
 
 infix 6 +/+
 (Coors x1 y1) +/+ (Coors x2 y2) = Coors (x1+x2) (y1+y2)
@@ -500,7 +501,7 @@ data Player = Player {
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
-	_playerFirstCityCoors   :: Maybe [Coors]
+	_playerFirstCityCoors   :: [Coors]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -512,7 +513,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] initialFigureStack [] Northward initialCityStack
-	0 Nothing
+	0 []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

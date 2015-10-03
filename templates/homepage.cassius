@@ -11,18 +11,21 @@ img
     display: block
 
 .Northward
+
 .Eastward
     -moz-transform: rotate(90deg)
     -webkit-transform: rotate(90deg)
     -o-transform: rotate(90deg)
     transform: rotate(90deg)
     transform-origin: 50% 50%
+
 .Southward
     -moz-transform: rotate(180deg)
     -webkit-transform: rotate(180deg)
     -o-transform: rotate(180deg)
     transform: rotate(180deg)
     transform-origin: 50% 50%
+
 .Westward
     -moz-transform: rotate(270deg)
     -webkit-transform: rotate(270deg)
@@ -32,14 +35,17 @@ img
 
 .NorthwardSquare
     white-space: nowrap
+
 .EastwardSquare
     white-space: nowrap
     transform: translate(0px, -100%) rotate(90deg)
     transform-origin: 0px 100%
+
 .SouthwardSquare
     white-space: nowrap
     transform: rotate(180deg)
     transform-origin: 50% 50%
+
 .WestwardSquare
     white-space: nowrap
     transform: rotate(270deg) translate(-100%,0px)
@@ -70,6 +76,7 @@ img
 .Wagon
     width : 65px
     height: 56px
+
 .Flag
     width : 45px
     height: 57px
@@ -77,6 +84,12 @@ img
 .TechCoinPos
     left: 10px
     top : 70px
+
+.MarkedSquare
+    border: 5px dotted red
+
+.PossibleSquare
+    border: 5px dotted yellow
 
 .Blink
     -webkit-animation: blink 1s

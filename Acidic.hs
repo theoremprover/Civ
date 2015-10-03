@@ -282,7 +282,7 @@ createBoard gamename = do
 				updateCivLensM (const ori) $ civPlayerLens gamename playername . _Just . playerOrientation
 				revealTile gamename coors ori
 				let firstcitycoors = [ coors +/+ (Coors xo yo) | xo <- [1..2], yo <- [1..2] ]
-				updateCivLensM (const $ Just firstcitycoors) $
+				updateCivLensM (const firstcitycoors) $
 					civPlayerLens gamename playername . _Just . playerFirstCityCoors
 	where
 	squaresfromtile :: TileID -> Coors -> [(Coors,Square)]
