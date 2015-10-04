@@ -8,6 +8,7 @@ import Prelude
 import Control.Lens hiding (Action)
 import Data.Acid
 import Data.Acid.Advanced
+import Control.Monad
 
 import Model
 import Acidic
@@ -47,101 +48,209 @@ data ResourcePattern = One Resource | AnyResource
 	deriving (Show,Eq)
 
 data Abilities = Abilities {
-	unitLevel       :: UnitType -> Value (Maybe UnitLevel),
-	unitAttackBonus :: UnitType -> Strength,
-	battleHandSize  :: Player -> Value Int,
-	cultureCardLimit :: Player -> Value Int,
-	cultureTrackTradeBonus :: Player -> Value Int,
+	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
+	unitAttackBonus          :: UnitType -> Strength,
+	lootBonus                :: Value Int,
+	battleStrengthBonus      :: Value Strength,
+	battleHandSize           :: Player -> Value Int,
+	cultureCardLimit         :: Player -> Value Int,
+	cultureTrackTradeBonus   :: Player -> Value Int,
 	cultureTrackCultureBonus :: Player -> Value Int,
-	unitStackLimit  :: Value Int,
-	moveRange       :: Value Coor,
-	movementType    :: MovementType,
-	cardCoins       :: Coins,
-	maxCities       :: Value Int,
-	productionBonus :: Player -> Value Int,
-	buildWonderHook :: GameName -> PlayerName -> UpdateCivM (),
-	drawCultureHook :: GameName -> PlayerName -> UpdateCivM (),
-	buildArmyHook   :: GameName -> PlayerName -> UpdateCivM (),
-	getTechHook     :: GameName -> PlayerName -> UpdateCivM (),
-	enabledGovernments :: [Government],
-	enabledBuildings :: [BuildingType],
-	cardAbilities     :: Phase -> [(String,GameName -> PlayerName -> UpdateCivM ())],
-	resourceAbilities :: Phase -> [(String,[ResourcePattern],GameName -> PlayerName -> UpdateCivM ())] }
+	researchCostBonus   :: Value Trade,
+	unitStackLimit      :: Value Int,
+	moveRange           :: Value Coor,
+	movementType        :: MovementType,
+	cardCoins           :: Coins,
+	threeTradeHammers   :: Value Int,
+	maxCities           :: Value Int,
+	productionBonus     :: Player -> Value Int,
+	buildWonderHook     :: GameName -> PlayerName -> UpdateCivM (),
+	drawCultureHook     :: GameName -> PlayerName -> UpdateCivM (),
+	buildArmyHook       :: GameName -> PlayerName -> UpdateCivM (),
+	getThisHook         :: GameName -> PlayerName -> UpdateCivM (),
+	getTechHook         :: GameName -> PlayerName -> Tech -> UpdateCivM (),
+	startOfGameHook     :: GameName -> PlayerName -> UpdateCivM (),
+	spendResourceHook   :: GameName -> PlayerName -> UpdateCivM (),
+	investCoinHook      :: GameName -> PlayerName -> UpdateCivM (),
+	afterBattleHook     :: [UnitCard] -> [UnitCard] -> GameName -> PlayerName -> UpdateCivM (),
+	getGreatPersonHook  :: GameName -> PlayerName -> UpdateCivM (),
+	wonBattleHook       :: GameName -> PlayerName -> UpdateCivM (),
+	discoverHutHook     :: GameName -> PlayerName -> UpdateCivM (),
+	discoverVillageHook :: GameName -> PlayerName -> UpdateCivM (),
+	conquerCityHook     :: GameName -> PlayerName -> UpdateCivM (),
+	devoteToArtsBonusHook :: GameName -> PlayerName -> Coors -> UpdateCivM Culture,
+	exploreTileHook     :: GameName -> PlayerName -> UpdateCivM (),
+	indianResourceSpending :: Value Bool,
+	enabledGovernments  :: [Government],
+	enabledBuildings    :: [BuildingType],
+	armiesAsScouts      :: Value Bool,
+	wondersObsoletable  :: Value Bool,
+	sacrificeForTech    :: Value Bool,
+	exploreHutBattle    :: Value Bool,
+	buildCityNextToHuts :: Value Bool,
+	cardAbilities       :: Phase -> [(String,GameName -> PlayerName -> UpdateCivM ())],
+	resourceAbilities   :: Phase -> [(String,[ResourcePattern],GameName -> PlayerName -> UpdateCivM ())] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
 		Aircraft -> SetValue Nothing
 		_        -> SetValue (Just UnitLevelI),
 	unitAttackBonus = const 0,
+	lootBonus       = SetValue 0,
+	battleStrengthBonus = SetValue 0,
 	battleHandSize  = const $ SetValue 3,
 	cultureCardLimit = const $ SetValue 2,
 	cultureTrackTradeBonus = const $ SetValue 0,
 	cultureTrackCultureBonus = const $ SetValue 0,
+	researchCostBonus = SetValue (Trade 0),
 	unitStackLimit  = SetValue 2,
 	moveRange       = SetValue 2,
 	movementType    = Land,
 	cardCoins       = Coins 0,
+	threeTradeHammers = SetValue 1,
 	maxCities       = SetValue 2,
 	productionBonus = const $ SetValue 0,
 	buildWonderHook = \ _ _ -> return (),
 	drawCultureHook = \ _ _ -> return (),
 	buildArmyHook   = \ _ _ -> return (),
-	getTechHook     = \ _ _ -> return (),
+	getThisHook     = \ _ _ -> return (),
+	getTechHook     = \ _ _ _ -> return (),
+	startOfGameHook = \ _ _ -> return (),
+	spendResourceHook  = \ _ _ -> return (),
+	investCoinHook     = \ _ _ -> return (),
+	afterBattleHook    = \ _ _ _ _ -> return (),
+	getGreatPersonHook = \ _ _ -> return (),
+	wonBattleHook      = \ _ _ -> return (),
+	discoverHutHook     = \ _ _ -> return (),
+	discoverVillageHook = \ _ _ -> return (),
+	conquerCityHook     = \ _ _ -> return (),
+	devoteToArtsBonusHook  = \ _ _ _ -> return (Culture 0),
+	exploreTileHook    = \ _ _ -> return (),
+	indianResourceSpending = SetValue False,
 	enabledGovernments = [Despotism,Anarchy],
-	enabledBuildings = [],
-	cardAbilities   = const [],
-	resourceAbilities = const [] }
+	enabledBuildings   = [],
+	armiesAsScouts     = SetValue False,
+	wondersObsoletable = SetValue True,
+	sacrificeForTech   = SetValue False,
+	exploreHutBattle   = SetValue True,
+	buildCityNextToHuts = SetValue False,
+	cardAbilities      = const [],
+	resourceAbilities  = const [] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
 	unitAttackBonus = const 0,
+	lootBonus       = Unchanged,
+	battleStrengthBonus = Unchanged,
 	battleHandSize  = const Unchanged,
 	cultureCardLimit = const Unchanged,
 	cultureTrackTradeBonus = const Unchanged,
 	cultureTrackCultureBonus = const Unchanged,
+	researchCostBonus = Unchanged,
 	unitStackLimit  = Unchanged,
 	moveRange       = Unchanged,
 	movementType    = Land,
 	cardCoins       = Coins 0,
+	threeTradeHammers = Unchanged,
 	maxCities       = Unchanged,
 	productionBonus = const Unchanged,
 	buildWonderHook = \ _ _ -> return (),
 	drawCultureHook = \ _ _ -> return (),
 	buildArmyHook   = \ _ _ -> return (),
-	getTechHook     = \ _ _ -> return (),
+	getThisHook     = \ _ _ -> return (),
+	getTechHook     = \ _ _ _ -> return (),
+	startOfGameHook = \ _ _ -> return (),
+	spendResourceHook  = \ _ _ -> return (),
+	investCoinHook     = \ _ _ -> return (),
+	afterBattleHook    = \ _ _ _ _ -> return (),
+	getGreatPersonHook = \ _ _ -> return (),
+	wonBattleHook      = \ _ _ -> return (),
+	discoverHutHook     = \ _ _ -> return (),
+	discoverVillageHook = \ _ _ -> return (),
+	conquerCityHook     = \ _ _ -> return (),
+	devoteToArtsBonusHook  = \ _ _ _ -> return (Culture 0),
+	exploreTileHook    = \ _ _ -> return (),
+	indianResourceSpending = Unchanged,
 	enabledGovernments = [],
-	enabledBuildings = [],
-	cardAbilities   = const [],
-	resourceAbilities = const [] }
+	enabledBuildings   = [],
+	armiesAsScouts     = SetValue False,
+	wondersObsoletable = Unchanged,
+	sacrificeForTech   = Unchanged,
+	exploreHutBattle   = Unchanged,
+	buildCityNextToHuts = Unchanged,
+	cardAbilities      = const [],
+	resourceAbilities  = const [] }
 
 civAbilities civ = case civ of
-	America  -> defaultAbilities
-	Arabs    -> defaultAbilities
-	Aztecs   -> defaultAbilities
-	China    -> defaultAbilities
-	Egypt    -> defaultAbilities
-	English  -> defaultAbilities
-	French   -> defaultAbilities
-	Germany  -> defaultAbilities
-	Greeks   -> defaultAbilities
-	Indians  -> defaultAbilities
+	America  -> defaultAbilities {
+		startOfGameHook   = getGreatPerson,
+		threeTradeHammers = SetValue 2 }
+	Arabs    -> defaultAbilities {
+		startOfGameHook   = \ gn pn -> forM_ [Iron,Linen,Incense,Wheat] (getResource gn pn),
+		spendResourceHook = addCulture 1,
+		investCoinHook    = drawCultureCard }
+	Aztecs   -> defaultAbilities {
+		afterBattleHook = \ ownunitskilled enemyunitskilled ->
+			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
+		getGreatPersonHook = build2UnitsHook_Aztecs,
+		wonBattleHook      = addTrade 3 }
+	China    -> defaultAbilities {
+		startOfGameHook = buildCapitalWallsHook_China,
+		discoverHutHook = addCulture 3,
+		discoverVillageHook = addCulture 3,
+		afterBattleHook = \ ownunitskilled enemyunitskilled -> resurrectOneUnitHook_China ownunitskilled }
+	Egypt    -> defaultAbilities {
+		wondersObsoletable = SetValue False,
+		startOfGameHook = startBuildWonderHook_Egypt,
+		cardAbilities = cardAbility [CityManagement] "Egypt: Free Building" freeBuilding_Egypt $ const [] }
+	English  -> defaultAbilities {
+		movementType = CrossWater,
+		armiesAsScouts = SetValue True }
+	French   -> defaultAbilities {
+		battleStrengthBonus = ModifyValue (+2),
+		startOfGameHook     = extraStartPolicyHook_French }
+	Germany  -> defaultAbilities {
+		startOfGameHook = \ gn pn -> forM_ [Infantry,Infantry] $ drawUnit gn pn,
+		getTechHook     = getTechHook_Germany }
+	Greeks   -> defaultAbilities {
+		getTechHook        = getTechHook_Greeks,
+		getGreatPersonHook = drawExtraPersonHook_Greeks }
+	Indians  -> defaultAbilities {
+		indianResourceSpending = SetValue True,
+		devoteToArtsBonusHook  = extraCultureDevote_Indians }
 	Japanese -> defaultAbilities {
+		researchCostBonus = SetValue (Trade 3),
 		unitAttackBonus = \case
 			Infantry -> 1
 			_        -> 0 }
-	Mongols  -> defaultAbilities
-	Rome     -> defaultAbilities
-	Russia   -> defaultAbilities
+	Mongols  -> defaultAbilities {
+		startOfGameHook = \ gn pn -> forM_ [Cavalry,Cavalry] $ drawUnit gn pn,
+		lootBonus       = ModifyValue (+1) }
+	Rome     -> defaultAbilities {
+		buildWonderHook     = drawCultureCard,
+		discoverVillageHook = drawCultureCard,
+		conquerCityHook     = drawCultureCard }
+	Russia   -> defaultAbilities {
+		startOfGameHook  = getFigure Flag,
+		unitStackLimit   = ModifyValue (+1),
+		sacrificeForTech = SetValue True }
 	Spanish  -> defaultAbilities {
-		moveRange = SetValue 3 }
-	Zulu     -> defaultAbilities
+		startOfGameHook = getFigure Wagon,
+		moveRange       = ModifyValue (+1),
+		exploreTileHook = buildUnlockedBuilding_Spanish }
+	Zulu     -> defaultAbilities {
+		startOfGameHook     = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
+		exploreHutBattle    = SetValue False,
+		buildCityNextToHuts = SetValue True }
 
 techAbilities tech = case tech of
 	Pottery              -> unchangedAbilities {
 		enabledBuildings   = [Granary],
 		cultureCardLimit   = const $ ModifyValue (+1),
 		resourceAbilities  = resourceAbility [CityManagement] "Pottery: Gain Coin" [AnyResource,AnyResource] (addCoinToTech Pottery) $ const [] }
-	Writing              -> unchangedAbilities
+	Writing              -> unchangedAbilities {
+		enabledBuildings   = [Library],
+		resourceAbilities  = resourceAbility [CityManagement] "Writing: Cancel City Action" [One Spy] cancelCityAction_Writing $ const [] }
 	CodeOfLaws           -> unchangedAbilities {
 		enabledGovernments = [Republic],
 		enabledBuildings   = [TradePost],
@@ -156,13 +265,13 @@ techAbilities tech = case tech of
 		unitStackLimit     = SetValue 3,
 		cardAbilities      = cardAbility [CityManagement] "Masonry: Build City Walls" buildCityWalls_Masonry $ const [] }		
 	Agriculture          -> unchangedAbilities {
-		getTechHook        = growIntoMetropolisHook_Agriculture,
-		resourceAbilities  = resourceAbility [CityManagement] "Agriculture: +3 Hammers" [One Wheat] (plusHammers 3) $ const [] }
+		getThisHook        = growIntoMetropolisHook_Agriculture }
 	HorsebackRiding      -> unchangedAbilities {
 		moveRange          = SetValue 3,
 		resourceAbilities  = resourceAbility [Trading] "Horseback Riding: Get Trade" [One Linen] getTrade_HoresebackRiding $ const [] }
 	AnimalHusbandry      -> unchangedAbilities {
-		cardAbilities      = cardAbility [Battle] "Animal Husbandry: Heal 3 Damage" (healDamage 3) $ const [] }
+		cardAbilities      = cardAbility [Battle] "Animal Husbandry: Heal 3 Damage" (healDamage 3) $ const [],
+		resourceAbilities  = resourceAbility [CityManagement] "Animal Husbandry: +3 Hammers" [One Wheat] (plusHammers 3) $ const [] }
 	Philosophy           -> unchangedAbilities {
 		enabledBuildings   = [Temple],
 		resourceAbilities  = resourceAbility [CityManagement] "Philosophy: Get Great Person" [AnyResource,AnyResource,AnyResource] getGreatPerson $ const [] }
@@ -247,7 +356,7 @@ techAbilities tech = case tech of
 		enabledBuildings   = [Academy],
 		productionBonus    = modifyValuePerNCoins 3 }
 	Education            -> unchangedAbilities {
-		buildWonderHook = addCoinToCard Education,
+		buildWonderHook    = addCoinToCard Education,
 		resourceAbilities  = resourceAbility [CityManagement] "Education: Learn Tech" [One Wheat,One Incense,One Iron,One Linen] learnTech_Education $ const [] }
 	Computers            -> unchangedAbilities {
 		cardCoins          = Coins 1,
@@ -279,7 +388,7 @@ techAbilities tech = case tech of
 			resourceAbility [CityManagement] "Atomic Theory: Additional City Actions" [One Atom] additionalCityActions_AtomicTheory $
 			resourceAbility [Movement] "Atomic Theory: Nuke City" [One Atom] nukeCity_AtomicTheory $ const [] }
 	SpaceFlight          -> unchangedAbilities {
-		getTechHook        = victory }
+		getThisHook        = victory TechVictory }
 
 	where
 
@@ -289,77 +398,181 @@ techAbilities tech = case tech of
 	resourceAbility phases name respats action f phase | phase `elem` phases = [(name,respats,action)]
 	resourceAbility _ _ _ _ f phase = f phase
 
-	cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
-	cardAbility _ _ _ f phase = f phase
+cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
+cardAbility _ _ _ f phase = f phase
 
 modifyValuePerNCoins n player = ModifyValue (+(mod (numberOfCoins player) n))
 
-additionalCityActions_AtomicTheory gamename playername = error "Not implemented yet"
+additionalCityActions_AtomicTheory gamename playername = do
+	--TODO
+	return ()
 
-nukeCity_AtomicTheory gamename playername = error "Not implemented yet"
+nukeCity_AtomicTheory gamename playername = do
+	--TODO
+	return ()
 
-dealDamage damage gamename playername = error "Not implemented yet"
+dealDamage damage gamename playername = do
+	--TODO
+	return ()
 
-healDamage damage gamename playername = error "Not implemented yet"
-healAllDamage gamename playername = error "Not implemented yet"
+healDamage damage gamename playername = do
+	--TODO
+	return ()
+healAllDamage gamename playername = do
+	--TODO
+	return ()
 
-plusHammers hammers gamename playername = error "Not implemented yet"
+plusHammers hammers gamename playername = do
+	--TODO
+	return ()
 
-switchPolicy_Bureaucracy gamename playername = error "Not implemented yet"
+switchPolicy_Bureaucracy gamename playername = do
+	--TODO
+	return ()
 
-addCoinAfterWonBattle_CodeOfLaws gamename playername = error "Not implemented yet"
+addCoinAfterWonBattle_CodeOfLaws gamename playername = do
+	--TODO
+	return ()
 
-destroyBuilding_CombustionEngine gamename playername = error "Not implemented yet"
+destroyBuilding_CombustionEngine gamename playername = do
+	--TODO
+	return ()
 
-destroyWalls_CombustionEngine gamename playername = error "Not implemented yet"
+destroyWalls_CombustionEngine gamename playername = do
+	--TODO
+	return ()
 
-lockSquare_CommunismTech gamename playername = error "Not implemented yet"
+lockSquare_CommunismTech gamename playername = do
+	--TODO
+	return ()
 
-destroyWonderBuilding_Gunpowder gamename playername = error "Not implemented yet"
+destroyWonderBuilding_Gunpowder gamename playername = do
+	--TODO
+	return ()
 
-getTrade_HoresebackRiding gamename playername = error "Not implemented yet"
+getTrade_HoresebackRiding gamename playername = do
+	--TODO
+	return ()
 
-cancelCultureEvent gamename playername = error "Not implemented yet"
+cancelCultureEvent gamename playername = do
+	--TODO
+	return ()
 
 addCoin_Democracy gamename playername = do
 	addTrade (-6) gamename playername
 	addCoinToCard Democracy gamename playername
 
-addCoinToCard tech gamename playername = error "Not implemented yet"
+addCoinToCard tech gamename playername = do
+	--TODO
+	return ()
 
 addCoin_PrintingPress gamename playername = do
 	addCulture (-5) gamename playername
 	addCoinToCard PrintingPress gamename playername
 
-changeTerrain_Ecology gamename playername = error "Not implemented yet"
+changeTerrain_Ecology gamename playername = do
+	--TODO
+	return ()
 
-learnTech_Education gamename playername = error "Not implemented yet"
+learnTech_Education gamename playername = do
+	--TODO
+	return ()
 
-growIntoMetropolisHook_Agriculture gamename playername = error "Not implemented yet"
+growIntoMetropolisHook_Agriculture gamename playername = do
+	--TODO
+	return ()
 
-buildCityWalls_Masonry gamename playername = error "Not implemented yet"
+buildCityWalls_Masonry gamename playername = do
+	--TODO
+	return ()
 
-cancelCultureEventCancel_MassMedia gamename playername = error "Not implemented yet"
+cancelCultureEventCancel_MassMedia gamename playername = do
+	--TODO
+	return ()
 
-cancelResourceAbility_MassMedia gamename playername = error "Not implemented yet"
+cancelResourceAbility_MassMedia gamename playername = do
+	--TODO
+	return ()
 
-increaseAttack_Metalworking gamename playername = error "Not implemented yet"
+increaseAttack_Metalworking gamename playername = do
+	--TODO
+	return ()
 
-destroyWonderOrUnit_MonarchyTech gamename playername = error "Not implemented yet"
+destroyWonderOrUnit_MonarchyTech gamename playername = do
+	--TODO
+	return ()
 
-drawAnotherCultureCardHook_Mysticism gamename playername = error "Not implemented yet"
+drawAnotherCultureCardHook_Mysticism gamename playername = do
+	--TODO
+	return ()
 
-forceDiscardCoin_Mysticism gamename playername = error "Not implemented yet"
+forceDiscardCoin_Mysticism gamename playername = do
+	--TODO
+	return ()
 
-armyToShipyardOutskirtsHook_Navy gamename playername = error "Not implemented yet"
+armyToShipyardOutskirtsHook_Navy gamename playername = do
+	--TODO
+	return ()
 
-buildUnitFigureBuilding_Plastics gamename playername = error "Not implemented yet"
+buildUnitFigureBuilding_Plastics gamename playername = do
+	--TODO
+	return ()
 
-splitProduction_Engineering gamename playername = error "Not implemented yet"
+splitProduction_Engineering gamename playername = do
+	--TODO
+	return ()
 
-moveFigures_SteamEngine gamename playername = error "Not implemented yet"
+moveFigures_SteamEngine gamename playername = do
+	--TODO
+	return ()
 
-victory gamename playername = error "Not implemented yet"
+cancelCityAction_Writing gamename playername = do
+	--TODO
+	return ()
+
+build2UnitsHook_Aztecs gamename playername = do
+	--TODO
+	return ()
+
+resurrectOneUnitHook_China killedunits gamename playername = do
+	--TODO
+	return ()
+
+buildCapitalWallsHook_China gamename playername = do
+	--TODO
+	return ()
+
+freeBuilding_Egypt gamename playername = do
+	--TODO
+	return ()
+
+startBuildWonderHook_Egypt gamename playername = do
+	--TODO
+	return ()
+
+extraStartPolicyHook_French gamename playername = do
+	--TODO
+	return ()
+
+getTechHook_Germany gamename playername tech = do
+	--TODO
+	return ()
+
+getTechHook_Greeks gamename playername tech = do
+	--TODO
+	return ()
+
+drawExtraPersonHook_Greeks gamename playername = do
+	--TODO
+	return ()
+
+extraCultureDevote_Indians gamename playername citycoors = do
+	--TODO
+	return $ Culture 0
+
+buildUnlockedBuilding_Spanish gamename playername = do
+	--TODO
+	return ()
 
 valueAbilities :: (Ord a) => [Value a] -> a
 valueAbilities values = foldl (\ x f -> f x) a modvalues

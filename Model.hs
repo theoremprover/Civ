@@ -601,6 +601,9 @@ makeLenses ''CivState
 initialCivState :: CivState
 initialCivState = CivState Map.empty
 
+data Victory = TechVictory | MilitaryVictory | CultureVictory | EconomicVictory
+	deriving (Show,Eq)
+
 civStartTechAndGov civ = case civ of
 	America  -> (Currency,       Despotism)
 	Arabs    -> (Mathematics,    Despotism)

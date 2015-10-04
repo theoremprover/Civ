@@ -148,9 +148,15 @@ returnPolicy gamename playername policy = do
 	updateCivLensM (\ (cs,ps) -> (policy2Card policy : cs,delete policy ps)) $
 		civPlayerLens gamename playername . _Just . playerPolicies
 
+advanceCulture :: GameName -> PlayerName -> UpdateCivM ()
+advanceCulture gamename playername = do
+	updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	Just steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	when (steps >= 21) $ victory CultureVictory gamename playername
+
 drawCultureCard :: GameName -> PlayerName -> UpdateCivM ()
 drawCultureCard gamename playername = do
-	updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	advanceCulture gamename playername
 	Just steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
 	let (culture,trade) = cultureStepCost steps
 	addCulture (-culture) gamename playername
@@ -175,6 +181,13 @@ returnUnit :: GameName -> PlayerName -> UnitCard -> UpdateCivM ()
 returnUnit gamename playername unit = do
 	updateCivLensM (delete unit) $ civPlayerLens gamename playername . _Just . playerUnits
 	putOnStackM (civGameLens gamename . _Just . gameUnitStack) (unitType unit) unit
+
+getFigure :: Figure ->GameName -> PlayerName ->  UpdateCivM ()
+getFigure figure gamename playername = do
+	mb_figure <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figure
+	case mb_figure of
+		Nothing -> return ()
+		Just () -> return () -- TODO
 
 getGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
 getGreatPerson gamename playername = do
@@ -384,6 +397,8 @@ buildBuilding gamename playername coors buildingtype = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) (buildingTypeToMarker buildingtype)
 	updateCivLensM (const $ Just $ BuildingMarker $ Building buildingtype playername) $
 		civSquareLens gamename coors . squareTokenMarker
+
+victory victorytype gamename playername = error "Not implemented yet"
 
 $(makeAcidic ''CivState [
 	'getCivState,
