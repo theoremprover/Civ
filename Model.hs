@@ -83,8 +83,11 @@ data Phase = StartOfGame |
 	Movement |
 	Research |
 	Battle
-	deriving (Show,Eq,Ord,Enum,Bounded,Data,Typeable)
+	deriving (Show,Eq,Ord,Enum,Bounded,Ix,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
+
+allPhases :: [Phase]
+allPhases = allOfThem
 
 nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
@@ -139,6 +142,9 @@ data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
 
+data MovementType = Land | CrossWater | StayInWater | Air
+	deriving (Show,Ord,Eq)
+
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Artifact)
@@ -190,7 +196,7 @@ data City = SecondCitySquare Orientation | City {
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 
-data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
+data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
 	MarketOrBank | Harbours | TradePosts | Shipyards
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
@@ -198,7 +204,7 @@ $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 buildingTypeToMarker :: BuildingType -> BuildingMarker
 buildingTypeToMarker bt | bt `elem` [Barracks,Academy] = BarracksOrAcademy
-buildingTypeToMarker bt | bt `elem` [Forge,Forge2] = ForgeOrForge2
+buildingTypeToMarker bt | bt `elem` [Forge,IronMine] = ForgeOrIronMine
 buildingTypeToMarker bt | bt `elem` [Granary,Aquaeduct] = GranaryOrAquaeduct
 buildingTypeToMarker bt | bt `elem` [Temple,Cathedral] = TempleOrCathedral
 buildingTypeToMarker bt | bt `elem` [Library,University] = LibraryOrUniversity
@@ -209,7 +215,7 @@ buildingTypeToMarker bt | bt `elem` [Shipyard] = Shipyards
 
 data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradePost | Temple |
-	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
+	Academy | Aquaeduct | Bank | Cathedral | IronMine | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
 
@@ -219,7 +225,7 @@ $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
 initialBuildingStack = tokenStackFromList $ replicateUnit [
-	(BarracksOrAcademy,5),(ForgeOrForge2,6),      (GranaryOrAquaeduct,6),
+	(BarracksOrAcademy,5),(ForgeOrIronMine,6),      (GranaryOrAquaeduct,6),
 	(TempleOrCathedral,5),(LibraryOrUniversity,6),(MarketOrBank,5),
 	(Harbours,10),        (TradePosts,6),         (Shipyards,5) ]
 
