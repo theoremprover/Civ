@@ -195,6 +195,7 @@ data City = SecondCitySquare Orientation | City {
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
+makeLenses ''City
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
@@ -235,10 +236,11 @@ data TokenMarker =
 	ArtifactMarker Artifact |
 	HutMarker Hut |
 	VillageMarker Village |
-	CityMarker City |
+	CityMarker { _cityMarker :: City } |
 	BuildingMarker Building
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
+makeLenses ''TokenMarker
 
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
@@ -510,7 +512,8 @@ data Player = Player {
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
-	_playerFirstCityCoors   :: [Coors]
+	_playerFirstCityCoors   :: [Coors],
+	_playerCityCoors        :: [Coors]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -522,7 +525,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] initialFigureStack [] Northward initialCityStack
-	0 []
+	0 [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

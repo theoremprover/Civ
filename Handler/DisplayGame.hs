@@ -246,6 +246,8 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		startplayer = playername == fst (nthAssocList _gameStartPlayer _gamePlayers)
 		Just unusedflags = tokenStackLookup Flag _playerFigures
 		Just unusedwagons = tokenStackLookup Wagon _playerFigures
+		Just leftcities = tokenStackLookup () _playerCityStack
+		Just mb_metropolis <- queryCivLensH $ civSquareLens gamename (head _playerCityCoors) . _squareTokenMarker . _cityMarker . _cityMetropolisOrientation
 		techss :: [(Int,[TechCard])]
 		techss = map projecttechlevel
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
@@ -282,9 +284,12 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
             $forall i <- unusedflags
               <tr><td><img .Flag data-source=#{data2markup FlagSource} src=@{flagRoute _playerColour}>
         <td valign=top>
-          <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
+          $forall _ <- leftcities 
+            <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
         <td valign=top>
-          <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
+          $maybe _ <- mb_metropolis
+          $nothing
+            <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
 boardArea :: DisplayInfo -> [Action] -> Handler Widget
