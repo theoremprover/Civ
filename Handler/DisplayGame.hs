@@ -247,12 +247,12 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		Just unusedflags = tokenStackLookup Flag _playerFigures
 		Just unusedwagons = tokenStackLookup Wagon _playerFigures
 		Just leftcities = tokenStackLookup () _playerCityStack
-		Just mb_metropolis <- queryCivLensH $ civSquareLens gamename (head _playerCityCoors) . _squareTokenMarker . _cityMarker . _cityMetropolisOrientation
 		techss :: [(Int,[TechCard])]
 		techss = map projecttechlevel
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
 		columns = fromJust $ lookup 0 techss
+	Just mb_metropolis <- queryCivLensH $ civSquareLens gamename (head _playerCityCoors) . _squareTokenMarker . _cityMarker . _cityMetropolisOrientation
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>
