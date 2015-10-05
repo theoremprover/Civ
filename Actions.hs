@@ -47,6 +47,10 @@ instance (Eq a) => Eq (Value a) where
 data ResourcePattern = One Resource | AnyResource
 	deriving (Show,Eq)
 
+type HookM a = GameName -> PlayerName -> UpdateCivM a
+
+noopHookM _ _ = return ()
+
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
 	unitAttackBonus          :: UnitType -> Strength,
@@ -64,22 +68,22 @@ data Abilities = Abilities {
 	threeTradeHammers   :: Value Int,
 	maxCities           :: Value Int,
 	productionBonus     :: Player -> Value Int,
-	buildWonderHook     :: GameName -> PlayerName -> UpdateCivM (),
-	drawCultureHook     :: GameName -> PlayerName -> UpdateCivM (),
-	buildArmyHook       :: GameName -> PlayerName -> UpdateCivM (),
-	getThisHook         :: GameName -> PlayerName -> UpdateCivM (),
-	getTechHook         :: GameName -> PlayerName -> Tech -> UpdateCivM (),
-	startOfGameHook     :: GameName -> PlayerName -> UpdateCivM (),
-	spendResourceHook   :: GameName -> PlayerName -> UpdateCivM (),
-	investCoinHook      :: GameName -> PlayerName -> UpdateCivM (),
-	afterBattleHook     :: [UnitCard] -> [UnitCard] -> GameName -> PlayerName -> UpdateCivM (),
-	getGreatPersonHook  :: GameName -> PlayerName -> UpdateCivM (),
-	wonBattleHook       :: GameName -> PlayerName -> UpdateCivM (),
-	discoverHutHook     :: GameName -> PlayerName -> UpdateCivM (),
-	discoverVillageHook :: GameName -> PlayerName -> UpdateCivM (),
-	conquerCityHook     :: GameName -> PlayerName -> UpdateCivM (),
-	devoteToArtsBonusHook :: GameName -> PlayerName -> Coors -> UpdateCivM Culture,
-	exploreTileHook     :: GameName -> PlayerName -> UpdateCivM (),
+	buildWonderHook     :: HookM (),
+	drawCultureHook     :: HookM (),
+	buildArmyHook       :: HookM (),
+	getThisHook         :: HookM (),
+	getTechHook         :: Tech -> HookM (),
+	startOfGameHook     :: HookM (),
+	spendResourceHook   :: HookM (),
+	investCoinHook      :: HookM (),
+	afterBattleHook     :: [UnitCard] -> [UnitCard] -> HookM (),
+	getGreatPersonHook  :: HookM (),
+	wonBattleHook       :: HookM (),
+	discoverHutHook     :: HookM (),
+	discoverVillageHook :: HookM (),
+	conquerCityHook     :: HookM (),
+	devoteToArtsBonusHook :: Coors -> HookM Culture,
+	exploreTileHook     :: HookM (),
 	indianResourceSpending :: Value Bool,
 	enabledGovernments  :: [Government],
 	enabledBuildings    :: [BuildingType],
@@ -88,8 +92,8 @@ data Abilities = Abilities {
 	sacrificeForTech    :: Value Bool,
 	exploreHutBattle    :: Value Bool,
 	buildCityNextToHuts :: Value Bool,
-	cardAbilities       :: Phase -> [(String,GameName -> PlayerName -> UpdateCivM ())],
-	resourceAbilities   :: Phase -> [(String,[ResourcePattern],GameName -> PlayerName -> UpdateCivM ())] }
+	cardAbilities       :: Phase -> [(String,HookM ())],
+	resourceAbilities   :: Phase -> [(String,[ResourcePattern],HookM ())] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case

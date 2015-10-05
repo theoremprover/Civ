@@ -2,8 +2,8 @@
 
 module Handler.DisplayGame where
 
-import Import hiding (map,minimum,maximum,concat,lookup,replicate)
-import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init)
+import Import hiding (map,minimum,maximum,concat,lookup,replicate,head)
+import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -34,6 +34,7 @@ colour2html colour = show colour
 -- <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
 
 data DisplayInfo = DisplayInfo {
+	gameNameDI :: GameName,
 	gameDI :: Game,
 	myPlayerNameDI :: Maybe PlayerName,
 	myPlayerDI :: Maybe Player,
@@ -47,7 +48,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
-		di = DisplayInfo game mb_playername mb_myplayer myplayerori toplayer
+		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
 		moves = moveGen gamename game mb_playername
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
@@ -252,7 +253,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
 		columns = fromJust $ lookup 0 techss
-	Just mb_metropolis <- queryCivLensH $ civSquareLens gamename (head _playerCityCoors) . _squareTokenMarker . _cityMarker . _cityMetropolisOrientation
+	Just mb_metropolis <- queryCivLensH $ civSquareLens gameNameDI (head _playerCityCoors) . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>
