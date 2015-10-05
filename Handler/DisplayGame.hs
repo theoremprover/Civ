@@ -11,8 +11,9 @@ import Data.Array.IArray ((!),indices)
 import Data.Maybe
 import Control.Lens hiding (indices,Action)
 import Data.Aeson
-import Data.ByteString.Lazy.Char8(unpack)
---import Text.Blaze (toValue)
+import qualified Data.ByteString.Lazy.Char8 (unpack)
+import qualified Text.Blaze.Renderer.String (renderHtml)
+import Text.Blaze (string)
 
 import GameMonad
 import Model
@@ -26,7 +27,9 @@ import TokenStack
 import Actions
 
 
-data2markup a = Prelude.tail $ Prelude.init $ show $ Data.ByteString.Lazy.Char8.unpack $ encode a
+data2markup :: (ToJSON a) => a -> String
+data2markup a = Text.Blaze.Renderer.String.renderHtml $ string $ show $
+	Data.ByteString.Lazy.Char8.unpack $ encode a
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -219,7 +222,7 @@ unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
-		unitlevel = unitLevelAbilities player
+		unitlevel = playerUnitLevel player
 		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (fromJust $ unitlevel unitType))) $ sort _playerUnits
 	return [whamlet|
 <table>
@@ -253,7 +256,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
 		columns = fromJust $ lookup 0 techss
-	Just mb_metropolis <- queryCivLensH $ civSquareLens gameNameDI (head _playerCityCoors) . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
+		canbuildmetropolis = ...
+	Just mb_capitalmetropolis <- case _playerCityCoors of
+		(capitalcoors:_) -> queryCivLensH $ civSquareLens gameNameDI capitalcoors . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
+		_ -> return $ Just Nothing
+	
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>

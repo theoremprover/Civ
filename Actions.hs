@@ -2,7 +2,7 @@
 
 module Actions where
 
-import Import(App,getYesod,Handler,MonadHandler,appCivAcid,HandlerSite)
+import Import (App,getYesod,Handler,MonadHandler,appCivAcid,HandlerSite)
 import Prelude
 
 import Control.Lens hiding (Action)
@@ -89,10 +89,11 @@ data Abilities = Abilities {
 	enabledGovernments  :: [Government],
 	enabledBuildings    :: [BuildingType],
 	armiesAsScouts      :: Value Bool,
-	wondersObsoletable  :: Value Bool,
+	wondersNonobsoletable :: Value Bool,
 	sacrificeForTech    :: Value Bool,
-	exploreHutBattle    :: Value Bool,
+	exploreHutWithoutBattle :: Value Bool,
 	buildCityNextToHuts :: Value Bool,
+	canBuildMetropolis  :: Value Bool,
 	cardAbilities       :: Phase -> [(String,HookM ())],
 	resourceAbilities   :: Phase -> [(String,[ResourcePattern],HookM ())] }
 
@@ -132,15 +133,16 @@ defaultAbilities = Abilities {
 	devoteToArtsBonusHook  = \ _ -> constHookM (Culture 0),
 	exploreTileHook    = noopHookM,
 	indianResourceSpending = SetValue False,
-	enabledGovernments = [Despotism,Anarchy],
-	enabledBuildings   = [],
-	armiesAsScouts     = SetValue False,
-	wondersObsoletable = SetValue True,
-	sacrificeForTech   = SetValue False,
-	exploreHutBattle   = SetValue True,
+	enabledGovernments  = [Despotism,Anarchy],
+	enabledBuildings    = [],
+	armiesAsScouts      = SetValue False,
+	wondersNonobsoletable = SetValue False,
+	sacrificeForTech    = SetValue False,
+	exploreHutWithoutBattle = SetValue False,
 	buildCityNextToHuts = SetValue False,
-	cardAbilities      = const [],
-	resourceAbilities  = const [] }
+	canBuildMetropolis  = SetValue False,
+	cardAbilities       = const [],
+	resourceAbilities   = const [] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
@@ -176,15 +178,16 @@ unchangedAbilities = Abilities {
 	devoteToArtsBonusHook  = \ _ -> constHookM (Culture 0),
 	exploreTileHook    = noopHookM,
 	indianResourceSpending = Unchanged,
-	enabledGovernments = [],
-	enabledBuildings   = [],
-	armiesAsScouts     = SetValue False,
-	wondersObsoletable = Unchanged,
-	sacrificeForTech   = Unchanged,
-	exploreHutBattle   = Unchanged,
+	enabledGovernments  = [],
+	enabledBuildings    = [],
+	armiesAsScouts      = SetValue False,
+	wondersNonobsoletable = Unchanged,
+	sacrificeForTech    = Unchanged,
+	exploreHutWithoutBattle = Unchanged,
 	buildCityNextToHuts = Unchanged,
-	cardAbilities      = const [],
-	resourceAbilities  = const [] }
+	canBuildMetropolis  = Unchanged,
+	cardAbilities       = const [],
+	resourceAbilities   = const [] }
 
 civAbilities civ = case civ of
 	America  -> defaultAbilities {
@@ -205,7 +208,7 @@ civAbilities civ = case civ of
 		discoverVillageHook = addCulture 3,
 		afterBattleHook = \ ownunitskilled enemyunitskilled -> resurrectOneUnitHook_China ownunitskilled }
 	Egypt    -> defaultAbilities {
-		wondersObsoletable = SetValue False,
+		wondersNonobsoletable = SetValue True,
 		startOfGameHook = startBuildWonderHook_Egypt,
 		cardAbilities = cardAbility [CityManagement] "Egypt: Free Building" freeBuilding_Egypt $ const [] }
 	English  -> defaultAbilities {
@@ -244,9 +247,9 @@ civAbilities civ = case civ of
 		moveRange       = ModifyValue (+1),
 		exploreTileHook = buildUnlockedBuilding_Spanish }
 	Zulu     -> defaultAbilities {
-		startOfGameHook     = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
-		exploreHutBattle    = SetValue False,
-		buildCityNextToHuts = SetValue True }
+		startOfGameHook         = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
+		exploreHutWithoutBattle = SetValue True,
+		buildCityNextToHuts     = SetValue True }
 
 techAbilities tech = case tech of
 	Pottery              -> unchangedAbilities {
@@ -270,7 +273,8 @@ techAbilities tech = case tech of
 		unitStackLimit     = SetValue 3,
 		cardAbilities      = cardAbility [CityManagement] "Masonry: Build City Walls" buildCityWalls_Masonry $ const [] }		
 	Agriculture          -> unchangedAbilities {
-		getThisHook        = growIntoMetropolisHook_Agriculture }
+		getThisHook        = growIntoMetropolisHook_Agriculture,
+		canBuildMetropolis = SetValue True }
 	HorsebackRiding      -> unchangedAbilities {
 		moveRange          = SetValue 3,
 		resourceAbilities  = resourceAbility [Trading] "Horseback Riding: Get Trade" [One Linen] getTrade_HoresebackRiding $ const [] }
@@ -406,7 +410,7 @@ techAbilities tech = case tech of
 cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
 cardAbility _ _ _ f phase = f phase
 
-modifyValuePerNCoins n player = ModifyValue (+(mod (numberOfCoins player) n))
+modifyValuePerNCoins n player = ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
 
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
@@ -580,20 +584,32 @@ buildUnlockedBuilding_Spanish gamename playername = do
 	return ()
 
 valueAbilities :: (Ord a) => [Value a] -> a
-valueAbilities values = foldl (\ x f -> f x) a modvalues
+valueAbilities values = foldl (flip ($)) a modvalues
 	where
 	SetValue a = maximum values
 	modvalues = map ismod values
 	ismod (ModifyValue f) = f
 	ismod _ = id
 
-unitLevelAbilities :: Player -> UnitType -> Maybe UnitLevel
-unitLevelAbilities player@(Player{..}) unittype = valueAbilities $
-	map (\ f -> f unittype) $ map unitLevel $ civAbilities _playerCiv : map (techAbilities._techCardTechId) _playerTechs
+{-- abstrahieren
+playerUnitLevel :: Player -> UnitType -> Maybe UnitLevel
+playerUnitLevel player@(Player{..}) unittype = valueAbilities $
+	map (\ f -> f unittype) $ map unitLevel $ playerAbilities player
+--}
 
-numberOfCoins :: Player -> Int
-numberOfCoins player@(Player{..}) = coinsCoins _playerCoins + sum (map (coinsCoins.cardCoins.techAbilities._techCardTechId) _playerTechs)
-	-- TODO: Add Coins auf dem Battlefield
+playerNumberOfCoins :: Player -> Coins
+playerNumberOfCoins player@(Player{..}) =
+	_playerCoins +
+	sum (map cardCoins (playerAbilities player))
+	-- TODO: z.B. Add Coins auf dem Battlefield
+
+-- abstrahieren auf ein Argument für ability
+getValueAbility :: (Ord a) => (Abilities -> Value a) -> Player -> a
+getValueAbility ability player = valueAbilities $ map ability (playerAbilities player)
+
+playerAbilities player@(Player{..}) =
+	civAbilities _playerCiv :
+	map (techAbilities._techCardTechId) _playerTechs
 
 moveGen :: GameName -> Game -> Maybe PlayerName -> [Action]
 moveGen _ _ Nothing = []
