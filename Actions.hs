@@ -591,11 +591,8 @@ valueAbilities values = foldl (flip ($)) a modvalues
 	ismod (ModifyValue f) = f
 	ismod _ = id
 
-{-- abstrahieren
 playerUnitLevel :: Player -> UnitType -> Maybe UnitLevel
-playerUnitLevel player@(Player{..}) unittype = valueAbilities $
-	map (\ f -> f unittype) $ map unitLevel $ playerAbilities player
---}
+playerUnitLevel player unittype = getValueAbility (\ abilities -> (unitLevel abilities) unittype) player
 
 playerNumberOfCoins :: Player -> Coins
 playerNumberOfCoins player@(Player{..}) =
@@ -605,7 +602,7 @@ playerNumberOfCoins player@(Player{..}) =
 
 -- abstrahieren auf ein Argument für ability
 getValueAbility :: (Ord a) => (Abilities -> Value a) -> Player -> a
-getValueAbility ability player = valueAbilities $ map ability (playerAbilities player)
+getValueAbility toability player = valueAbilities $ map toability (playerAbilities player)
 
 playerAbilities player@(Player{..}) =
 	civAbilities _playerCiv :
