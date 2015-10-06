@@ -256,11 +256,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
 		columns = fromJust $ lookup 0 techss
-		canbuildmetropolis = ...
+		canbuildmetropolis = getValueAbility canBuildMetropolis player
 	Just mb_capitalmetropolis <- case _playerCityCoors of
 		(capitalcoors:_) -> queryCivLensH $ civSquareLens gameNameDI capitalcoors . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
 		_ -> return $ Just Nothing
-	
+	let showmetropolis = isNothing mb_capitalmetropolis && 
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>
