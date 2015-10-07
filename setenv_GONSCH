@@ -1,0 +1,4 @@
+#!/bin/bash
+export PORT=3000
+export APPROOT=http://dev.civ:$PORT
+export MYSQL_HOST=localhost
