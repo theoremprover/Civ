@@ -2,3 +2,9 @@
 export PORT=3000
 export APPROOT=http://dev.civ:$PORT
 export MYSQL_HOST=localhost
+
+alias gc='git commit -a -m "No Message"'
+alias gs='git status'
+alias gb='git branch'
+
+cd ~/Civ

@@ -132,8 +132,9 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	cityItems <- partialCityItems di player
 
 	return [whamlet|
-<div .PlayerArea style="border: 10px solid #{show _playerColour};">
+<div .PlayerArea.Debug-Droppable style="border: 10px solid #{show _playerColour};">
   ^{cityItems}
+<div .Debug.Debug-Droppable>Debug-Droppable
 <div .NoSpacing class="Debug-Draggable PlayerArea2 #{show _playerOrientation}" style="border: 10px solid #{show _playerColour};">
   <table .NoSpacing>
     <tr>

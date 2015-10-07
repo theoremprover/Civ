@@ -1,12 +1,18 @@
 $(function() {
-  $( '.Debug-Draggable' ).draggable();
+  $(".Debug-Draggable").draggable();
 
-  $( ".PlayerArea-CityItem" ).draggable();
+  $(".Debug-Droppable").droppable({
+    drop: function(event, ui) {
+      alert($(ui.draggable).html());
+    }
+  });
 
-  $( ".Map-SquareContainer" ).droppable({
+  $(".PlayerArea-CityItem").draggable();
+
+  $(".Map-SquareContainer").droppable({
     accept: ".PlayerArea-CityItem",
-    drop: function( event, ui ) {
-      var source = (ui.draggable.data('source'));
+    drop: function(event, ui) {
+      var source = ($(ui.draggable).data("source"));
       var target = ($(this).data("target"));
       alert(source);
       alert(target);
