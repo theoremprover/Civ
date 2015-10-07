@@ -11,7 +11,7 @@ img
     display: block
 
 .Northward
-
+    display: block
 .Eastward
     -moz-transform: rotate(90deg)
     -webkit-transform: rotate(90deg)
@@ -98,3 +98,11 @@ img
     -moz-animation-iteration-count: infinite
     -o-animation: blink 1s
     -o-animation-iteration-count: infinite
+
+.PlayerArea
+    width: 200px
+    height: 200px
+.PlayerArea-CityItem
+    z-index: 2
+.Map-SquareContainer
+    z-index: 1

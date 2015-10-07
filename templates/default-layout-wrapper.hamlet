@@ -16,6 +16,9 @@ $newline never
 
     ^{pageHead pc}
 
+    <script src="http://code.jquery.com/jquery-1.10.2.js">
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js">
+
     \<!--[if lt IE 9]>
     \<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     \<![endif]-->

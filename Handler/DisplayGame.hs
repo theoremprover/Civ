@@ -125,9 +125,12 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	items <- itemTokens di player reveal
 	unitcolumn <- unitColumn di (playername,player)
 	pdial <- dial di player
+	cityItems <- partialCityItems di player
 
 	return [whamlet|
-<div .NoSpacing class=#{show _playerOrientation}>
+<div .PlayerArea style="border: 10px solid #{show _playerColour};">
+  ^{cityItems}
+<div .NoSpacing class="Debug-Draggable PlayerArea2 #{show _playerOrientation}" style="border: 10px solid #{show _playerColour};">
   <table .NoSpacing>
     <tr>
       <td>
@@ -324,7 +327,7 @@ boardArea (DisplayInfo{..}) actions = do
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer.Map-SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -367,3 +370,12 @@ rotateStyle deg =
     "-o-transform: rotate(" ++ show deg ++ "deg); " ++
     "transform: rotate(" ++ show deg ++ "deg); " ++
 	"transform-origin: 50% 50%; "
+
+partialCityItems :: DisplayInfo -> Player -> Handler Widget
+partialCityItems di player@(Player{..}) = do
+    return [whamlet|
+<div class="PlayerArea-CityItems">
+    <div class="PlayerArea-CityItem" data-source=#{data2markup CitySource}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
+    <div class="PlayerArea-CityItem" data-source=#{data2markup MetropolisSource}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
+|]
+	

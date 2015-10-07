@@ -1,0 +1,15 @@
+$(function() {
+  $( '.Debug-Draggable' ).draggable();
+
+  $( ".PlayerArea-CityItem" ).draggable();
+
+  $( ".Map-SquareContainer" ).droppable({
+    accept: ".PlayerArea-CityItem",
+    drop: function( event, ui ) {
+      var source = (ui.draggable.data('source'));
+      var target = ($(this).data("target"));
+      alert(source);
+      alert(target);
+    }
+  });
+});
