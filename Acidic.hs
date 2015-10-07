@@ -80,21 +80,21 @@ startGame gamename = runUpdateCivM $ do
 		forM [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
 		let (starttech,startgov) = civStartTechAndGov _playerCiv
 		addTech gamename playername (Just TechLevelI) starttech
-		setGovernment gamename playername startgov
+		setGovernment startgov gamename playername
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
 	forM_ [HorsebackRiding,Writing,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
-	addCoinToTech gamename pn0 DemocracyTech
-	addCoinToTech gamename pn0 DemocracyTech
+	addCoinToTech DemocracyTech gamename pn0
+	addCoinToTech DemocracyTech gamename pn0
 	forM_ [Pottery,Currency,CodeOfLaws,MonarchyTech,Mathematics,Banking] $ addTech gamename pn1 Nothing
-	addCoinToTech gamename pn1 CodeOfLaws
+	addCoinToTech CodeOfLaws gamename pn1
 
-	addCulture gamename pn0 20
-	addTrade gamename pn0 21
-	addCulture gamename pn1 31
-	addTrade gamename pn1 11
+	addCulture 20 gamename pn0
+	addTrade 21 gamename pn0
+	addCulture 31 gamename pn1
+	addTrade 11 gamename pn1
 
 	getResource gamename pn0 Linen
 	getResource gamename pn0 Iron
@@ -109,8 +109,8 @@ startGame gamename = runUpdateCivM $ do
 	getVillage gamename pn1 $ ResourceVillage Incense
 	getVillage gamename pn1 SixCulture
 
-	addCoins gamename pn0 (Coins 1)
-	addCoins gamename pn1 (Coins 3)
+	addCoins (Coins 1) gamename pn0
+	addCoins (Coins 3) gamename pn1
 
 	drawPolicy gamename pn0 MilitaryTradition
 	drawPolicy gamename pn0 Rationalism
@@ -130,12 +130,12 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
 
-addCulture :: GameName -> PlayerName -> Culture -> UpdateCivM ()
-addCulture gamename playername culture = do
+addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
+addCulture culture gamename playername = do
 	updateCivLensM (addCultureDial culture) $ civPlayerLens gamename playername . _Just . playerCulture
 
-addTrade :: GameName -> PlayerName -> Trade -> UpdateCivM ()
-addTrade gamename playername trade = do
+addTrade :: Trade -> GameName -> PlayerName -> UpdateCivM ()
+addTrade trade gamename playername = do
 	updateCivLensM (addTradeDial trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
 drawPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
@@ -148,13 +148,19 @@ returnPolicy gamename playername policy = do
 	updateCivLensM (\ (cs,ps) -> (policy2Card policy : cs,delete policy ps)) $
 		civPlayerLens gamename playername . _Just . playerPolicies
 
-drawCultureCard :: GameName -> PlayerName -> UpdateCivM ()
-drawCultureCard gamename playername = do
+advanceCulture :: GameName -> PlayerName -> UpdateCivM ()
+advanceCulture gamename playername = do
 	updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerCultureSteps
 	Just steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
+	when (steps >= 21) $ victory CultureVictory gamename playername
+
+drawCultureCard :: GameName -> PlayerName -> UpdateCivM ()
+drawCultureCard gamename playername = do
+	advanceCulture gamename playername
+	Just steps <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCultureSteps
 	let (culture,trade) = cultureStepCost steps
-	addCulture gamename playername (-culture)
-	addTrade gamename playername (-trade)
+	addCulture (-culture) gamename playername
+	addTrade (-trade) gamename playername
 	case cultureStep steps of
 		Nothing -> return ()
 		Just DrawGreatPerson -> do
@@ -175,6 +181,13 @@ returnUnit :: GameName -> PlayerName -> UnitCard -> UpdateCivM ()
 returnUnit gamename playername unit = do
 	updateCivLensM (delete unit) $ civPlayerLens gamename playername . _Just . playerUnits
 	putOnStackM (civGameLens gamename . _Just . gameUnitStack) (unitType unit) unit
+
+getFigure :: Figure ->GameName -> PlayerName ->  UpdateCivM ()
+getFigure figure gamename playername = do
+	mb_figure <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figure
+	case mb_figure of
+		Nothing -> return ()
+		Just () -> return () -- TODO
 
 getGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
 getGreatPerson gamename playername = do
@@ -220,8 +233,8 @@ returnArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
 returnArtifact gamename playername artifact = do
 	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerItems . _4
 
-addCoins :: GameName -> PlayerName -> Coins -> UpdateCivM ()
-addCoins gamename playername coins = do
+addCoins :: Coins -> GameName -> PlayerName -> UpdateCivM ()
+addCoins coins gamename playername = do
 	updateCivLensM (+coins) $ civPlayerLens gamename playername . _Just . playerCoins
 
 addTech :: GameName -> PlayerName -> Maybe TechLevel -> Tech -> UpdateCivM ()
@@ -234,8 +247,8 @@ addTech gamename playername mb_level tech = do
 	when (tech==SpaceFlight) $ updateCivLensM (const True) $
 		civGameLens gamename . _Just . gameSpaceFlightTaken
 
-addCoinToTech :: GameName -> PlayerName -> Tech -> UpdateCivM ()
-addCoinToTech gamename playername tech = do
+addCoinToTech :: Tech -> GameName -> PlayerName -> UpdateCivM ()
+addCoinToTech tech gamename playername = do
 	updateCivLensM addcoin $ civPlayerLens gamename playername . _Just . playerTechs
 	where
 	addcoin [] = error $ "addCoinToTech: Couldn't find " ++ show tech
@@ -243,8 +256,8 @@ addCoinToTech gamename playername tech = do
 		techcard { _techCardCoins = _techCardCoins techcard + 1 } : ts 
 	addcoin (t:ts) = t : addcoin ts
 
-setGovernment :: GameName -> PlayerName -> Government -> UpdateCivM ()
-setGovernment gamename playername government = do
+setGovernment :: Government -> GameName -> PlayerName -> UpdateCivM ()
+setGovernment government gamename playername = do
 	updateCivLensM (const government) $ civPlayerLens gamename playername . _Just . playerGovernment
 
 setShuffledPlayers :: GameName -> Players -> Update CivState UpdateResult
@@ -384,6 +397,8 @@ buildBuilding gamename playername coors buildingtype = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) (buildingTypeToMarker buildingtype)
 	updateCivLensM (const $ Just $ BuildingMarker $ Building buildingtype playername) $
 		civSquareLens gamename coors . squareTokenMarker
+
+victory victorytype gamename playername = error "Not implemented yet"
 
 $(makeAcidic ''CivState [
 	'getCivState,

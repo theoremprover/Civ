@@ -2,8 +2,8 @@
 
 module Handler.DisplayGame where
 
-import Import hiding (map,minimum,maximum,concat,lookup,replicate)
-import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init)
+import Import hiding (map,minimum,maximum,concat,lookup,replicate,head)
+import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -11,8 +11,9 @@ import Data.Array.IArray ((!),indices)
 import Data.Maybe
 import Control.Lens hiding (indices,Action)
 import Data.Aeson
-import Data.ByteString.Lazy.Char8(unpack)
---import Text.Blaze (toValue)
+import qualified Data.ByteString.Lazy.Char8 (unpack)
+import qualified Text.Blaze.Renderer.String (renderHtml)
+import Text.Blaze (string)
 
 import GameMonad
 import Model
@@ -26,7 +27,9 @@ import TokenStack
 import Actions
 
 
-data2markup a = Prelude.tail $ Prelude.init $ show $ Data.ByteString.Lazy.Char8.unpack $ encode a
+data2markup :: (ToJSON a) => a -> String
+data2markup a = Text.Blaze.Renderer.String.renderHtml $ string $ show $
+	Data.ByteString.Lazy.Char8.unpack $ encode a
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -34,6 +37,7 @@ colour2html colour = show colour
 -- <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
 
 data DisplayInfo = DisplayInfo {
+	gameNameDI :: GameName,
 	gameDI :: Game,
 	myPlayerNameDI :: Maybe PlayerName,
 	myPlayerDI :: Maybe Player,
@@ -47,7 +51,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
-		di = DisplayInfo game mb_playername mb_myplayer myplayerori toplayer
+		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
 		moves = moveGen gamename game mb_playername
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
@@ -221,8 +225,8 @@ unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
-		unitlevel = unitLevelAbilities player
-		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (unitlevel unitType))) $ sort _playerUnits
+		unitlevel = playerUnitLevel player
+		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (fromJust $ unitlevel unitType))) $ sort _playerUnits
 	return [whamlet|
 <table>
   $forall (unitcard,ori) <- unitcards
@@ -249,11 +253,17 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		startplayer = playername == fst (nthAssocList _gameStartPlayer _gamePlayers)
 		Just unusedflags = tokenStackLookup Flag _playerFigures
 		Just unusedwagons = tokenStackLookup Wagon _playerFigures
+		Just leftcities = tokenStackLookup () _playerCityStack
 		techss :: [(Int,[TechCard])]
 		techss = map projecttechlevel
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
 		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
 		columns = fromJust $ lookup 0 techss
+		canbuildmetropolis = getValueAbility canBuildMetropolis player
+	Just mb_capitalmetropolis <- case _playerCityCoors of
+		(capitalcoors:_) -> queryCivLensH $ civSquareLens gameNameDI capitalcoors . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
+		_ -> return $ Just Nothing
+	let showmetropolis = isNothing mb_capitalmetropolis && getValueAbility canBuildMetropolis player
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>
@@ -285,9 +295,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
             $forall i <- unusedflags
               <tr><td><img .Flag data-source=#{data2markup FlagSource} src=@{flagRoute _playerColour}>
         <td valign=top>
-          <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
+          $forall _ <- leftcities 
+            <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
         <td valign=top>
-          <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
+          $if showmetropolis
+            <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
 boardArea :: DisplayInfo -> [Action] -> Handler Widget

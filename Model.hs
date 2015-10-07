@@ -81,9 +81,13 @@ data Phase = StartOfGame |
 	Trading |
 	CityManagement |
 	Movement |
-	Research
-	deriving (Show,Eq,Ord,Enum,Data,Typeable)
+	Research |
+	Battle
+	deriving (Show,Eq,Ord,Enum,Bounded,Ix,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
+
+allPhases :: [Phase]
+allPhases = allOfThem
 
 nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
@@ -138,6 +142,9 @@ data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
 
+data MovementType = Land | CrossWater | StayInWater | Air
+	deriving (Show,Ord,Eq)
+
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Artifact)
@@ -188,8 +195,9 @@ data City = SecondCitySquare Orientation | City {
 	}
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
+makeLenses ''City
 
-data BuildingMarker = BarracksOrAcademy | ForgeOrForge2 |
+data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
 	MarketOrBank | Harbours | TradePosts | Shipyards
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
@@ -197,7 +205,7 @@ $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 buildingTypeToMarker :: BuildingType -> BuildingMarker
 buildingTypeToMarker bt | bt `elem` [Barracks,Academy] = BarracksOrAcademy
-buildingTypeToMarker bt | bt `elem` [Forge,Forge2] = ForgeOrForge2
+buildingTypeToMarker bt | bt `elem` [Forge,IronMine] = ForgeOrIronMine
 buildingTypeToMarker bt | bt `elem` [Granary,Aquaeduct] = GranaryOrAquaeduct
 buildingTypeToMarker bt | bt `elem` [Temple,Cathedral] = TempleOrCathedral
 buildingTypeToMarker bt | bt `elem` [Library,University] = LibraryOrUniversity
@@ -208,7 +216,7 @@ buildingTypeToMarker bt | bt `elem` [Shipyard] = Shipyards
 
 data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradePost | Temple |
-	Academy | Aquaeduct | Bank | Cathedral | Forge2 | University
+	Academy | Aquaeduct | Bank | Cathedral | IronMine | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
 
@@ -218,18 +226,21 @@ $(deriveSafeCopy modelVersion 'base ''Building)
 
 initialBuildingStack :: TokenStack BuildingMarker ()
 initialBuildingStack = tokenStackFromList $ replicateUnit [
-	(BarracksOrAcademy,5),(ForgeOrForge2,6),      (GranaryOrAquaeduct,6),
+	(BarracksOrAcademy,5),(ForgeOrIronMine,6),      (GranaryOrAquaeduct,6),
 	(TempleOrCathedral,5),(LibraryOrUniversity,6),(MarketOrBank,5),
 	(Harbours,10),        (TradePosts,6),         (Shipyards,5) ]
+
+starBuildingType building = building `elem` [Barracks,Academy,Market,Bank,Shipyard,Temple,Cathedral]
 
 data TokenMarker =
 	ArtifactMarker Artifact |
 	HutMarker Hut |
 	VillageMarker Village |
-	CityMarker City |
+	CityMarker { _cityMarker :: City } |
 	BuildingMarker Building
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
+makeLenses ''TokenMarker
 
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
@@ -501,7 +512,8 @@ data Player = Player {
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
-	_playerFirstCityCoors   :: [Coors]
+	_playerFirstCityCoors   :: [Coors],
+	_playerCityCoors        :: [Coors]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -513,7 +525,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] initialFigureStack [] Northward initialCityStack
-	0 []
+	0 [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -591,6 +603,9 @@ makeLenses ''CivState
 
 initialCivState :: CivState
 initialCivState = CivState Map.empty
+
+data Victory = TechVictory | MilitaryVictory | CultureVictory | EconomicVictory
+	deriving (Show,Eq)
 
 civStartTechAndGov civ = case civ of
 	America  -> (Currency,       Despotism)
