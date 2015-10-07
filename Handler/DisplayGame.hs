@@ -260,7 +260,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	Just mb_capitalmetropolis <- case _playerCityCoors of
 		(capitalcoors:_) -> queryCivLensH $ civSquareLens gameNameDI capitalcoors . squareTokenMarker . _Just . cityMarker . cityMetropolisOrientation
 		_ -> return $ Just Nothing
-	let showmetropolis = isNothing mb_capitalmetropolis && 
+	let showmetropolis = isNothing mb_capitalmetropolis && getValueAbility canBuildMetropolis player
 	return [whamlet|
 <div>
   <div .Parent .NoSpacing>
@@ -295,8 +295,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
           $forall _ <- leftcities 
             <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
         <td valign=top>
-          $maybe _ <- mb_metropolis
-          $nothing
+          $if showmetropolis
             <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
