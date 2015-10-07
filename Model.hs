@@ -112,7 +112,7 @@ $(deriveSafeCopy modelVersion 'base ''TechLevel)
 techLevelMap :: Map.Map TechLevel [Tech]
 techLevelMap = Map.fromList [
 	(TechLevelI,   [ Pottery,Writing,CodeOfLaws,Currency,Metalworking,Masonry,HorsebackRiding,
-		AnimalHusbandry,Philosophy,Navigation,Navy ]),
+		AnimalHusbandry,Philosophy,Navigation,Navy,Agriculture ]),
 	(TechLevelII,  [ PublicAdministration,Mysticism,MonarchyTech,DemocracyTech,Chivalry,
 		Mathematics,Logistics,PrintingPress,Sailing,Construction,Engineering,Irrigation,Bureaucracy ]),
 	(TechLevelIII, [ Theology,CommunismTech,Gunpowder,Railroad,MetalCasting,Ecology,

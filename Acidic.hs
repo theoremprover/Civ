@@ -85,7 +85,7 @@ startGame gamename = runUpdateCivM $ do
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
-	forM_ [HorsebackRiding,Writing,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
+	forM_ [HorsebackRiding,Agriculture,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
 	addCoinToTech DemocracyTech gamename pn0
 	addCoinToTech DemocracyTech gamename pn0
 	forM_ [Pottery,Currency,CodeOfLaws,MonarchyTech,Mathematics,Banking] $ addTech gamename pn1 Nothing
