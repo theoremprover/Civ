@@ -58,6 +58,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername
+	debugarea <- partialDebugArea di
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
@@ -85,6 +86,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
 		[whamlet|
+^{debugarea}
 <table>
   <tr>
     <td><div style="overflow:auto">^{arena}
@@ -134,7 +136,6 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	return [whamlet|
 <div .PlayerArea.Debug-Droppable style="border: 10px solid #{show _playerColour};">
   ^{cityItems}
-<div .Debug.Debug-Droppable>Debug-Droppable
 <div .NoSpacing class="Debug-Draggable PlayerArea2 #{show _playerOrientation}" style="border: 10px solid #{show _playerColour};">
   <table .NoSpacing>
     <tr>
@@ -390,5 +391,27 @@ partialCityItems di player@(Player{..}) = do
 <div class="PlayerArea-CityItems">
     <div class="PlayerArea-CityItem" data-source=#{data2markup CitySource}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
     <div class="PlayerArea-CityItem" data-source=#{data2markup MetropolisSource}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
+|]
+	
+partialDebugArea :: DisplayInfo -> Handler Widget
+partialDebugArea di@(DisplayInfo{..}) = do
+	return [whamlet|
+<div .Debug>
+  <table border=1>
+    <tr>
+      <td>Source
+      <td>
+        <textarea id="Debug-Source" class="Debug-JsonArea">
+    <tr>
+      <td>Target
+      <td>
+        <textarea id="Debug-Target" class="Debug-JsonArea">
+    <tr>
+      <td>Action
+      <td>
+        <textarea id="Debug-Action" class="Debug-JsonArea">
+    <tr>
+      <td colspan=2>
+        <button id="Debug-Send" type="button">SendAction
 |]
 	

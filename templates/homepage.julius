@@ -12,10 +12,18 @@ $(function() {
   $(".Map-SquareContainer").droppable({
     accept: ".PlayerArea-CityItem",
     drop: function(event, ui) {
-      var source = ($(ui.draggable).data("source"));
-      var target = ($(this).data("target"));
-      alert(source);
-      alert(target);
+      var source = $(ui.draggable).data("source");
+      var target = $(this).data("target");
+      var action = JSON.stringify({"source":source,"target":target});
+
+      $("#Debug-Source").html(source);
+      $("#Debug-Target").html(target);
+      $("#Debug-Action").html(action);
     }
+  });
+
+  $( "#Debug-Send" ).click(function() {
+    var action = $("textarea#Debug-Action").val();
+    sendAction(action);
   });
 });
