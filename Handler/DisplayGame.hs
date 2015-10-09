@@ -341,7 +341,7 @@ boardArea (DisplayInfo{..}) actions = do
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer.Map-SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer .Map-SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
