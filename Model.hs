@@ -21,6 +21,7 @@ import Data.Aeson.TH
 
 import Entities
 import TokenStack
+import ModelVersion
 
 import qualified Data.Ix as Ix
 
@@ -146,11 +147,11 @@ data MovementType = Land | CrossWater | StayInWater | Air
 	deriving (Show,Ord,Eq)
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Ord,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Artifact)
 
 data Hut = ResourceHut Resource | CityStateHut | ThreeCulture | Teacher | FriendlyBarbarians
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Hut)
 
 initialHutStack :: TokenStack () Hut
@@ -162,7 +163,7 @@ initialHutStack = tokenStackFromList $ replicateToken [
 
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Village)
 
 initialVillageStack :: TokenStack () Village
@@ -196,6 +197,8 @@ data City = SecondCitySquare Orientation | City {
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 makeLenses ''City
+
+newCity owner capital metroori = City owner capital False False NoWalls False metroori
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |

@@ -1,6 +1,7 @@
 module Polls where
 
 import Data.Aeson.TH
+import Data.Data
 
 import Control.Concurrent.MVar
 import Prelude
@@ -14,7 +15,7 @@ data ActionA =
 	StartGameA GameName |
 	SetSessionGameA GameName |
 	SetSessionGamePlayerA GameName PlayerName |
-	GameActionA ActionSource Action
+	GameActionA [ActionSource] [ActionTarget]
 	deriving Show
 
 data Affected = GameAdmin | GameGame GameName
@@ -22,23 +23,35 @@ data Affected = GameAdmin | GameGame GameName
 
 type Polls = MVar [(Affected,MVar ActionA)]
 
-
-data Action =
-	BuildFirstCity GameName PlayerName Coors |
-	GetFirstTrade GameName PlayerName
-	deriving (Show,Eq,Ord)
-
-coors2action :: Coors -> Action -> Bool
-coors2action coors action@(BuildFirstCity _ _ cs) | coors==cs = True
-coors2action _ _ = False
-
 data ActionSource =
+	WagonSource | FlagSource |
+	ResourceSource Resource |
 	CitySource | MetropolisSource |
-	FlagSource | WagonSource |
-	ResourceSource
-	deriving (Show,Eq,Ord)
+	SquareSource Coors |
+	DialCoinSource | DialCultureSource |
+	HutSource Hut | VillageSource Village |
+	TechCoinSource Tech |
+	ArtifactSource Artifact
+	deriving (Show,Eq,Ord,Data,Typeable)
+
+data ActionTarget =
+	SquareTarget Coors |
+	BuildFirstCityTarget Coors |
+	TechTarget Tech
+	deriving (Show,Eq,Ord,Data,Typeable)
+
+coors2action :: Coors -> ActionTarget -> Bool
+coors2action coors (BuildFirstCityTarget cs) | coors==cs = True
+coors2action coors (SquareTarget cs) | coors==cs = True
+coors2action _ _ = False
 
 deriveJSON defaultOptions ''ActionSource
 deriveJSON defaultOptions ''ActionA
 deriveJSON defaultOptions ''Affected
-deriveJSON defaultOptions ''Action
+deriveJSON defaultOptions ''ActionTarget
+deriveJSON defaultOptions ''Figure
+deriveJSON defaultOptions ''Resource
+deriveJSON defaultOptions ''Tech
+deriveJSON defaultOptions ''Hut
+deriveJSON defaultOptions ''Village
+deriveJSON defaultOptions ''Artifact

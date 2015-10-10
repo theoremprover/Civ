@@ -608,7 +608,7 @@ playerAbilities player@(Player{..}) =
 	civAbilities _playerCiv :
 	map (techAbilities._techCardTechId) _playerTechs
 
-moveGen :: GameName -> Game -> Maybe PlayerName -> [Action]
+moveGen :: GameName -> Game -> Maybe PlayerName -> [ActionTarget]
 moveGen _ _ Nothing = []
 moveGen gamename game@(Game{..}) (Just my_playername) = do
 	let
@@ -617,8 +617,7 @@ moveGen gamename game@(Game{..}) (Just my_playername) = do
 			False -> []
 			True -> case _gamePhase of
 				StartOfGame -> []
-				BuildingFirstCity -> map (BuildFirstCity gamename playername_turn) _playerFirstCityCoors
-				GettingFirstTrade -> [GetFirstTrade gamename playername_turn]
+				BuildingFirstCity -> map BuildFirstCityTarget _playerFirstCityCoors
 				_ -> []
 
 {-

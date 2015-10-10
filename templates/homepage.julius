@@ -13,12 +13,16 @@ $(function() {
     accept: ".PlayerArea-CityItem",
     drop: function(event, ui) {
       var source = $(ui.draggable).data("source");
+      alert("data-soruce=" + source.toSource());
       var target = $(this).data("target");
-      var action = JSON.stringify({"source":source,"target":target});
+      alert("target=" + target.toSource());
+      var action = JSON.stringify({"tag":"GameActionA","contents":[source,target]});
+      alert("action=" + action);
 
       $("#Debug-Source").html(source);
       $("#Debug-Target").html(target);
       $("#Debug-Action").html(action);
+      sendAction(action);
     }
   });
 

@@ -18,6 +18,7 @@ library
                      Import
                      Import.NoFoundation
                      Model
+                     ModelVersion
                      Entities
                      Settings
                      Settings.StaticFiles
@@ -106,6 +107,7 @@ library
                  , blaze-markup
                  , random
                  , array
+                 , wai
 
 executable         Civ
     if flag(library-only)

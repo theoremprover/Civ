@@ -28,8 +28,11 @@ import Actions
 
 
 data2markup :: (ToJSON a) => a -> String
-data2markup a = Text.Blaze.Renderer.String.renderHtml $ string $ show $
+{-
+data2markup a = Text.Blaze.Renderer.String.renderHtml $ string $ 
 	Data.ByteString.Lazy.Char8.unpack $ encode a
+-}
+data2markup a = Data.ByteString.Lazy.Char8.unpack $ encode a
 
 colour2html :: Colour -> String
 colour2html colour = show colour
@@ -183,16 +186,16 @@ horRow reveal revealcard card2route card2val cards = return [whamlet|
 itemTokens :: DisplayInfo -> Player -> Bool -> Handler Widget
 itemTokens di player reveal = return [whamlet|
 <div>
-  $forall route <- routes
-    <img style="float:left" src=@{route}>
+  $forall (route,datasources) <- routes
+    <img style="float:left" data-source=#{data2markup datasources} src=@{route}>
 |]
 	where
 	(resources,huts,villages,artifacts) = _playerItems player
 	routes =
-		map resourceRoute resources ++
-		map (if reveal then revealedHutRoute else const hutRoute) huts ++
-		map (if reveal then revealedVillageRoute else const villageRoute) villages ++
-		map artifactRoute artifacts
+		map (\ r -> (resourceRoute r,[ResourceSource r])) resources ++
+		map (\ h -> ((if reveal then revealedHutRoute else const hutRoute) h,[HutSource h])) huts ++
+		map (\ v -> ((if reveal then revealedVillageRoute else const villageRoute) v,[VillageSource v])) villages ++
+		map (\ a -> (artifactRoute a,[ArtifactSource a])) artifacts
 
 dial :: DisplayInfo -> Player -> Handler Widget
 dial di player@(Player{..}) = do
@@ -215,12 +218,12 @@ dial di player@(Player{..}) = do
       <table .Parent .NoSpacing>
         <tr>
           $forall route <- coinrow
-            <td><img .Parent style="float:left" src=@{route}>
+            <td><img .Parent style="float:left" data-source=#{data2markup [DialCoinSource]} src=@{route}>
     <div .Child style="left:180px; top:315px">
       <table .Parent .NoSpacing>
         <tr>
           $forall route <- culturerow
-            <td><img .Parent style="float:left;" src=@{route}>
+            <td><img .Parent style="float:left;" data-source=#{data2markup [DialCultureSource]} src=@{route}>
 |]
 
 unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
@@ -238,12 +241,12 @@ unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
           <img class="#{show ori}" style="transform-origin: 50% 50%" src=@{unitCardRoute unitcard reveal}>
 |]
 
-coinRow :: Coins -> Widget
-coinRow coins = [whamlet|
+techCoinRow :: Tech -> Coins -> Widget
+techCoinRow tech coins = [whamlet|
 <table .NoSpacing>
   <tr>
     $forall route <- coinroutes
-      <td><img src=@{route}>
+      <td><img data-source=#{data2markup [TechCoinSource tech]} src=@{route}>
 |]
 	where
 	coinroutes = replicate (coinsCoins coins) coinRoute
@@ -280,9 +283,9 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
           $forall techcard@TechCard{..} <- techcards
             <td colspan=2>
               <div>
-                <img src=@{techRoute _techCardTechId}>
+                <img data-target=#{data2markup [TechTarget _techCardTechId]} src=@{techRoute _techCardTechId}>
                 <div .TechCoinPos>
-                  ^{coinRow _techCardCoins}
+                  ^{techCoinRow _techCardTechId _techCardCoins}
   $if startplayer
     <img style="position:absolute; left:5px; top:0px;" src=@{startPlayerRoute}>
   <div style="position:absolute; right:5px; top:0px;">
@@ -291,20 +294,20 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
         <td valign=top>
           <table .NoSpacing>
             $forall i <- unusedwagons
-              <tr><td><img .Wagon data-source=#{data2markup WagonSource} src=@{wagonRoute _playerColour}>
+              <tr><td><img .Wagon data-source=#{data2markup [WagonSource]} src=@{wagonRoute _playerColour}>
         <td valign=top>
           <table .NoSpacing>
             $forall i <- unusedflags
-              <tr><td><img .Flag data-source=#{data2markup FlagSource} src=@{flagRoute _playerColour}>
+              <tr><td><img .Flag data-source=#{data2markup [FlagSource]} src=@{flagRoute _playerColour}>
         <td valign=top>
           $forall _ <- leftcities 
-            <img data-source=#{data2markup CitySource} src=@{cityRoute' (False,NoWalls,_playerColour)}>
+            <img data-source=#{data2markup [CitySource]} src=@{cityRoute' (False,NoWalls,_playerColour)}>
         <td valign=top>
           $if showmetropolis
-            <img data-source=#{data2markup MetropolisSource} src=@{metropolisRoute' (NoWalls,_playerColour)}>
+            <img data-source=#{data2markup [MetropolisSource]} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
-boardArea :: DisplayInfo -> [Action] -> Handler Widget
+boardArea :: DisplayInfo -> [ActionTarget] -> Handler Widget
 boardArea (DisplayInfo{..}) actions = do
 	let
 		arr = _gameBoard gameDI
@@ -341,7 +344,7 @@ boardArea (DisplayInfo{..}) actions = do
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer .Map-SquareContainer data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer .Map-SquareContainer data-source=#{data2markup [SquareSource (Coors x y)]} data-target=#{data2markup $ filter (coors2action (Coors x y)) actions} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -389,8 +392,8 @@ partialCityItems :: DisplayInfo -> Player -> Handler Widget
 partialCityItems di player@(Player{..}) = do
     return [whamlet|
 <div class="PlayerArea-CityItems">
-    <div class="PlayerArea-CityItem" data-source=#{data2markup CitySource}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
-    <div class="PlayerArea-CityItem" data-source=#{data2markup MetropolisSource}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
+    <div class="PlayerArea-CityItem" data-source=#{data2markup [CitySource]}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
+    <div class="PlayerArea-CityItem" data-source=#{data2markup [MetropolisSource]}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 	
 partialDebugArea :: DisplayInfo -> Handler Widget

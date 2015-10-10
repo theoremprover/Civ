@@ -12,6 +12,9 @@ import Data.Acid
 import Data.Acid.Advanced
 import Data.Either
 
+import Network.Wai (requestBody)
+import qualified Data.ByteString.Char8 as BS
+
 import Model
 import Entities
 import Logic
@@ -79,8 +82,15 @@ pollHandler = do
 postCommandR :: Handler ()
 postCommandR = do
 	(userid,user) <- requireLoggedIn
+{-
+	handle (\ (e::SomeException) -> do
+		req <- waiRequest
+		reqbody <- liftIO $ Network.Wai.requestBody req
+		sendResponse $ repJson $ toContent $ BS.unpack reqbody ) $
+		do
+-}
 	action :: ActionA <- requireJsonBody
- 	res <- executeAction action
+	res <- executeAction action
 	sendResponse $ repJson $ encode res
 
 getGame gamename = queryCivLensH $ civGameLens gamename . _Just
@@ -146,5 +156,12 @@ executeAction action = do
 			shuffledplayers <- shuffleList playerlist
 			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
+
+		GameActionA actionsources actiontargets -> do
+			(userid,user,gamename,game,mb_playername) <- maybeVisitor
+			case mb_playername of
+				Nothing -> return $ eRR $ show action ++ " cannot be given by visitors"
+				Just playername -> do
+					updateCivH action [GameGame gamename] $ GameAction gamename playername (actionsources,actiontargets)
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"

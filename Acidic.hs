@@ -13,6 +13,7 @@ import Data.Maybe
 import Control.Lens hiding (Action)
 import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
+import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
@@ -21,8 +22,8 @@ import Logic
 import Lenses
 import TokenStack
 import Model
---import Polls
-
+import Polls
+import ModelVersion
 
 getCivState :: Query CivState CivState
 getCivState = ask
@@ -129,6 +130,12 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 2 4) $ City pn1 True False False NoWalls False (Just Eastward)
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
+
+gameAction :: GameName -> PlayerName -> ([ActionSource],[ActionTarget]) -> Update CivState UpdateResult
+gameAction gamename playername asa = runUpdateCivM $ do
+	case asa of
+		([CitySource],[BuildFirstCityTarget coors]) -> buildCity gamename coors $ newCity playername True Nothing
+		_ -> error $ show asa ++ " not implemented yet"
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do
@@ -350,7 +357,7 @@ eRR errmsg = Left errmsg
 runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
 runUpdateCivM = runErrorT
 
-updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
+updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM ()
 updateCivLensM fval lens = modify $ over lens fval
 
 queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
@@ -389,8 +396,9 @@ buildCity gamename coors city@(City{..}) = do
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
 	case _cityMetropolisOrientation of
 		Nothing  -> return ()
-		Just ori -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
-			civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
+		Just ori -> do
+			updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
+				civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
 
 buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
 buildBuilding gamename playername coors buildingtype = do
@@ -400,12 +408,16 @@ buildBuilding gamename playername coors buildingtype = do
 
 victory victorytype gamename playername = error "Not implemented yet"
 
+$(deriveSafeCopy modelVersion 'base ''ActionSource)
+$(deriveSafeCopy modelVersion 'base ''ActionTarget)
+
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,
 	'startGame,
 	'joinGame,
 	'deleteGame,
-	'createNewGame
+	'createNewGame,
+	'gameAction
 	])
 
