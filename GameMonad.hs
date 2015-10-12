@@ -135,6 +135,7 @@ executeAction action = do
 			res <- updateCivH action [GameAdmin,GameGame gamename] $ JoinGame gamename playername email colour civ
 			case res of
 				Right () -> do
+					setSession "game" gn
 					setSession "player" pn
 				Left errmsg -> do
 					deleteSession "game"

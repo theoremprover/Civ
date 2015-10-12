@@ -113,8 +113,10 @@ actionArea di@(DisplayInfo{..}) (Just playername) = do
 
 playerList :: DisplayInfo -> Handler Widget
 playerList di@(DisplayInfo{..}) = do
-	let players = fromAssocList $ _gamePlayers gameDI
-	let playerlist = map (\ (playername,player@Player{..}) -> (_playerCiv,playername,_playerColour)) players
+	let
+		Game{..} = gameDI
+		players = fromAssocList _gamePlayers
+		playerlist = map (\ (playername,player@Player{..}) -> (_playerCiv,playername,_playerColour)) players
 	return [whamlet|
 <table>
   $forall (civ,playername,colour) <- playerlist
