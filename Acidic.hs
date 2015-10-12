@@ -131,10 +131,31 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
 
+getNumPlayers gamename = do
+	Just players <- queryCivLensM $ civPlayersLens gamename
+	return $ numPlayers players
+
+incPlayerIndex :: GameName -> Lens' Game Int -> UpdateCivM ()
+incPlayerIndex gamename playerindex = do
+	numplayers <- getNumPlayers gamename
+	updateCivLensM ((`mod` numplayers) . (+1)) $ civGameLens gamename . _Just . playerindex
+
+finishPlayerPhase gamename = do
+	incPlayerIndex gamename gamePlayersTurn
+	Just (game@Game{..}) <- queryCivLensM $ civGameLens gamename . _Just
+	when (_gamePlayersTurn == _gameStartPlayer) $ do
+		updateCivLensM nextPhase $ civGameLens gamename . _Just . gamePhase
+		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+		when (phase==StartOfTurn) $ do
+			incPlayerIndex gamename gamePlayersTurn
+			incPlayerIndex gamename gameStartPlayer
+
 gameAction :: GameName -> PlayerName -> ([ActionSource],[ActionTarget]) -> Update CivState UpdateResult
 gameAction gamename playername asa = runUpdateCivM $ do
 	case asa of
-		([CitySource],[BuildFirstCityTarget coors]) -> buildCity gamename coors $ newCity playername True Nothing
+		([CitySource pn1],[BuildFirstCityTarget pn2 coors]) | pn1==playername && pn2==playername -> do
+			buildCity gamename coors $ newCity playername True Nothing
+			finishPlayerPhase gamename
 		_ -> error $ show asa ++ " not implemented yet"
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
