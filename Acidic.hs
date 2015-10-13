@@ -150,13 +150,13 @@ finishPlayerPhase gamename = do
 			incPlayerIndex gamename gamePlayersTurn
 			incPlayerIndex gamename gameStartPlayer
 
-gameAction :: GameName -> PlayerName -> ([ActionSource],[ActionTarget]) -> Update CivState UpdateResult
-gameAction gamename playername asa = runUpdateCivM $ do
-	case asa of
-		([CitySource pn1],[BuildFirstCityTarget pn2 coors]) | pn1==playername && pn2==playername -> do
+gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
+gameAction gamename playername move@(Move source target) = runUpdateCivM $ do
+	case (source,target) of
+		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
 			finishPlayerPhase gamename
-		_ -> error $ show asa ++ " not implemented yet"
+		_ -> error $ show move ++ " not implemented yet"
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do

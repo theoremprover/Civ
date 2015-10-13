@@ -15,7 +15,7 @@ data ActionA =
 	StartGameA GameName |
 	SetSessionGameA GameName |
 	SetSessionGamePlayerA GameName PlayerName |
-	GameActionA [ActionSource] [ActionTarget]
+	GameActionA Move
 	deriving Show
 
 data Affected = GameAdmin | GameGame GameName
@@ -35,17 +35,22 @@ data ActionSource =
 	deriving (Show,Eq,Ord,Data,Typeable)
 
 data ActionTarget =
+	NoTarget () |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	TechTarget PlayerName Tech
 	deriving (Show,Eq,Ord,Data,Typeable)
 
 data Move = Move ActionSource ActionTarget
-	deriving (Show,Eq,Ord,Data,Typeable)
+	deriving (Eq,Ord,Data,Typeable)
+instance Show Move where
+	show (Move source target) = case (source,target) of
+		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(source,target) -> show (source,target)
 
-coors2action :: Coors -> ActionTarget -> Bool
-coors2action coors (BuildFirstCityTarget _ cs) | coors==cs = True
-coors2action coors (SquareTarget cs) | coors==cs = True
+coors2action :: Coors -> Move -> Bool
+coors2action coors (Move _ (BuildFirstCityTarget _ cs)) | coors==cs = True
+coors2action coors (Move _ (SquareTarget cs)) | coors==cs = True
 coors2action _ _ = False
 
 deriveJSON defaultOptions ''ActionSource

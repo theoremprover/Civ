@@ -617,7 +617,7 @@ moveGen gamename game@(Game{..}) (Just my_playername) = do
 			False -> []
 			True -> case _gamePhase of
 				StartOfGame -> []
-				BuildingFirstCity -> map (BuildFirstCityTarget my_playername) _playerFirstCityCoors
+				BuildingFirstCity -> map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
 				_ -> []
 
 {-

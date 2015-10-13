@@ -30,7 +30,9 @@ allOfThem = range (minBound,maxBound)
 
 type Coor = Int
 data Coors = Coors { xCoor :: Coor, yCoor :: Coor }
-	deriving (Show,Data,Typeable,Eq,Ord,Ix)
+	deriving (Data,Typeable,Eq,Ord,Ix)
+instance Show Coors where
+	show (Coors x y) = "(" ++ show x ++ "," ++ show y ++")"
 $(deriveSafeCopy modelVersion 'base ''Coors)
 deriveJSON defaultOptions ''Coors
 

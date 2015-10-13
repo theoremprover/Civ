@@ -158,11 +158,11 @@ executeAction action = do
 			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
 
-		GameActionA actionsources actiontargets -> do
+		GameActionA move -> do
 			(userid,user,gamename,game,mb_playername) <- maybeVisitor
 			case mb_playername of
 				Nothing -> return $ eRR $ show action ++ " cannot be given by visitors"
 				Just playername -> do
-					updateCivH action [GameGame gamename] $ GameAction gamename playername (actionsources,actiontargets)
+					updateCivH action [GameGame gamename] $ GameAction gamename playername move
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
