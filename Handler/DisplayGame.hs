@@ -322,10 +322,10 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
               <tr><td><img .Flag data-source=#{data2markup $ FlagSource playername} src=@{flagRoute _playerColour}>
         <td valign=top>
           $forall _ <- leftcities 
-            <img data-source=#{data2markup $ CitySource playername} src=@{cityRoute' (False,NoWalls,_playerColour)}>
+            <img .Debug-DragCity data-source=#{data2markup $ CitySource playername} src=@{cityRoute' (False,NoWalls,_playerColour)}>
         <td valign=top>
           $if showmetropolis
-            <img data-source=#{data2markup $ MetropolisSource playername} src=@{metropolisRoute' (NoWalls,_playerColour)}>
+            <img .Debug-DragCity data-source=#{data2markup $ MetropolisSource playername} src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
 
 boardArea :: DisplayInfo -> [Move] -> Handler Widget

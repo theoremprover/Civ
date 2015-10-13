@@ -13,14 +13,14 @@ $(function() {
     accept: ".PlayerArea-CityItem",
     drop: function(event, ui) {
       var source = $(ui.draggable).data("source");
-      alert("data-soruce=" + source.toSource());
-      var target = $(this).data("target");
-      alert("target=" + target.toSource());
-      var action = JSON.stringify({"tag":"GameActionA","contents":[source,target]});
-      alert("action=" + action);
+      console.log("source=%s", JSON.stringify(source));
 
-      $("#Debug-Source").html(source);
-      $("#Debug-Target").html(target);
+      var target = $(this).data("target");
+      console.log("target=%s", JSON.stringify(target));
+
+      var action = JSON.stringify({"tag":"GameActionA","contents":[source,target]});
+      console.log("action=%s", action);
+
       $("#Debug-Action").html(action);
       sendAction(action);
     }
@@ -29,5 +29,28 @@ $(function() {
   $( "#Debug-Send" ).click(function() {
     var action = $("textarea#Debug-Action").val();
     sendAction(action);
+  });
+
+
+  $(".Debug-DragCity").mousedown(function(e) {
+    var clone = $(this).clone();
+    console.log("town: %o", $(this));
+    console.log("clone: %o", clone);
+
+      clone.draggable({
+        cursor: 'move',
+        start: function(event, ui) {
+          ui.helper.css('transform', 'rotate(0deg) scale(1)');
+        },
+        stop: function(event, ui) {
+          ui.helper.css('transform', 'rotate(0deg) scale(1)');
+        }
+      });
+
+      clone.addClass("PlayerArea-CityItem");
+      clone.appendTo(".Debug");
+      clone.trigger(e);
+
+      clone.css({position:"absolute", left:e.pageX,top:e.pageY});
   });
 });
