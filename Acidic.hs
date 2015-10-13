@@ -431,6 +431,7 @@ victory victorytype gamename playername = error "Not implemented yet"
 
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
+$(deriveSafeCopy modelVersion 'base ''Move)
 
 $(makeAcidic ''CivState [
 	'getCivState,

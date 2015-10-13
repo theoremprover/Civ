@@ -48,19 +48,18 @@ data DisplayInfo = DisplayInfo {
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
-displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
-displayGame (userid,user,gamename,game,mb_playername) = do
+displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Moves -> Handler Html
+displayGame (userid,user,gamename,game,mb_playername) moves = do
 	let
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
-		moves = moveGen gamename game mb_playername
 	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
 	playerlist <- playerList di
-	boardarea <- boardArea di moves
-	actionarea <- actionArea di mb_playername
+	boardarea <- boardArea di
+	actionarea <- actionArea di mb_playername moves
 	debugarea <- partialDebugArea di
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
@@ -99,16 +98,15 @@ displayGame (userid,user,gamename,game,mb_playername) = do
         <tr><td>^{actionarea}
 |]
 
-actionArea :: DisplayInfo -> Maybe PlayerName -> Handler Widget
-actionArea _ Nothing = return [whamlet|
+actionArea :: DisplayInfo -> Maybe PlayerName -> Moves -> Handler Widget
+actionArea _ Nothing _ = return [whamlet|
 Visitor
 |]
-actionArea di@(DisplayInfo{..}) (Just playername) = do
-	let actions = map (("Action "++).show) [1..5]
+actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 	return [whamlet|
 <table>
-  $forall action <- actions
-    <tr><td>#{action}
+  $forall action <- snd moves
+    <tr><td>#{show action}
 |]
 
 playerList :: DisplayInfo -> Handler Widget

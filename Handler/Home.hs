@@ -193,5 +193,6 @@ getGameR gn = do
 			setMessage $ toHtml $ show gamename ++ " is finished already."
 			redirect $ HomeR
 		_ -> do
-			displayGame (userid,user,gamename,game,mb_playername)
+			let moves = moveGen gamename game mb_playername
+			displayGame (userid,user,gamename,game,mb_playername) moves
 

@@ -40,6 +40,9 @@ data ActionTarget =
 	TechTarget PlayerName Tech
 	deriving (Show,Eq,Ord,Data,Typeable)
 
+data Move = Move ActionSource ActionTarget
+	deriving (Show,Eq,Ord,Data,Typeable)
+
 coors2action :: Coors -> ActionTarget -> Bool
 coors2action coors (BuildFirstCityTarget _ cs) | coors==cs = True
 coors2action coors (SquareTarget cs) | coors==cs = True
@@ -47,6 +50,7 @@ coors2action _ _ = False
 
 deriveJSON defaultOptions ''ActionSource
 deriveJSON defaultOptions ''ActionA
+deriveJSON defaultOptions ''Move
 deriveJSON defaultOptions ''Affected
 deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Figure

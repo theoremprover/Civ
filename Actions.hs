@@ -608,7 +608,7 @@ playerAbilities player@(Player{..}) =
 	civAbilities _playerCiv :
 	map (techAbilities._techCardTechId) _playerTechs
 
-moveGen :: GameName -> Game -> Maybe PlayerName -> [ActionTarget]
+moveGen :: GameName -> Game -> Maybe PlayerName -> [Move]
 moveGen _ _ Nothing = []
 moveGen gamename game@(Game{..}) (Just my_playername) = do
 	let
