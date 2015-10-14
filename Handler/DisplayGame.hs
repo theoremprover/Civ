@@ -65,6 +65,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
+		allowedMovesJulius moves
 
 		let arena = case playerareas of
 			[playerarea0,playerarea1] -> [whamlet|
@@ -96,6 +97,11 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
       <table>
         <tr><td>^{playerlist}
         <tr><td>^{actionarea}
+|]
+
+--allowedMovesJulius :: [Move] -> Handler Widget
+allowedMovesJulius moves = toWidget [julius|
+var allowedMoves = #{}
 |]
 
 actionArea :: DisplayInfo -> Maybe PlayerName -> [Move] -> Handler Widget
@@ -416,7 +422,7 @@ partialCityItems di playername player@(Player{..}) = do
     <div class="PlayerArea-CityItem" data-source=#{data2markup $ CitySource playername}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
     <div class="PlayerArea-CityItem" data-source=#{data2markup $ MetropolisSource playername}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
 |]
-	
+
 partialDebugArea :: DisplayInfo -> Handler Widget
 partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
