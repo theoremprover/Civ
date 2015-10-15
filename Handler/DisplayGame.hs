@@ -42,11 +42,11 @@ colour2html colour = show colour
 -- <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
 
 data DisplayInfo = DisplayInfo {
-	gameNameDI :: GameName,
-	gameDI :: Game,
-	myPlayerNameDI :: Maybe PlayerName,
-	myPlayerDI :: Maybe Player,
-	myPlayerOriDI :: Orientation,
+	gameNameDI           :: GameName,
+	gameDI               :: Game,
+	myPlayerNameDI       :: Maybe PlayerName,
+	myPlayerDI           :: Maybe Player,
+	myPlayerOriDI        :: Orientation,
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
@@ -58,7 +58,6 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
-	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
@@ -69,24 +68,36 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		allowedMovesJulius moves
 
-		let arena = case playerareas of
-			[playerarea0,playerarea1] -> [whamlet|
+		arena <- case fromAssocList (_gamePlayers game) of
+			[p0,p1] -> do
+				return [whamlet|
 <div class=#{show myplayerori}>
   <table cellspacing=20>
-    <tr><td>^{playerarea0}
+    <tr><td>^{playerarea0 Southward}
     <tr><td>^{boardarea}
-    <tr><td>^{playerarea1}
+    <tr><td>^{playerarea1 Northward}
+|]
+			[playerarea0,playerarea1,playerarea2] -> [whamlet|
+<table>
+  <tr>
+    <td>
+    <td>^{playerarea0 Southward}
+    <td>
+  <tr>
+    <td>^{playerarea1 Eastward}
+    <td>^{boardarea}
+    <td>^{playerarea2 Westward}
 |]
 			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
 <table>
   <tr>
-    <td colspan="2">^{playerarea0}
-    <td rowspan="2">^{playerarea1}
+    <td colspan="2">^{playerarea0 Southward}
+    <td rowspan="2">^{playerarea1 Westward}
   <tr>
-    <td rowspan="2">^{playerarea3}
+    <td rowspan="2">^{playerarea3 Eastward}
     <td>^{boardarea}
   <tr>
-    <td colspan="2">^{playerarea2}
+    <td colspan="2">^{playerarea2 Northward}
 |]
 			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
@@ -152,8 +163,8 @@ playerList di@(DisplayInfo{..}) = do
         <td>#{playername}
 |]
 
-playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
-playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
+playerArea :: DisplayInfo -> (PlayerName,Player) -> Orientation -> Handler Widget
+playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) playerarea_ori = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
@@ -168,7 +179,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	return [whamlet|
 <div .PlayerArea.Debug-Droppable style="border: 10px solid #{show _playerColour};">
   ^{cityItems}
-<div .NoSpacing class="Debug-Draggable PlayerArea2 #{show _playerOrientation}" style="border: 10px solid #{show _playerColour};">
+<div .NoSpacing class="Debug-Draggable PlayerArea2 #{show playerarea_ori}" style="border: 10px solid #{show _playerColour};">
   <table .NoSpacing>
     <tr>
       <td>
@@ -446,4 +457,26 @@ partialDebugArea di@(DisplayInfo{..}) = do
       <td colspan=2>
         <button id="Debug-Send" type="button">SendAction
 |]
-	
+
+{-
+	flagSize  = scalex 45 1.27,
+	wagonSize = scalex 65 0.86,
+	pieceSquareProps = map (zip [10..]) [
+		[],
+		[(0.5,0.5)],
+		[(0.33,0.33),(0.67,0.67)],
+		[(0.5,0.33),(0.30,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.3,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
+-}
+figuresSquare :: DisplayInfo -> TokenStack Figure PlayerName -> Handler Widget
+figuresSquare (DisplayInfo{..}) figures = do
+	return [whamlet|
+|]
+	where
+	flagplayers  = tokenStackLookup Flag  figures
+	wagonplayers = tokenStackLookup Wagon figures

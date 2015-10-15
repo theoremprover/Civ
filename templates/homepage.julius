@@ -28,14 +28,12 @@ $(function() {
       }
       if(!found)
       {
-        console.log("move %s not in allowedMoves!",move);
         alert("This move is not allowed!");
       }
       else
       {
         var action = {"tag":"GameActionA","contents":[source,target]};
         var actionstr = JSON.stringify(action);
-        console.log("action=%s", actionstr);
 
        $("#Debug-Action").html(action);
         sendAction(actionstr);
