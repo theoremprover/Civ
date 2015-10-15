@@ -18,11 +18,16 @@ $(function() {
       var target = $(this).data("target");
       console.log("target=%s", JSON.stringify(target));
 
-      var action = JSON.stringify({"tag":"GameActionA","contents":[source,target]});
-      console.log("action=%s", action);
+      var move = {"tag":"Move","contents":[source,target]};
+      if($.inArray(move, allowedMoves)==-1) { console.log("move %s not in allowedMoves!",move); } else
+      {
+        var action = {"tag":"GameActionA","contents":[source,target]};
+        var actionstr = JSON.stringify(action);
+        console.log("action=%s", actionstr);
 
-      $("#Debug-Action").html(action);
-      sendAction(action);
+        $("#Debug-Action").html(action);
+        sendAction(action);
+      }
     }
   });
 

@@ -14,6 +14,8 @@ import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 (unpack)
 import qualified Text.Blaze.Renderer.String (renderHtml)
 import Text.Blaze (string)
+import Data.Text.Lazy.Builder (fromString)
+import Text.Julius (RawJavascript(..))
 
 import GameMonad
 import Model
@@ -99,9 +101,9 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
         <tr><td>^{actionarea}
 |]
 
---allowedMovesJulius :: [Move] -> Handler Widget
+allowedMovesJulius :: [Move] -> Widget
 allowedMovesJulius moves = toWidget [julius|
-var allowedMoves = #{}
+var allowedMoves = #{RawJavascript $ Data.Text.Lazy.Builder.fromString $ data2markup moves};
 |]
 
 actionArea :: DisplayInfo -> Maybe PlayerName -> [Move] -> Handler Widget
