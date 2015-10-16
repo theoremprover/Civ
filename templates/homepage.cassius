@@ -99,17 +99,13 @@ img
     -o-animation: blink 1s
     -o-animation-iteration-count: infinite
 
-.PlayerArea
-    width: 200px
-    height: 200px
 .PlayerArea-CityItem
     z-index: 2
 .Map-SquareContainer
     z-index: 1
-
-.Debug table
-    border: 5px solid gray
-    width: 400px
-.Debug-JsonArea
-    width: 600px
-    height: 50px
+.PlayerArea
+    border: 1px solid black
+.PlayerArea-Cards,.PlayerArea-Cards-Culture,.PlayerArea-Cards-GreatPersons,.PlayerArea-Techtree,.PlayerArea-Items,.PlayerArea-Policies,.PlayerArea-Dial,.PlayerArea-Units,.PlayerArea-Wagons,.PlayerArea-Flags,.PlayerArea-TechArea
+    border: 1px solid black
+.Areas td
+    border: 1px solid black
