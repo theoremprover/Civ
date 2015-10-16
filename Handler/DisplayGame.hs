@@ -62,44 +62,56 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
 	debugarea <- partialDebugArea di
+	arena <- case fromAssocList (_gamePlayers game) of
+		[p0,p1] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Northward
+			return [whamlet|
+<div class=#{show myplayerori}>
+  <table cellspacing=20>
+    <tr><td>^{playerarea0}
+    <tr><td>^{boardarea}
+    <tr><td>^{playerarea1}
+|]
+		[p0,p1,p2] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td>
+    <td>^{playerarea0}
+    <td>
+  <tr>
+    <td>^{playerarea1}
+    <td>^{boardarea}
+    <td>^{playerarea2}
+|]
+		[p0,p1,p2,p3] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Southward
+			playerarea2 <- playerArea di p2 Northward
+			playerarea3 <- playerArea di p3 Northward
+			return [whamlet|
+<table>
+  <tr>
+    <td colspan="2">^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="2">^{playerarea3}
+    <td>^{boardarea}
+  <tr>
+    <td colspan="2">^{playerarea2}
+|]
+		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
+
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		allowedMovesJulius moves
 
-		arena <- case fromAssocList (_gamePlayers game) of
-			[p0,p1] -> do
-				return [whamlet|
-<div class=#{show myplayerori}>
-  <table cellspacing=20>
-    <tr><td>^{playerarea0 Southward}
-    <tr><td>^{boardarea}
-    <tr><td>^{playerarea1 Northward}
-|]
-			[playerarea0,playerarea1,playerarea2] -> [whamlet|
-<table>
-  <tr>
-    <td>
-    <td>^{playerarea0 Southward}
-    <td>
-  <tr>
-    <td>^{playerarea1 Eastward}
-    <td>^{boardarea}
-    <td>^{playerarea2 Westward}
-|]
-			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
-<table>
-  <tr>
-    <td colspan="2">^{playerarea0 Southward}
-    <td rowspan="2">^{playerarea1 Westward}
-  <tr>
-    <td rowspan="2">^{playerarea3 Eastward}
-    <td>^{boardarea}
-  <tr>
-    <td colspan="2">^{playerarea2 Northward}
-|]
-			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
 
 		[whamlet|
 ^{debugarea}
