@@ -152,11 +152,25 @@ finishPlayerPhase gamename = do
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
 gameAction gamename playername move@(Move source target) = runUpdateCivM $ do
-	case (source,target) of
-		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
-			buildCity gamename coors $ newCity playername True Nothing
+	Just game <- queryCivLensM $ civGameLens gamename . _Just
+	moves <- moveGen gamename (Just playername)
+	case move `elem` moves of
+		False -> error $ show playername ++ " requested " ++ show move ++ " which is not in 'moves'!"
+		True -> case (source,target) of
+			(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
+				buildCity gamename coors $ newCity playername True Nothing
+			(AutomaticMove (),GetTrade pn) | pn==playername -> getTrade gamename playername
+			_ -> error $ show move ++ " not implemented yet"
+	checkMovesLeft gamename
+
+checkMovesLeft :: GameName -> Update CivState UpdateResult
+checkMovesLeft gamename = do
+	Just playername <- queryCivLensM $ civGameLens gamename . _Just
+	moves_left <- moveGen gamename (Just playername)
+	case moves_left of
+		[] -> do
 			finishPlayerPhase gamename
-		_ -> error $ show move ++ " not implemented yet"
+			
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do

@@ -608,17 +608,19 @@ playerAbilities player@(Player{..}) =
 	civAbilities _playerCiv :
 	map (techAbilities._techCardTechId) _playerTechs
 
-moveGen :: GameName -> Game -> Maybe PlayerName -> [Move]
-moveGen _ _ Nothing = []
-moveGen gamename game@(Game{..}) (Just my_playername) = do
+moveGen :: GameName -> Maybe PlayerName -> QueryCivM [Move]
+moveGen _ Nothing = []
+moveGen gamename (Just my_playername) = do
+	Just game <- queryCivLensM $ civGameLens gamename . _Just
 	let
 		(playername_turn,player_turn@(Player{..})) = nthAssocList _gamePlayersTurn _gamePlayers
-		in case my_playername == playername_turn of
-			False -> []
-			True -> case _gamePhase of
-				StartOfGame -> []
-				BuildingFirstCity -> map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
-				_ -> []
+	case my_playername == playername_turn of
+		False -> return []
+		True -> case _gamePhase of
+			StartOfGame -> return []
+			BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+			GettingFirstTrade -> return [Move (AutomaticMove ()) (GetTrade my_playername)]
+			_ -> []
 
 {-
 

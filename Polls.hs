@@ -23,7 +23,9 @@ data Affected = GameAdmin | GameGame GameName
 
 type Polls = MVar [(Affected,MVar ActionA)]
 
+-- The unit types are to be JSON toplevel encodable
 data ActionSource =
+	AutomaticMove () |
 	WagonSource PlayerName | FlagSource PlayerName |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
@@ -38,7 +40,8 @@ data ActionTarget =
 	NoTarget () |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
-	TechTarget PlayerName Tech
+	TechTarget PlayerName Tech |
+	GetTrade PlayerName
 	deriving (Show,Eq,Ord,Data,Typeable)
 
 data Move = Move ActionSource ActionTarget
@@ -46,6 +49,7 @@ data Move = Move ActionSource ActionTarget
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(_,GetTrade _) -> "Get Trade"
 		(source,target) -> show (source,target)
 
 coors2action :: Coors -> Move -> Bool
