@@ -44,9 +44,6 @@ instance (Eq a) => Eq (Value a) where
 	SetValue a == SetValue b = a==b
 	_ == _ = False
 
-data ResourcePattern = One Resource | AnyResource
-	deriving (Show,Eq)
-
 type HookM a = GameName -> PlayerName -> UpdateCivM a
 
 noopHookM = constHookM ()
@@ -607,20 +604,6 @@ getValueAbility toability player = valueAbilities $ map toability (playerAbiliti
 playerAbilities player@(Player{..}) =
 	civAbilities _playerCiv :
 	map (techAbilities._techCardTechId) _playerTechs
-
-moveGen :: GameName -> Maybe PlayerName -> QueryCivM [Move]
-moveGen _ Nothing = []
-moveGen gamename (Just my_playername) = do
-	Just game <- queryCivLensM $ civGameLens gamename . _Just
-	let
-		(playername_turn,player_turn@(Player{..})) = nthAssocList _gamePlayersTurn _gamePlayers
-	case my_playername == playername_turn of
-		False -> return []
-		True -> case _gamePhase of
-			StartOfGame -> return []
-			BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
-			GettingFirstTrade -> return [Move (AutomaticMove ()) (GetTrade my_playername)]
-			_ -> []
 
 {-
 

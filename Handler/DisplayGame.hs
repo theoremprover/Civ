@@ -27,6 +27,7 @@ import Lenses
 import Logic
 import TokenStack
 import Actions
+import Acidic
 
 
 movelisttarget2markup :: [Move] -> String
@@ -58,6 +59,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
+		moves = moveGen gamename game mb_playername
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
@@ -378,7 +380,7 @@ boardArea (DisplayInfo{..}) moves = do
 
 		rowcolspan :: Coors -> Maybe (Int,Int,String)
 		rowcolspan coors = case arrlookup coors of
-			Square _ _ _ _ _ (Just (CityMarker city)) _ _ -> case city of
+			Square _ _ _ _ _ (Just (CityMarker city)) _ -> case city of
 				SecondCitySquare _          -> Nothing
 				City _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
 				City _ _ _ _ _ _ (Just ori) -> case ori of

@@ -33,7 +33,8 @@ data ActionSource =
 	DialCoinSource PlayerName | DialCultureSource PlayerName |
 	HutSource PlayerName Hut | VillageSource PlayerName Village |
 	TechCoinSource PlayerName Tech |
-	ArtifactSource PlayerName Artifact
+	ArtifactSource PlayerName Artifact |
+	HaltSource ()
 	deriving (Show,Eq,Ord,Data,Typeable)
 
 data ActionTarget =
@@ -41,7 +42,7 @@ data ActionTarget =
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	TechTarget PlayerName Tech |
-	GetTrade PlayerName
+	GetTradeTarget PlayerName
 	deriving (Show,Eq,Ord,Data,Typeable)
 
 data Move = Move ActionSource ActionTarget
@@ -49,7 +50,8 @@ data Move = Move ActionSource ActionTarget
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
-		(_,GetTrade _) -> "Get Trade"
+		(_,GetTradeTarget _) -> "Get Trade"
+		(HaltSource (),_) -> "HALTED"
 		(source,target) -> show (source,target)
 
 coors2action :: Coors -> Move -> Bool
