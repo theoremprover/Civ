@@ -206,10 +206,12 @@ checkMovesLeft gamename = do
 		[] -> do
 			finishPlayerPhase gamename
 			checkMovesLeft gamename
+{-
 		[move@(Move (AutomaticMove ()) _)] -> do
 			playername <- getPlayerTurn gamename
 			doMove gamename playername move
 			checkMovesLeft gamename
+-}
 		_ -> return ()
 
 forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]

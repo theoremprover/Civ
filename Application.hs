@@ -31,6 +31,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 
 import Data.Acid
 import System.Posix.Signals (installHandler,Handler(..),sigINT,sigTERM)
+
 			 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!

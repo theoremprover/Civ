@@ -114,7 +114,6 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		allowedMovesJulius moves
 
-
 		[whamlet|
 ^{debugarea}
 <table>
@@ -139,7 +138,7 @@ actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 	return [whamlet|
 <table>
   $forall move <- moves
-    <tr><td>#{show move}
+    <tr><td><button type=button onclick="sendAction(#{data2markup $ GameActionA move})">#{show move}
 |]
 
 playerList :: DisplayInfo -> Handler Widget

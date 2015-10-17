@@ -30,12 +30,21 @@ import Actions
 
 
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>
-	ActionA -> [Affected] -> event -> Handler (EventResult event)
-updateCivH actiona affecteds event = do
+	event -> Handler (EventResult event)
+updateCivH event = do
 	app <- getYesod
+	update' (appCivAcid app) event
+{-
 	res <- update' (appCivAcid app) event
 	when (isRight res) $ notifyLongPoll actiona affecteds
 	return res
+-}
+
+queryCivH :: Traversal' CivState a -> Handler (Maybe a)
+queryCivH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ preview lens civstate
 
 --------- Errors
 
@@ -114,7 +123,7 @@ executeAction action = do
 	printLogDebug $ "executeAction " ++ show action
 	case action of
 
-		CreateGameA gamename -> do
+		CreateGameA gamename@(GameName gn) -> do
 			now <- liftIO $ getCurrentTime
 			tilestack    <- shuffle initialBoardTileStack
 			hutstack     <- shuffle initialHutStack
@@ -122,18 +131,30 @@ executeAction action = do
 			personstack  <- shuffle initialGreatPersonStack
 			unitstack    <- shuffle initialUnitStack
 			culturestack <- shuffle initialCultureStack
-			updateCivH action [GameAdmin] $ CreateNewGame gamename $ Game
+			res <- updateCivH $ CreateNewGame gamename $ Game
 				now (userEmail user) Waiting emptyPlayers 1 StartOfGame 0 0
 				emptyBoard
 				tilestack hutstack villagestack
 				initialBuildingStack personstack unitstack culturestack
 				(initialResourceStack 0) False
 
+			updateCivH $ JoinGame gamename (PlayerName "Red") (userEmail user) Red Russia
+			updateCivH $ JoinGame gamename (PlayerName "Green") (userEmail user) Green Arabs
+			updateCivH $ JoinGame gamename (PlayerName "Blue") (userEmail user) Blue America
+			updateCivH $ JoinGame gamename (PlayerName "Yellow") (userEmail user) Yellow China
+			setSession "game" gn
+			setSession "player" "Red"
+
+			notifyLongPoll action [GameAdmin]
+			return res
+
 		DeleteGameA gamename@(GameName gn) -> do
-			updateCivH action [GameAdmin,GameGame gamename] $ DeleteGame gamename
+			res <- updateCivH $ DeleteGame gamename
+			notifyLongPoll action [GameAdmin,GameGame gamename]
+			return res
 
 		JoinGameA gamename@(GameName gn) playername@(PlayerName pn) email colour civ -> do
-			res <- updateCivH action [GameAdmin,GameGame gamename] $ JoinGame gamename playername email colour civ
+			res <- updateCivH $ JoinGame gamename playername email colour civ
 			case res of
 				Right () -> do
 					setSession "game" gn
@@ -142,6 +163,7 @@ executeAction action = do
 					deleteSession "game"
 					deleteSession "player"
 					setMessage $ toHtml errmsg
+			notifyLongPoll action [GameAdmin,GameGame gamename]
 			return res
 
 		SetSessionGameA (GameName gn) -> do
@@ -156,14 +178,24 @@ executeAction action = do
 		StartGameA gamename -> do
 			Just (AssocList playerlist) <- queryCivLensH (civPlayersLens gamename)
 			shuffledplayers <- shuffleList playerlist
-			updateCivH action [] $ SetShuffledPlayers gamename $ AssocList shuffledplayers
-			updateCivH action [GameAdmin,GameGame gamename] $ StartGame gamename
+			updateCivH $ SetShuffledPlayers gamename $ AssocList shuffledplayers
+			updateCivH $ StartGame gamename
+			notifyLongPoll action [GameAdmin,GameGame gamename]
+			return oK
 
 		GameActionA move -> do
 			(userid,user,gamename,game,mb_playername) <- maybeVisitor
 			case mb_playername of
 				Nothing -> return $ eRR $ show action ++ " cannot be given by visitors"
 				Just playername -> do
-					updateCivH action [GameGame gamename] $ GameAction gamename playername move
+					updateCivH $ GameAction gamename playername move
+
+					Just playerturnindex <- queryCivH $ civGameLens gamename . _Just . gamePlayersTurn
+					Just (PlayerName playerturnname,playerturn) <- queryCivH $ civPlayerIndexLens gamename playerturnindex
+					when (_playerUserEmail playerturn == userEmail user) $ do
+						setSession "player" playerturnname
+
+					notifyLongPoll action [GameGame gamename]
+					return oK
 
 		_ -> return $ eRR $ show action ++ " not implemented yet"
