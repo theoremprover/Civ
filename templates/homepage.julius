@@ -19,7 +19,7 @@ $(function() {
       console.log("target=%s", JSON.stringify(target));
 
       var move = [source,target];
-      console.log("move.toSource()=%s",move.toSource());
+//      console.log("move.toSource()=%s",move.toSource());
       console.log("JSON.stringify(move)=%s",JSON.stringify(move));
       var found=0;
       for(i=0;i<allowedMoves.length;i++)
@@ -41,7 +41,7 @@ $(function() {
     }
   });
 
-  $( "#Debug-Send" ).click(function() {
+  $("#Debug-Send").click(function() {
     var action = $("textarea#Debug-Action").val();
     sendAction(action);
   });
@@ -66,6 +66,18 @@ $(function() {
       clone.appendTo(".Debug");
       clone.trigger(e);
 
-      clone.css({position:"absolute", left:e.pageX,top:e.pageY});
+      var posX = e.pageX - clone.width() / 2;
+      var posY = e.pageY - clone.height() / 2;
+      clone.css({position:"absolute", left:posX, top:posY});
   });
+
+
+/*
+  $(".Eastward,.Westward").each(function () {
+    var height = $(this).height();
+    var width = $(this).width();
+    $(this).height(width);
+    $(this).width(height);
+  });
+*/
 });
