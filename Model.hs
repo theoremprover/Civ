@@ -46,6 +46,10 @@ newtype Coins = Coins {coinsCoins::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Coins)
 newtype Culture = Culture {cultureCulture::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
 $(deriveSafeCopy modelVersion 'base ''Culture)
+newtype Hammers = Hammers {hammersHammers::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
+$(deriveSafeCopy modelVersion 'base ''Hammers)
+newtype MilitaryBonus = MilitaryBonus {militaryBonusMilitaryBonus::Int} deriving (Show,Num,Data,Typeable,Ord,Eq)
+$(deriveSafeCopy modelVersion 'base ''MilitaryBonus)
 
 addCultureDial (Culture c1) (Culture c2) = Culture $ max (c1+c2) 0
 addTradeDial (Trade t1) (Trade t2) = Trade $ max (min (t1+t2) 27) 0
@@ -137,6 +141,10 @@ data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
 	deriving (Show,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''Resource)
 
+data ResourcePattern = One Resource | AnyResource
+	deriving (Show,Data,Typeable,Eq,Ord)
+$(deriveSafeCopy modelVersion 'base ''ResourcePattern)
+
 initialResourceStack :: Int -> TokenStack Resource ()
 initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
 	(Wheat,numplayers),(Incense,numplayers),(Linen,numplayers),(Iron,numplayers) ]
@@ -144,6 +152,37 @@ initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
 data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
+
+data Income = Income { inTrade::Trade,inHammers::Hammers,inCulture::Culture,inCoins::Coins,inMilBonus::MilitaryBonus,inResource::[ResourcePattern] }
+	deriving (Show,Data,Typeable,Eq)
+
+instance Num Income where
+	(Income t1 h1 c1 co1 m1 r1) + (Income t2 h2 c2 co2 m2 r2) = Income (t1+t2) (h1+h2) (c1+c2) (co1+co2) (m1+m2) (r1++r2)
+	(Income t1 h1 c1 co1 m1 r1) * (Income t2 h2 c2 co2 m2 r2) = error $ "Called '*' on Income"
+	negate (Income t h c co m r) = Income (-t) (-h) (-c) (-co) (-m) r
+	abs (Income t h c co m r) = Income (abs t) (abs h) (abs c) (abs co) (abs m) r
+	signum (Income t h c co m r) = Income (signum t) (signum h) (signum c) (signum co) (signum m) r
+	fromInteger _ = error $ "Called fromInteger on Income"
+
+noIncome = Income (Trade 0) (Hammers 0) (Culture 0) (Coins 0) (MilitaryBonus 0) []
+
+tradeIncome         x = noIncome { inTrade = Trade x }
+hammerIncome        x = noIncome { inHammers = Hammers x }
+cultureIncome       x = noIncome { inCulture = Culture x }
+oneCoin               = noIncome { inCoins = Coins 1 }
+militaryBonusIncome x = noIncome { inMilBonus = MilitaryBonus x }
+resourceIncome      x = noIncome { inResource = x }
+
+class GeneratesIncome x where
+	generatedIncome :: x -> Income
+
+instance GeneratesIncome Terrain where
+	generatedIncome terrain = case terrain of
+		Grassland -> noIncome
+		Desert    -> tradeIncome 1
+		Mountains -> hammerIncome 1
+		Forest    -> hammerIncome 2
+		Water     -> tradeIncome 1
 
 data MovementType = Land | CrossWater | StayInWater | Air
 	deriving (Show,Ord,Eq)
@@ -174,12 +213,6 @@ initialVillageStack = tokenStackFromList $ replicateToken [
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
 
-{-
-data CityType = CityT | MetropolisT
-	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
-$(deriveSafeCopy modelVersion 'base ''CityType)
--}
-
 initialCityStack :: TokenStack () ()
 initialCityStack = tokenStackFromList $ replicateUnit [ ((),3) ]
 
@@ -209,21 +242,39 @@ data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
 buildingTypeToMarker :: BuildingType -> BuildingMarker
-buildingTypeToMarker bt | bt `elem` [Barracks,Academy] = BarracksOrAcademy
-buildingTypeToMarker bt | bt `elem` [Forge,IronMine] = ForgeOrIronMine
-buildingTypeToMarker bt | bt `elem` [Granary,Aquaeduct] = GranaryOrAquaeduct
-buildingTypeToMarker bt | bt `elem` [Temple,Cathedral] = TempleOrCathedral
+buildingTypeToMarker bt | bt `elem` [Barracks,Academy]   = BarracksOrAcademy
+buildingTypeToMarker bt | bt `elem` [Forge,IronMine]     = ForgeOrIronMine
+buildingTypeToMarker bt | bt `elem` [Granary,Aquaeduct]  = GranaryOrAquaeduct
+buildingTypeToMarker bt | bt `elem` [Temple,Cathedral]   = TempleOrCathedral
 buildingTypeToMarker bt | bt `elem` [Library,University] = LibraryOrUniversity
-buildingTypeToMarker bt | bt `elem` [Market,Bank] = MarketOrBank
-buildingTypeToMarker bt | bt `elem` [Harbour] = Harbours
-buildingTypeToMarker bt | bt `elem` [TradePost] = TradePosts
-buildingTypeToMarker bt | bt `elem` [Shipyard] = Shipyards
+buildingTypeToMarker bt | bt `elem` [Market,Bank]        = MarketOrBank
+buildingTypeToMarker bt | bt `elem` [Harbour]            = Harbours
+buildingTypeToMarker bt | bt `elem` [TradePost]          = TradePosts
+buildingTypeToMarker bt | bt `elem` [Shipyard]           = Shipyards
 
 data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	Market | Shipyard | TradePost | Temple |
 	Academy | Aquaeduct | Bank | Cathedral | IronMine | University
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
+
+instance GeneratesIncome BuildingType where
+	generatedIncome buildingtype = case buildingtype of
+		Barracks   -> tradeIncome 2 + militaryBonusIncome 2
+		Forge      -> hammerIncome 3
+		Granary    -> hammerIncome 1 + tradeIncome 1
+		Harbour    -> hammerIncome 1 + tradeIncome 2
+		Library    -> cultureIncome 1 + tradeIncome 1
+		Market     -> hammerIncome 1 + tradeIncome 1 + cultureIncome 1
+		Shipyard   -> hammerIncome 2 + militaryBonusIncome 2
+		TradePost  -> cultureIncome 1 + tradeIncome 2
+		Temple     -> cultureIncome 2
+		Academy    -> tradeIncome 2 + militaryBonusIncome 4
+		Aquaeduct  -> hammerIncome 2 + tradeIncome 2
+		Bank       -> hammerIncome 1 + tradeIncome 1 + cultureIncome 1 + oneCoin
+		Cathedral  -> cultureIncome 3
+		IronMine   -> hammerIncome 4
+		University -> cultureIncome 2 + tradeIncome 2
 
 data Building = Building BuildingType PlayerName
 	deriving (Show,Data,Typeable,Eq)
@@ -256,6 +307,25 @@ data Wonder =
 	BigBen | CristoRedentor | Kremlin | Pentagon | Internet
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Wonder)
+
+data WonderLevel = WonderLevelI | WonderLevelII | WonderLevelIII 
+	deriving (Show,Eq,Ord,Enum,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''WonderLevel)
+
+wondersOfLevel level = case level of
+	WonderLevelI   -> [ Stonehenge,Colossus,HangingGardens,Oracle,GreatWall,ChichenItza,Pyramids,GreatLighthouse,StatueZeus ]
+	WonderLevelII  -> [ AngkorWat,HimejisCastle,TajMahal,PorcelainTower,MachuPichu,BrandenburgGate,Louvre,NotreDame,LeonardosWorkshop ]
+	WonderLevelIII -> [ SydneyOpera,StatueLiberty,PanamaCanal,UnitedNations,BigBen,CristoRedentor,Kremlin,Pentagon,Internet ]
+
+wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelI)   = WonderLevelI
+wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelII)  = WonderLevelII
+wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelIII) = WonderLevelIII
+
+instance GeneratesIncome Wonder where
+	generatedIncome wonder = cultureIncome $ case wonderLevel wonder of
+		WonderLevelI   -> 1
+		WonderLevelII  -> 2
+		WonderLevelIII -> 3
 
 data PolicyCard =
 	NaturalOrOrganizedReligion |
@@ -304,7 +374,6 @@ data Square =
 		_squareResource    :: Maybe Resource,
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
-		_squareBuilding    :: Maybe Building,
 		_squareFigures     :: TokenStack Figure PlayerName
 		}
 	deriving (Data,Typeable,Show)
@@ -852,7 +921,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 	where
 
-	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok Nothing emptyTokenStack
+	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok emptyTokenStack
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains

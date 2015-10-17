@@ -2,7 +2,7 @@
 
 module Acidic where
 
-import Import hiding (Update,Query,array,delete)
+import Import hiding (Update,Query,array,delete,head)
 
 import qualified Prelude
 
@@ -24,6 +24,7 @@ import TokenStack
 import Model
 import Polls
 import ModelVersion
+
 
 getCivState :: Query CivState CivState
 getCivState = ask
@@ -140,6 +141,12 @@ incPlayerIndex gamename playerindex = do
 	numplayers <- getNumPlayers gamename
 	updateCivLensM ((`mod` numplayers) . (+1)) $ civGameLens gamename . _Just . playerindex
 
+getPlayerTurn :: GameName -> UpdateCivM PlayerName
+getPlayerTurn gamename = do
+	Just playerindex <- queryCivLensM $ civGameLens gamename . _Just . gamePlayersTurn
+	Just (playername,_) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
+	return playername
+
 finishPlayerPhase gamename = do
 	incPlayerIndex gamename gamePlayersTurn
 	Just (game@Game{..}) <- queryCivLensM $ civGameLens gamename . _Just
@@ -150,13 +157,98 @@ finishPlayerPhase gamename = do
 			incPlayerIndex gamename gamePlayersTurn
 			incPlayerIndex gamename gameStartPlayer
 
+moveGen :: GameName -> Game -> Maybe PlayerName -> [Move]
+moveGen _ _ Nothing = []
+moveGen gamename game@(Game{..}) (Just my_playername) = do
+	let
+		(playername_turn,player_turn@(Player{..})) = nthAssocList _gamePlayersTurn _gamePlayers
+	case my_playername == playername_turn of
+		False -> []
+		True -> case _gamePhase of
+			StartOfGame ->
+				[]
+			BuildingFirstCity -> case _playerCityCoors of
+				[] -> map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+				_  -> []
+			GettingFirstTrade ->
+				[Move (AutomaticMove ()) (GetTradeTarget my_playername)]
+			_ -> [Move (HaltSource ()) (NoTarget ())]
+
+moveGenM :: GameName -> UpdateCivM [Move]
+moveGenM gamename = do
+	Just game <- queryCivLensM $ civGameLens gamename . _Just
+	playername <- getPlayerTurn gamename
+	return $ moveGen gamename game (Just playername)
+
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
-gameAction gamename playername move@(Move source target) = runUpdateCivM $ do
+gameAction gamename playername move = runUpdateCivM $ do
+	moves <- moveGenM gamename
+	case move `elem` moves of
+		False -> error $ show playername ++ " requested " ++ show move ++ " which is not in 'moves'!"
+		True -> do
+			doMove gamename playername move
+			checkMovesLeft gamename
+	return ()
+
+doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
+doMove gamename playername move@(Move source target) = do
 	case (source,target) of
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
-			finishPlayerPhase gamename
+		(AutomaticMove (),GetTradeTarget pn) | pn==playername -> getTrade gamename playername
 		_ -> error $ show move ++ " not implemented yet"
+	return ()
+
+checkMovesLeft :: GameName -> UpdateCivM ()
+checkMovesLeft gamename = do
+	moves_left <- moveGenM gamename
+	case moves_left of
+		[] -> do
+			finishPlayerPhase gamename
+			checkMovesLeft gamename
+		[move@(Move (AutomaticMove ()) _)] -> do
+			playername <- getPlayerTurn gamename
+			doMove gamename playername move
+			checkMovesLeft gamename
+		_ -> return ()
+
+forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
+forAllCities gamename playername action = do
+	Just coorss <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
+	forM coorss $ \ coors -> do
+		Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
+		action (coors,city)
+
+forAllOutskirts :: GameName -> PlayerName -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
+forAllOutskirts gamename playername action = do
+	lss <- forAllCities gamename playername $ \ (coors,city) -> do
+		let citycoorss = coors : case _cityMetropolisOrientation city of
+			Nothing -> []
+			Just ori -> [addCoorsOri coors ori]
+		forM (outskirtsOf citycoorss) $ \ outskirt_coors -> do
+			Just square <- getSquare gamename outskirt_coors
+			action (outskirt_coors,city,square)
+	return $ concat lss
+
+squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
+squareIncome gamename playername coors = do
+	Just (Square{..}) <- getSquare gamename coors
+	return $ case null $ filter (/=playername) (concatMap snd (tokenStackToList _squareFigures)) of
+		False -> noIncome
+		True  -> case _squareTokenMarker of
+			Just (BuildingMarker (Building buildingtype pn)) | pn==playername -> generatedIncome buildingtype
+			Just _ -> noIncome
+			_ ->
+				(if _squareNatWonder then cultureIncome 1 else noIncome) +
+				(if _squareCoin then oneCoin else noIncome) +
+				(maybe noIncome (resourceIncome.(:[]).One) _squareResource) +
+				(generatedIncome (Prelude.head _squareTerrain))
+
+getTrade :: GameName -> PlayerName -> UpdateCivM ()
+getTrade gamename playername = do
+	incomes <- forAllOutskirts gamename playername $ \ (coors,_,_) -> do
+		squareIncome gamename playername coors
+	addTrade (inTrade $ sum incomes) gamename playername
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do
@@ -415,6 +507,7 @@ buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
 	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
+	updateCivLensM (++[coors]) $ civPlayerLens gamename _cityOwner . _Just . playerCityCoors
 	case _cityMetropolisOrientation of
 		Nothing  -> return ()
 		Just ori -> do

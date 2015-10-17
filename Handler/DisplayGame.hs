@@ -27,6 +27,7 @@ import Lenses
 import Logic
 import TokenStack
 import Actions
+import Acidic
 
 
 movelisttarget2markup :: [Move] -> String
@@ -42,11 +43,11 @@ colour2html colour = show colour
 -- <button type=button onclick=#{onclickHandler $ IncTradeA gamename playername (Trade 1)}>IncTrade
 
 data DisplayInfo = DisplayInfo {
-	gameNameDI :: GameName,
-	gameDI :: Game,
-	myPlayerNameDI :: Maybe PlayerName,
-	myPlayerDI :: Maybe Player,
-	myPlayerOriDI :: Orientation,
+	gameNameDI           :: GameName,
+	gameDI               :: Game,
+	myPlayerNameDI       :: Maybe PlayerName,
+	myPlayerDI           :: Maybe Player,
+	myPlayerOriDI        :: Orientation,
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
@@ -58,27 +59,44 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
-	playerareas <- mapM (playerArea di) $ fromAssocList (_gamePlayers game)
+		moves = moveGen gamename game mb_playername
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
 	debugarea <- partialDebugArea di
-	defaultLayout $ do
-		setTitle "Civilization Boardgame"
-		sendJSONJulius
-		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
-		allowedMovesJulius moves
-
-		let arena = case playerareas of
-			[playerarea0,playerarea1] -> [whamlet|
+	arena <- case fromAssocList (_gamePlayers game) of
+		[p0,p1] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Northward
+			return [whamlet|
 <div class=#{show myplayerori}>
   <table cellspacing=20>
     <tr><td>^{playerarea0}
     <tr><td>^{boardarea}
     <tr><td>^{playerarea1}
 |]
-			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
-<table .Areas>
+		[p0,p1,p2] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td>
+    <td>^{playerarea0}
+    <td>
+  <tr>
+    <td>^{playerarea1}
+    <td>^{boardarea}
+    <td>^{playerarea2}
+|]
+		[p0,p1,p2,p3] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Southward
+			playerarea2 <- playerArea di p2 Northward
+			playerarea3 <- playerArea di p3 Northward
+			return [whamlet|
+<table>
   <tr>
     <td colspan="2">^{playerarea0}
     <td rowspan="2">^{playerarea1}
@@ -88,7 +106,14 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
   <tr>
     <td colspan="2">^{playerarea2}
 |]
-			pas -> errHamlet $ "Layout for " ++ show (length pas) ++ " not implemented (yet)."
+		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
+
+	defaultLayout $ do
+		setTitle "Civilization Boardgame"
+		sendJSONJulius
+		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
+		allowedMovesJulius moves
+
 
 		[whamlet|
 ^{debugarea}
@@ -152,8 +177,8 @@ playerList di@(DisplayInfo{..}) = do
         <td>#{playername}
 |]
 
-playerArea :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
-playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
+playerArea :: DisplayInfo -> (PlayerName,Player) -> Orientation -> Handler Widget
+playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) playerarea_ori = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
 	greatpersonsrow <- horRow reveal _greatPersonCardRevealed greatPersonRoute _greatPerson _playerGreatPersonCards
@@ -353,7 +378,7 @@ boardArea (DisplayInfo{..}) moves = do
 
 		rowcolspan :: Coors -> Maybe (Int,Int,String)
 		rowcolspan coors = case arrlookup coors of
-			Square _ _ _ _ _ (Just (CityMarker city)) _ _ -> case city of
+			Square _ _ _ _ _ (Just (CityMarker city)) _ -> case city of
 				SecondCitySquare _          -> Nothing
 				City _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
 				City _ _ _ _ _ _ (Just ori) -> case ori of
@@ -421,3 +446,26 @@ partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Debug>
 |]
+
+{-
+	flagSize  = scalex 45 1.27,
+	wagonSize = scalex 65 0.86,
+	pieceSquareProps = map (zip [10..]) [
+		[],
+		[(0.5,0.5)],
+		[(0.33,0.33),(0.67,0.67)],
+		[(0.5,0.33),(0.30,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.3,0.67),(0.7,0.67)],
+		[(0.3,0.33),(0.7,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
+		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
+		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
+-}
+figuresSquare :: DisplayInfo -> TokenStack Figure PlayerName -> Handler Widget
+figuresSquare (DisplayInfo{..}) figures = do
+	return [whamlet|
+|]
+	where
+	flagplayers  = tokenStackLookup Flag  figures
+	wagonplayers = tokenStackLookup Wagon figures
