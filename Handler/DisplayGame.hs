@@ -92,9 +92,9 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 |]
 		[p0,p1,p2,p3] -> do
 			playerarea0 <- playerArea di p0 Southward
-			playerarea1 <- playerArea di p1 Southward
+			playerarea1 <- playerArea di p1 Westward
 			playerarea2 <- playerArea di p2 Northward
-			playerarea3 <- playerArea di p3 Northward
+			playerarea3 <- playerArea di p3 Eastward
 			return [whamlet|
 <table>
   <tr>
@@ -190,7 +190,7 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) playerarea_ori 
 	pdial <- dial di playername player
 
 	return [whamlet|
-<div .NoSpacing.PlayerArea class="#{show _playerOrientation}">
+<div .NoSpacing.PlayerArea class="#{show playerarea_ori}">
   <table .NoSpacing style="border: 10px solid #{show _playerColour};">
     <tr>
       <td>
@@ -446,7 +446,6 @@ partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Debug>
 |]
-
 {-
 	flagSize  = scalex 45 1.27,
 	wagonSize = scalex 65 0.86,
