@@ -305,7 +305,7 @@ data Square =
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
 		_squareBuilding    :: Maybe Building,
-		_squareFigures     :: [(Figure,PlayerName)]
+		_squareFigures     :: TokenStack Figure PlayerName
 		}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
@@ -852,7 +852,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 	where
 
-	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok Nothing []
+	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok Nothing emptyTokenStack
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
@@ -887,11 +887,17 @@ boardLayout numplayers = case numplayers of
 		(c 0  8,NT    ), (c 4  8,NT    ),
 		(c 0 12,NT    ), (c 4 12,CT 1 n) ]
 
+	3 -> [
+		(c 6  0,CT 0 s),
+		(c 4  4,NT    ), (c 8  4,NT    ),
+		(c 2  8,NT    ), (c 6  8,NT    ), (c 10 8,NT    ),
+		(c 0 12,CT 2 e), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,CT 1 w) ]
+
 	4 -> [
-		(c 0  0,CT 0 s), (c 4  0,NT    ), (c 8  0,NT    ), (c 12  0,CT 1 w),
+		(c 0  0,CT 0 s), (c 4  0,NT    ), (c 8  0,NT    ), (c 12  0,CT 1 s),
 		(c 0  4,NT    ), (c 4  4,NT    ), (c 8  4,NT    ), (c 12  4,NT    ),
 		(c 0  8,NT    ), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
-		(c 0 12,CT 3 e), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,CT 2 n) ]
+		(c 0 12,CT 3 n), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,CT 2 n) ]
 
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 

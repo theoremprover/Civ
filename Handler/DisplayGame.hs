@@ -78,7 +78,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
     <tr><td>^{playerarea1}
 |]
 			[playerarea0,playerarea1,playerarea2,playerarea3] -> [whamlet|
-<table>
+<table .Areas>
   <tr>
     <td colspan="2">^{playerarea0}
     <td rowspan="2">^{playerarea1}
@@ -163,26 +163,23 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	items <- itemTokens di playername player reveal
 	unitcolumn <- unitColumn di (playername,player)
 	pdial <- dial di playername player
-	cityItems <- partialCityItems di playername player
 
 	return [whamlet|
-<div .PlayerArea.Debug-Droppable style="border: 10px solid #{show _playerColour};">
-  ^{cityItems}
-<div .NoSpacing class="Debug-Draggable PlayerArea2 #{show _playerOrientation}" style="border: 10px solid #{show _playerColour};">
-  <table .NoSpacing>
+<div .NoSpacing.PlayerArea class="#{show _playerOrientation}">
+  <table .NoSpacing style="border: 10px solid #{show _playerColour};">
     <tr>
       <td>
         <table .NoSpacing>
           <tr>
             <td colspan=2 align=center>
               <table>
-                <tr>
-                  <td style="valign:top; align:right">
+                <tr .PlayerArea-Cards>
+                  <td .PlayerArea-Cards-GreatPersons style="valign:top; align:right">
                     ^{greatpersonsrow}
-                  <td style="valign:top; align:left">
+                  <td .PlayerArea-Cards-Culture style="valign:top; align:left">
                     ^{culturecardsrow}
           <tr>
-            <td valign=bottom .Parent .NoSpacing>
+            <td .PlayerArea-TechArea valign=bottom .Parent .NoSpacing>
               ^{techtree}
             <td>
               <table>
@@ -190,14 +187,14 @@ playerArea di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
                   <td>
                     <table style="max-width:100%">
                       <tr>
-                        <td align=left>
+                        <td .PlayerArea-Items align=left>
                           ^{items}
-                        <td align=right>
+                        <td .PlayerArea-Policies align=right>
                           ^{policyrow}
                 <tr>
-                  <td>
+                  <td .PlayerArea-Dial>
                     ^{pdial}
-      <td valign=top>
+      <td .PlayerArea-Units valign=top>
         ^{unitcolumn}
 |]
 
@@ -300,7 +297,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let showmetropolis = isNothing mb_capitalmetropolis && getValueAbility canBuildMetropolis player
 	return [whamlet|
 <div>
-  <div .Parent .NoSpacing>
+  <div .PlayerArea-Techtree.Parent.NoSpacing>
     <table border=0>
       <colgroup>
         $forall j <- columns
@@ -308,12 +305,13 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
       $forall (i,techcards) <- techss
         <tr>
           $forall j <- replicate i 0
-            <td><br>
+            <td>
           $forall techcard@TechCard{..} <- techcards
             <td colspan=2>
-              <div>
-                <img data-target=#{data2markup $ TechTarget playername _techCardTechId} src=@{techRoute _techCardTechId}>
-                <div .TechCoinPos>
+              <div .TechTree-Item>
+                <div .TechTree-Item-TechCard>
+                  <img data-target=#{data2markup $ TechTarget playername _techCardTechId} src=@{techRoute _techCardTechId}>
+                <div .TechTree-Item-Coin>
                   ^{techCoinRow playername _techCardTechId _techCardCoins}
   $if startplayer
     <img style="position:absolute; left:5px; top:0px;" src=@{startPlayerRoute}>
@@ -321,11 +319,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
     <table .NoSpacing>
       <tr>
         <td valign=top>
-          <table .NoSpacing>
+          <table .PlayerArea-Wagons.NoSpacing.>
             $forall i <- unusedwagons
               <tr><td><img .Wagon data-source=#{data2markup $ WagonSource playername} src=@{wagonRoute _playerColour}>
         <td valign=top>
-          <table .NoSpacing>
+          <table .PlayerArea-Flags.NoSpacing>
             $forall i <- unusedflags
               <tr><td><img .Flag data-source=#{data2markup $ FlagSource playername} src=@{flagRoute _playerColour}>
         <td valign=top>
@@ -417,33 +415,9 @@ rotateStyle deg =
     "transform: rotate(" ++ show deg ++ "deg); " ++
 	"transform-origin: 50% 50%; "
 
-partialCityItems :: DisplayInfo -> PlayerName -> Player -> Handler Widget
-partialCityItems di playername player@(Player{..}) = do
-    return [whamlet|
-<div class="PlayerArea-CityItems">
-    <div class="PlayerArea-CityItem" data-source=#{data2markup $ CitySource playername}><img src=@{cityRoute' (False,NoWalls,_playerColour)}>
-    <div class="PlayerArea-CityItem" data-source=#{data2markup $ MetropolisSource playername}><img src=@{metropolisRoute' (NoWalls,_playerColour)}>
-|]
 
 partialDebugArea :: DisplayInfo -> Handler Widget
 partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Debug>
-  <table border=1>
-    <tr>
-      <td>Source
-      <td>
-        <textarea id="Debug-Source" class="Debug-JsonArea">
-    <tr>
-      <td>Target
-      <td>
-        <textarea id="Debug-Target" class="Debug-JsonArea">
-    <tr>
-      <td>Action
-      <td>
-        <textarea id="Debug-Action" class="Debug-JsonArea">
-    <tr>
-      <td colspan=2>
-        <button id="Debug-Send" type="button">SendAction
 |]
-	

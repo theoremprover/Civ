@@ -5,6 +5,9 @@ import qualified Data.Map as Map
 
 type TokenStack tokenty token = Map.Map tokenty [token]
 
+emptyTokenStack :: (Ord key) => TokenStack key val
+emptyTokenStack = tokenStackFromList []
+
 tokenStackFromList :: (Ord key) => [(key,val)] -> Map.Map key val
 tokenStackFromList l = Map.fromList l
 
