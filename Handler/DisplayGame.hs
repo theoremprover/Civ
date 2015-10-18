@@ -138,7 +138,7 @@ actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 	return [whamlet|
 <table>
   $forall move <- moves
-    <tr><td><button type=button onclick="sendAction(#{data2markup $ GameActionA move})">#{show move}
+    <tr><td><button type=button onclick="sendAction(JSON.stringify(#{data2markup $ GameActionA move}))">#{show move}
 |]
 
 playerList :: DisplayInfo -> Handler Widget

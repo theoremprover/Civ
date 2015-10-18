@@ -10,7 +10,9 @@ import Data.Acid
 import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
+import Data.List
 import Control.Lens hiding (Action)
+import Data.Map.Lens
 import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
@@ -30,16 +32,6 @@ getCivState :: Query CivState CivState
 getCivState = ask
 
 type UpdateCivM a = ErrorT String (Update CivState) a
---type CheckPossibilityM = 
-
-{-
-type QueryCivM a = ErrorT String (Query CivState) a
-
-queryCivQ :: Traversal' CivState a -> QueryCivM a
-queryCivQ lens = do
-	civstate <- Control.Monad.Reader.ask
-	return $ preview lens civstate
--}
 
 checkCondition :: String -> Traversal' CivState b -> (b -> Bool) -> UpdateCivM ()
 checkCondition errmsg lens f = do
@@ -157,28 +149,28 @@ finishPlayerPhase gamename = do
 			incPlayerIndex gamename gamePlayersTurn
 			incPlayerIndex gamename gameStartPlayer
 
-moveGen :: GameName -> Game -> Maybe PlayerName -> [Move]
-moveGen _ _ Nothing = []
-moveGen gamename game@(Game{..}) (Just my_playername) = do
-	let
-		(playername_turn,player_turn@(Player{..})) = nthAssocList _gamePlayersTurn _gamePlayers
-	case my_playername == playername_turn of
-		False -> []
-		True -> case _gamePhase of
-			StartOfGame ->
-				[]
-			BuildingFirstCity -> case _playerCityCoors of
-				[] -> map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
-				_  -> []
-			GettingFirstTrade ->
-				[Move (AutomaticMove ()) (GetTradeTarget my_playername)]
-			_ -> [Move (HaltSource ()) (NoTarget ())]
+disallowSecondMove move1 move2 = case (move1,move2) of
+	_ -> True
 
-moveGenM :: GameName -> UpdateCivM [Move]
-moveGenM gamename = do
-	Just game <- queryCivLensM $ civGameLens gamename . _Just
+moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
+moveGenM gamename my_playername = do
 	playername <- getPlayerTurn gamename
-	return $ moveGen gamename game (Just playername)
+	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
+	Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername
+	moves <- case my_playername == turn_playername of
+		False -> return []
+		True -> do
+			case phase of
+				StartOfGame -> return []
+				BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+				GettingFirstTrade ->
+					return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
+				_ ->
+					return []
+	mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase
+	let movesthisphase = maybe [] Prelude.id mb_movesthisphase
+	-- HERE: mit disallowSecondMove die erlaubten moves erzeugen
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
 gameAction gamename playername move = runUpdateCivM $ do
@@ -197,6 +189,9 @@ doMove gamename playername move@(Move source target) = do
 			buildCity gamename coors $ newCity playername True Nothing
 		(AutomaticMove (),GetTradeTarget pn) | pn==playername -> getTrade gamename playername
 		_ -> error $ show move ++ " not implemented yet"
+	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
+	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+	updateCivLensM (++move) $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 	return ()
 
 checkMovesLeft :: GameName -> UpdateCivM ()
@@ -206,12 +201,10 @@ checkMovesLeft gamename = do
 		[] -> do
 			finishPlayerPhase gamename
 			checkMovesLeft gamename
-{-
 		[move@(Move (AutomaticMove ()) _)] -> do
 			playername <- getPlayerTurn gamename
 			doMove gamename playername move
 			checkMovesLeft gamename
--}
 		_ -> return ()
 
 forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
@@ -241,16 +234,16 @@ squareIncome gamename playername coors = do
 			Just (BuildingMarker (Building buildingtype pn)) | pn==playername -> generatedIncome buildingtype
 			Just _ -> noIncome
 			_ ->
-				(if _squareNatWonder then cultureIncome 1 else noIncome) +
-				(if _squareCoin then oneCoin else noIncome) +
-				(maybe noIncome (resourceIncome.(:[]).One) _squareResource) +
+				(if _squareNatWonder then cultureIncome 1 else noIncome) +#
+				(if _squareCoin then oneCoin else noIncome) +#
+				(maybe noIncome (resourceIncome.(:[]).One) _squareResource) +#
 				(generatedIncome (Prelude.head _squareTerrain))
 
 getTrade :: GameName -> PlayerName -> UpdateCivM ()
 getTrade gamename playername = do
 	incomes <- forAllOutskirts gamename playername $ \ (coors,_,_) -> do
 		squareIncome gamename playername coors
-	addTrade (inTrade $ sum incomes) gamename playername
+	addTrade (inTrade $ mconcat incomes) gamename playername
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do
@@ -479,31 +472,6 @@ queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
 queryCivLensM lens = do
 	civstate <- Control.Monad.State.get
 	return $ preview lens civstate
-
-{-
-data Square =
-	OutOfBounds |
-	UnrevealedSquare TileID Coors |
-	Square {
-		_squareTileIDOri   :: Maybe (TileID,Orientation),
-		_squareTerrain     :: [Terrain],
-		_squareCoin        :: Bool,
-		_squareResource    :: Maybe Resource,
-		_squareNatWonder   :: Bool,
-		_squareTokenMarker :: Maybe TokenMarker,
-		_squareBuilding    :: Maybe Building,
-		_squareFigures     :: [(Figure,PlayerName)]
-		}
--}
-
-{-
-buildCityPossible :: GameName -> Coors -> City -> QueryCivM ()
-buildCityPossible gamename coors city@(City{..}) = do
-	let coorss = case _cityMetropolisOrientation of
-		Nothing  -> [ coors ]
-		Just ori -> [ coors, addCoorsOri coors ori ]
-	let outskirts = outskirtsOf coorss
--}
 
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
