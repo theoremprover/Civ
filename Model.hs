@@ -578,6 +578,7 @@ makeLenses ''CultureCard
 -- The unit types are for ActionSource to be JSON toplevel encodable
 data ActionSource =
 	AutomaticMove () |
+	HaltSource () |
 	WagonSource PlayerName | FlagSource PlayerName |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
@@ -605,7 +606,7 @@ instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
 		(_,GetTradeTarget _) -> "Get Trade"
---		(HaltSource (),_) -> "HALTED"
+		(HaltSource (),_) -> "HALTED"
 		(source,target) -> show (source,target)
 
 

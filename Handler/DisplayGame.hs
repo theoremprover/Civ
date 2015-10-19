@@ -16,6 +16,7 @@ import qualified Text.Blaze.Renderer.String (renderHtml)
 import Text.Blaze (string)
 import Data.Text.Lazy.Builder (fromString)
 import Text.Julius (RawJavascript(..))
+import Data.Acid.Advanced
 
 import GameMonad
 import Model
@@ -51,8 +52,12 @@ data DisplayInfo = DisplayInfo {
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
-displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> [Move] -> Handler Html
-displayGame (userid,user,gamename,game,mb_playername) moves = do
+displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
+displayGame (userid,user,gamename,game,mb_playername) = do
+	app <- getYesod
+	moves <- case mb_playername of
+		Nothing -> return []
+		Just playername -> update' (appCivAcid app) $ MoveGen gamename playername 
 	let
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername

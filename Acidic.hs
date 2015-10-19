@@ -14,7 +14,7 @@ import Data.Maybe
 import Data.List
 import Control.Monad
 import Control.Lens hiding (Action)
-import Data.Map.Lens
+import qualified Data.Map as Map
 import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
@@ -136,7 +136,7 @@ incPlayerIndex gamename playerindex = do
 	numplayers <- getNumPlayers gamename
 	updateCivLensM ((`mod` numplayers) . (+1)) $ civGameLens gamename . _Just . playerindex
 
-getPlayerTurn :: GameName -> QueryCivM PlayerName
+getPlayerTurn :: GameName -> UpdateCivM PlayerName
 getPlayerTurn gamename = do
 	Just playerindex <- queryCivLensM $ civGameLens gamename . _Just . gamePlayersTurn
 	Just (playername,_) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
@@ -152,31 +152,34 @@ finishPlayerPhase gamename = do
 			incPlayerIndex gamename gamePlayersTurn
 			incPlayerIndex gamename gameStartPlayer
 
-disallowSecondMove move1 move2 = case (move1,move2) of
-	_ -> False
+allowSecondMove secondmove move = case (move,secondmove) of
+	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
+	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
+	_ -> True
 
-moveGenM :: GameName -> PlayerName -> QueryCivM [Move]
-moveGenM gamename my_playername = do
+moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
+moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
 
-moveGen :: GameName -> PlayerName -> Query CivState [Move]
+moveGen :: GameName -> PlayerName -> Update CivState [Move]
 moveGen gamename my_playername = do
-	playername <- getPlayerTurn gamename
-	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
-	Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
-	moves <- case my_playername == playername of
-		False -> return []
-		True -> do
-			case phase of
-				StartOfGame -> return []
-				BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
-				GettingFirstTrade ->
-					return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
-				_ ->
-					return []
-	mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
-	let movesthisphase = maybe [] Prelude.id mb_movesthisphase
-	-- HERE: mit disallowSecondMove die erlaubten moves erzeugen
+	Right moves <- runErrorT $ do
+		playername <- getPlayerTurn gamename
+		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+		Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
+		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
+		moves <- case my_playername == playername of
+			False -> return []
+			True -> do
+				case phase of
+					StartOfGame -> return []
+					BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+					GettingFirstTrade ->
+						return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
+					_ ->
+						return [Move (HaltSource ()) (NoTarget ())]
+		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
+		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
+		return $ foldl (\ ms mbd -> filter (allowSecondMove mbd) ms) moves movesthisphase
 	return moves
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
@@ -198,8 +201,11 @@ doMove gamename playername move@(Move source target) = do
 		_ -> error $ show move ++ " not implemented yet"
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-	updateCivLensM (++[move]) $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
+	updateCivLensM (addmove turn phase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
+	where
+	addmove turn phase = Map.insertWith (addphase phase) turn (Map.singleton phase [move])
+	addphase phase new old = Map.insertWith (++) phase [move] (Map.union new old)
 
 checkMovesLeft :: GameName -> UpdateCivM ()
 checkMovesLeft gamename = do
@@ -475,9 +481,9 @@ runUpdateCivM = runErrorT
 updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM ()
 updateCivLensM fval lens = modify $ over lens fval
 
-queryCivLensM :: (MonadReader CivState m) => Traversal' CivState a -> m (Maybe a)
+queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
 queryCivLensM lens = do
-	civstate <- Control.Monad.Reader.ask
+	civstate <- Control.Monad.State.get
 	return $ preview lens civstate
 
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
