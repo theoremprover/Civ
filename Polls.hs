@@ -30,9 +30,4 @@ coors2action _ _ = False
 
 deriveJSON defaultOptions ''ActionA
 deriveJSON defaultOptions ''Affected
-deriveJSON defaultOptions ''Figure
-deriveJSON defaultOptions ''Resource
-deriveJSON defaultOptions ''Tech
-deriveJSON defaultOptions ''Hut
-deriveJSON defaultOptions ''Village
-deriveJSON defaultOptions ''Artifact
+

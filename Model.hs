@@ -587,6 +587,7 @@ data ActionSource =
 	TechCoinSource PlayerName Tech |
 	ArtifactSource PlayerName Artifact
 	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''ActionSource)
 
 data ActionTarget =
 	NoTarget () |
@@ -595,9 +596,11 @@ data ActionTarget =
 	TechTarget PlayerName Tech |
 	GetTradeTarget PlayerName
 	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''ActionTarget)
 
 data Move = Move ActionSource ActionTarget
 	deriving (Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''Move)
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
@@ -1026,3 +1029,9 @@ deriveJSON defaultOptions ''Colour
 deriveJSON defaultOptions ''ActionSource
 deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Move
+deriveJSON defaultOptions ''Tech
+deriveJSON defaultOptions ''Artifact
+deriveJSON defaultOptions ''Figure
+deriveJSON defaultOptions ''Resource
+deriveJSON defaultOptions ''Hut
+deriveJSON defaultOptions ''Village

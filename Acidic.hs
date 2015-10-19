@@ -2,20 +2,23 @@
 
 module Acidic where
 
-import Import hiding (Update,Query,array,delete,head)
+import qualified Import
+--hiding (Update,Query,array,delete,head,(++),map,zip,unlines,concatMap,filter)
 
-import qualified Prelude
+import Prelude
 
 import Data.Acid
 import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
 import Data.List
+import Control.Monad
 import Control.Lens hiding (Action)
 import Data.Map.Lens
 import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
+import Data.Monoid
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
@@ -29,7 +32,7 @@ import ModelVersion
 
 
 getCivState :: Query CivState CivState
-getCivState = ask
+getCivState = Import.ask
 
 type UpdateCivM a = ErrorT String (Update CivState) a
 
@@ -157,8 +160,8 @@ moveGenM gamename my_playername = do
 	playername <- getPlayerTurn gamename
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
-	Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername
-	moves <- case my_playername == turn_playername of
+	Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
+	moves <- case my_playername == playername of
 		False -> return []
 		True -> do
 			case phase of
@@ -171,10 +174,11 @@ moveGenM gamename my_playername = do
 	mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase
 	let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 	-- HERE: mit disallowSecondMove die erlaubten moves erzeugen
+	return moves
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
 gameAction gamename playername move = runUpdateCivM $ do
-	moves <- moveGenM gamename
+	moves <- moveGenM gamename playername
 	case move `elem` moves of
 		False -> error $ show playername ++ " requested " ++ show move ++ " which is not in 'moves'!"
 		True -> do
@@ -191,18 +195,18 @@ doMove gamename playername move@(Move source target) = do
 		_ -> error $ show move ++ " not implemented yet"
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-	updateCivLensM (++move) $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
+	updateCivLensM (++[move]) $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 	return ()
 
 checkMovesLeft :: GameName -> UpdateCivM ()
 checkMovesLeft gamename = do
-	moves_left <- moveGenM gamename
+	playername <- getPlayerTurn gamename
+	moves_left <- moveGenM gamename playername
 	case moves_left of
 		[] -> do
 			finishPlayerPhase gamename
 			checkMovesLeft gamename
 		[move@(Move (AutomaticMove ()) _)] -> do
-			playername <- getPlayerTurn gamename
 			doMove gamename playername move
 			checkMovesLeft gamename
 		_ -> return ()
@@ -491,10 +495,6 @@ buildBuilding gamename playername coors buildingtype = do
 		civSquareLens gamename coors . squareTokenMarker
 
 victory victorytype gamename playername = error "Not implemented yet"
-
-$(deriveSafeCopy modelVersion 'base ''ActionSource)
-$(deriveSafeCopy modelVersion 'base ''ActionTarget)
-$(deriveSafeCopy modelVersion 'base ''Move)
 
 $(makeAcidic ''CivState [
 	'getCivState,
