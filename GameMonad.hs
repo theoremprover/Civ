@@ -16,7 +16,6 @@ import qualified Data.ByteString.Lazy as L
 import Data.Conduit.List (consume)
 
 import Network.Wai (requestBody)
-import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 
 import Model

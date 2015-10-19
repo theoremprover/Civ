@@ -59,7 +59,6 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
-		moves = moveGen gamename game mb_playername
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves

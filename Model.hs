@@ -642,7 +642,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] initialFigureStack [] Northward initialCityStack
-	0 [] []
+	0 [] [] Map.empty
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

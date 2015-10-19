@@ -136,7 +136,7 @@ incPlayerIndex gamename playerindex = do
 	numplayers <- getNumPlayers gamename
 	updateCivLensM ((`mod` numplayers) . (+1)) $ civGameLens gamename . _Just . playerindex
 
-getPlayerTurn :: GameName -> UpdateCivM PlayerName
+getPlayerTurn :: GameName -> QueryCivM PlayerName
 getPlayerTurn gamename = do
 	Just playerindex <- queryCivLensM $ civGameLens gamename . _Just . gamePlayersTurn
 	Just (playername,_) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
@@ -153,10 +153,13 @@ finishPlayerPhase gamename = do
 			incPlayerIndex gamename gameStartPlayer
 
 disallowSecondMove move1 move2 = case (move1,move2) of
-	_ -> True
+	_ -> False
 
-moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
+moveGenM :: GameName -> PlayerName -> QueryCivM [Move]
 moveGenM gamename my_playername = do
+
+moveGen :: GameName -> PlayerName -> Query CivState [Move]
+moveGen gamename my_playername = do
 	playername <- getPlayerTurn gamename
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
@@ -171,7 +174,7 @@ moveGenM gamename my_playername = do
 					return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
 				_ ->
 					return []
-	mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase
+	mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 	let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 	-- HERE: mit disallowSecondMove die erlaubten moves erzeugen
 	return moves
@@ -472,9 +475,9 @@ runUpdateCivM = runErrorT
 updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM ()
 updateCivLensM fval lens = modify $ over lens fval
 
-queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
+queryCivLensM :: (MonadReader CivState m) => Traversal' CivState a -> m (Maybe a)
 queryCivLensM lens = do
-	civstate <- Control.Monad.State.get
+	civstate <- Control.Monad.Reader.ask
 	return $ preview lens civstate
 
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
@@ -503,6 +506,7 @@ $(makeAcidic ''CivState [
 	'joinGame,
 	'deleteGame,
 	'createNewGame,
-	'gameAction
+	'gameAction,
+	'moveGen
 	])
 
