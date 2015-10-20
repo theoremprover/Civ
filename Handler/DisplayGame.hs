@@ -352,11 +352,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
         <td valign=top>
           <table .PlayerArea-Wagons.NoSpacing.>
             $forall i <- unusedwagons
-              <tr><td><img .Wagon data-source=#{data2markup $ WagonSource playername} src=@{wagonRoute _playerColour}>
+              <tr><td><img .Wagon data-source=#{data2markup $ FigureSource playername Wagon} src=@{wagonRoute _playerColour}>
         <td valign=top>
           <table .PlayerArea-Flags.NoSpacing>
             $forall i <- unusedflags
-              <tr><td><img .Flag data-source=#{data2markup $ FlagSource playername} src=@{flagRoute _playerColour}>
+              <tr><td><img .Flag data-source=#{data2markup $ FigureSource playername Flag} src=@{flagRoute _playerColour}>
         <td valign=top>
           $forall _ <- leftcities 
             <img .Debug-DragCity data-source=#{data2markup $ CitySource playername} src=@{cityRoute' (False,NoWalls,_playerColour)}>

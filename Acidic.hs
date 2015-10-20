@@ -127,6 +127,14 @@ startGame gamename = runUpdateCivM $ do
 	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
 -}
 
+getPlayer gamename playername = do
+	Just player <- queryCivLensM $ civPlayerLens gamename playername
+	return player
+
+getGame gamename = do
+	Just game <- queryCivLensM $ civGameLens gamename
+	return game
+
 getNumPlayers gamename = do
 	Just players <- queryCivLensM $ civPlayersLens gamename
 	return $ numPlayers players
@@ -169,6 +177,24 @@ outskirtsOfCity gamename playername coors = do
 		Nothing -> []
 		Just ori -> [addCoorsOri coors ori]
 
+figuresOfPlayerOnSquare playername Square{..} =
+	concatMap (\ (fig,pns) -> map (const fig) $ filter (==playername) pns) $
+		tokenStackToList _squareFigures
+
+canStayMoveOn mtterrains gamename playername coors = do
+	Square{..} <- getSquare gamename coors
+	Player{..} <- getPlayer playername
+	let stacklimit = getValueAbility unitStackLimit player
+	return $ 
+		stacklimit > figuresOfPlayerOnSquare playername square &&
+		_squareTerrain `elem` (mtterrains $ maximum $ map movementType $ playerAbilities player)
+
+canStayOn gamename playername coors = canStayMoveOn movementTypeEndTerrains gamename playername coors
+canCross gamename playername coors = canStayMoveOn movementTypeCrossTerrains gamename playername coors
+
+placeFigure gamename playername figure coors = do
+	
+
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
 
@@ -185,13 +211,16 @@ moveGen gamename my_playername = do
 				case phase of
 					StartOfGame -> return []
 					BuildingFirstCity -> return $
-						map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+						[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
 					PlaceFirstFigures -> do
-						let outskirts <- outskirtsOfCity gamename playername (head _playerCityCoors)
+						outskirts <- outskirtsOfCity gamename playername (head _playerCityCoors)
+						possible_squares <- filterM (canStayOn gamename playername) outskirts
+						let possible_figures = [Wagon,Flag] -- TODO: Kosten berechnen
+						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 					GettingFirstTrade ->
-						return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
+						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
 					_ ->
-						return [Move (HaltSource ()) (NoTarget ())]
+						return [ Move (HaltSource ()) (NoTarget ()) ]
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 		return $ foldl (\ ms mbd -> filter (allowSecondMove mbd) ms) moves movesthisphase
@@ -209,10 +238,14 @@ gameAction gamename playername move = runUpdateCivM $ do
 
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
+	Game{..} <- getGame gamename
 	case (source,target) of
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
 		(AutomaticMove (),GetTradeTarget pn) | pn==playername -> getTrade gamename playername
+		(FigureSource pn figure,SquareTarget coors) | pn==playername -> case _gamePhase of
+			PlaceFirstFigures -> placeFigure gamename playername figure coors
+			_                 -> buildFigure gamename playername figure coors
 		_ -> error $ show move ++ " not implemented yet"
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase

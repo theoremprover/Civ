@@ -153,7 +153,7 @@ initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
 	(Wheat,numplayers),(Incense,numplayers),(Linen,numplayers),(Iron,numplayers) ]
 
 data Terrain = Grassland | Desert | Mountains | Forest | Water
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
 
 data Income = Income {
@@ -194,6 +194,14 @@ instance GeneratesIncome Terrain where
 
 data MovementType = Land | CrossWater | StayInWater | Air
 	deriving (Show,Ord,Eq)
+
+movementTypeEndTerrains mt = case mt `elem` [Land,CrossWater] of
+	True  -> [Grassland,Desert,Mountains,Forest]
+	False -> allOfThem
+
+movementTypeCrossTerrains mt = case mt of
+	Land -> [Grassland,Desert,Mountains,Forest]
+	_ -> allOfThem
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Data,Ord,Typeable,Eq)
@@ -367,6 +375,10 @@ $(deriveSafeCopy modelVersion 'base ''CityState)
 data Figure = Flag | Wagon
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Figure)
+
+figureCosts figure = case figure of
+	Flag  -> hammerIncome 4
+	Wagon -> hammerIncome 6
 
 initialFigureStack :: TokenStack Figure ()
 initialFigureStack = tokenStackFromList $ replicateUnit [
@@ -579,7 +591,7 @@ makeLenses ''CultureCard
 data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
-	WagonSource PlayerName | FlagSource PlayerName |
+	FigureSource PlayerName Figure |
 	FigureOnBoardSource Figure PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
@@ -608,6 +620,7 @@ instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
 		(_,GetTradeTarget _) -> "Get Trade"
+		(FigureSource _ figure,SquareTarget coors) -> "Build " ++ show figure ++ " on " ++ show coors
 		(HaltSource (),_) -> "HALTED"
 		(source,target) -> show (source,target)
 
