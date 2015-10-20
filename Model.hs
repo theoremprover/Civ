@@ -86,7 +86,7 @@ data TileID =
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfGame |
-	BuildingFirstCity | GettingFirstTrade |
+	BuildingFirstCity | PlaceFirstFigures | GettingFirstTrade |
 	StartOfTurn |
 	Trading |
 	CityManagement |

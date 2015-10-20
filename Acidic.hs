@@ -155,7 +155,19 @@ finishPlayerPhase gamename = do
 allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
+	(Move (WagonSource ()) (SquareTarget _ _),Move (WagonSource ()) (SquareTarget _ _)) -> False
+	(Move (FlagSource ()) (SquareTarget _ _),Move (FlagSource ()) (SquareTarget _ _)) -> False
 	_ -> True
+
+getCity gamename coors = do
+	Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
+	return city
+
+outskirtsOfCity gamename playername coors = do
+	Just city <- getCity coors
+	return $ coors : case _cityMetropolisOrientation city of
+		Nothing -> []
+		Just ori -> [addCoorsOri coors ori]
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
@@ -174,6 +186,8 @@ moveGen gamename my_playername = do
 					StartOfGame -> return []
 					BuildingFirstCity -> return $
 						map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+					PlaceFirstFigures -> do
+						let outskirts <- outskirtsOfCity gamename playername (head _playerCityCoors)
 					GettingFirstTrade ->
 						return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
 					_ ->
@@ -225,16 +239,14 @@ forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> Upda
 forAllCities gamename playername action = do
 	Just coorss <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
 	forM coorss $ \ coors -> do
-		Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
+		city <- getCity gamename coors
 		action (coors,city)
 
 forAllOutskirts :: GameName -> PlayerName -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
 forAllOutskirts gamename playername action = do
 	lss <- forAllCities gamename playername $ \ (coors,city) -> do
-		let citycoorss = coors : case _cityMetropolisOrientation city of
-			Nothing -> []
-			Just ori -> [addCoorsOri coors ori]
-		forM (outskirtsOf citycoorss) $ \ outskirt_coors -> do
+		outskirts <- outskirtsOfCity coors
+		forM outskirts $ \ outskirt_coors -> do
 			Just square <- getSquare gamename outskirt_coors
 			action (outskirt_coors,city,square)
 	return $ concat lss
