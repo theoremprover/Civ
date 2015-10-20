@@ -172,7 +172,8 @@ moveGen gamename my_playername = do
 			True -> do
 				case phase of
 					StartOfGame -> return []
-					BuildingFirstCity -> return $ map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
+					BuildingFirstCity -> return $
+						map (\ coors -> Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors)) _playerFirstCityCoors
 					GettingFirstTrade ->
 						return [Move (AutomaticMove ()) (GetTradeTarget my_playername)]
 					_ ->

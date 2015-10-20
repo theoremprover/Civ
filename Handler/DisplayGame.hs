@@ -2,8 +2,8 @@
 
 module Handler.DisplayGame where
 
-import Import hiding (map,minimum,maximum,concat,lookup,replicate,head)
-import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head)
+import Import hiding (map,minimum,maximum,concat,lookup,replicate,head,zip)
+import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head,zip)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -17,6 +17,7 @@ import Text.Blaze (string)
 import Data.Text.Lazy.Builder (fromString)
 import Text.Julius (RawJavascript(..))
 import Data.Acid.Advanced
+import Data.List ((!!))
 
 import GameMonad
 import Model
@@ -29,6 +30,8 @@ import Logic
 import TokenStack
 import Actions
 import Acidic
+
+default (Int, Float)
 
 
 movelisttarget2markup :: [Move] -> String
@@ -419,6 +422,7 @@ boardArea (DisplayInfo{..}) moves = do
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
+                      ^{figuresSquare playercolour (_squareFigures square) (Coors x y)}
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -449,10 +453,24 @@ partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Debug>
 |]
-{-
-	flagSize  = scalex 45 1.27,
-	wagonSize = scalex 65 0.86,
-	pieceSquareProps = map (zip [10..]) [
+
+figuresSquare :: (PlayerName -> Colour) -> TokenStack Figure PlayerName -> Coors -> Widget
+figuresSquare playercolour figurestack coors = [whamlet|
+<div>
+  $forall ((x,y),(figure,playername,colour)) <- zip this_poss figures
+    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
+|]
+	where
+	this_poss = pos!!n
+	showcoor c = show $ ((round $ (c * fromInteger 94)) :: Int)
+	figureassocs = tokenStackToList figurestack
+	n = length figures
+	figures = concatMap (\ (figure,pns) -> map (\ pn -> (figure,pn,playercolour pn)) pns) figureassocs
+	cfi x r = ceiling (fromIntegral x / r) :: Int
+	n1 = cfi n 3
+	n2 = cfi (n-n1) 2
+	n3 = n-n1-n2
+	pos = [
 		[],
 		[(0.5,0.5)],
 		[(0.33,0.33),(0.67,0.67)],
@@ -463,11 +481,4 @@ partialDebugArea di@(DisplayInfo{..}) = do
 		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
--}
-figuresSquare :: DisplayInfo -> TokenStack Figure PlayerName -> Handler Widget
-figuresSquare (DisplayInfo{..}) figures = do
-	return [whamlet|
-|]
-	where
-	flagplayers  = tokenStackLookup Flag  figures
-	wagonplayers = tokenStackLookup Wagon figures
+		-- TODO: Expand

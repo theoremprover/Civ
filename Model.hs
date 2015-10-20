@@ -580,6 +580,7 @@ data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
 	WagonSource PlayerName | FlagSource PlayerName |
+	FigureOnBoardSource Figure PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
 	SquareSource Coors |
@@ -595,6 +596,7 @@ data ActionTarget =
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	TechTarget PlayerName Tech |
+	FigureOnBoardTarget Figure PlayerName Coors |
 	GetTradeTarget PlayerName
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
