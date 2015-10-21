@@ -38,7 +38,7 @@ instance (Ord a) => Ord (Value a) where
 	_ <= ModifyValue g = False
 	SetValue a <= SetValue b = a<=b
 	SetValue a <= _ = False
-	_ <= SetValue b = True
+	_ <= SetValue b = False
 	Unchanged <= Unchanged = True
 
 instance (Show a) => Show (Value a) where
@@ -588,10 +588,12 @@ buildUnlockedBuilding_Spanish gamename playername = do
 	--TODO
 	return ()
 
-valueAbilities :: (Ord a) => [Value a] -> a
+valueAbilities :: (Ord a,Show a) => [Value a] -> a
 valueAbilities values = foldl (flip ($)) a modvalues
 	where
-	SetValue a = maximum values
+	a = case maximum values of
+		SetValue v -> v
+		x -> error $ "valueAbilities: values=" ++ show values
 	modvalues = map ismod values
 	ismod (ModifyValue f) = f
 	ismod _ = id
@@ -606,11 +608,11 @@ playerNumberOfCoins player@(Player{..}) =
 	-- TODO: z.B. Add Coins auf dem Battlefield
 
 -- abstrahieren auf ein Argument für ability
-getValueAbility :: (Ord a) => (Abilities -> Value a) -> Player -> a
+getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
 getValueAbility toability player = valueAbilities $ map toability (playerAbilities player)
 
 playerAbilities player@(Player{..}) =
-	civAbilities _playerCiv :
+	defaultAbilities : civAbilities _playerCiv :
 	map (techAbilities._techCardTechId) _playerTechs
 
 
@@ -759,7 +761,7 @@ getCity gamename coors = do
 outskirtsOfCity :: GameName -> Coors -> UpdateCivM [Coors]
 outskirtsOfCity gamename coors = do
 	city <- getCity gamename coors
-	return $ coors : case _cityMetropolisOrientation city of
+	return $ outskirtsOf $ coors : case _cityMetropolisOrientation city of
 		Nothing -> []
 		Just ori -> [addCoorsOri coors ori]
 
@@ -1090,12 +1092,13 @@ canStayMoveOn mtterrains gamename playername coors = do
 	Just (square@(Square{..})) <- getSquare gamename coors
 	Just (player@(Player{..})) <- getPlayer gamename playername
 	let stacklimit = getValueAbility unitStackLimit player
+	let terrains = mtterrains $ maximum $ map movementType $ playerAbilities player
 	return $ 
-		(stacklimit > length (figuresOfPlayerOnSquare playername square)) &&
-		(head _squareTerrain) `elem` (mtterrains $ maximum $ map movementType $ playerAbilities player)
+		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
+		(head _squareTerrain) `elem` terrains
 
 canStayOn = canStayMoveOn movementTypeEndTerrains
-canCross = canStayMoveOn movementTypeCrossTerrains
+canCross  = canStayMoveOn movementTypeCrossTerrains
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
@@ -1117,14 +1120,15 @@ moveGen gamename my_playername = do
 					PlaceFirstFigures -> do
 						outskirts <- outskirtsOfCity gamename (head _playerCityCoors)
 						possible_squares <- filterM (canStayOn gamename playername) outskirts
-						let possible_figures = [Wagon,Flag] -- TODO: Kosten berechnen
+						let possible_figures = [Wagon,Flag] -- TODO: Kosten berechnen bei BuildFigures
 						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 					GettingFirstTrade ->
 						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
 					_ ->
-						return [ Move (HaltSource ()) (NoTarget ()) ]
+						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
+		--foldl :: (a -> b -> a) -> a -> [b] -> a
 		return $ foldl (\ ms mbd -> filter (allowSecondMove mbd) ms) moves movesthisphase
 	return moves
 

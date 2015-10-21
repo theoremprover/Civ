@@ -457,7 +457,7 @@ figuresSquare :: (PlayerName -> Colour) -> TokenStack Figure PlayerName -> Coors
 figuresSquare playercolour figurestack coors = [whamlet|
 <div>
   $forall ((x,y),(figure,playername,colour)) <- zip this_poss figures
-    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
+    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
 |]
 	where
 	this_poss = pos!!n

@@ -201,7 +201,7 @@ movementTypeEndTerrains mt = case mt `elem` [Land,CrossWater] of
 
 movementTypeCrossTerrains mt = case mt of
 	Land -> [Grassland,Desert,Mountains,Forest]
-	_ -> allOfThem
+	_    -> allOfThem
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Data,Ord,Typeable,Eq)
