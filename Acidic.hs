@@ -1129,9 +1129,7 @@ moveGen gamename my_playername = do
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 		--foldl :: (a -> b -> a) -> a -> [b] -> a
-		let allowedmoves = foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
-		setDbgMessage $ "genmoves=" ++ show moves ++ ",\n movesthisphase="++ show movesthisphase ++ "\n allowedmoves=" ++ show allowedmoves
-		return allowedmoves
+		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
 	return moves
 
 setDbgMessage :: String -> UpdateCivM ()
