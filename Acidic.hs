@@ -797,11 +797,11 @@ doMove gamename playername move@(Move source target) = do
 		_ -> error $ show move ++ " not implemented yet"
 	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
 	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-	updateCivLensM (addmove turn phase) $ civPlayerLens gamename playername . _Just . playerMoves
+	updateCivLensM (addmove move turn phase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
 	where
-	addmove turn phase = Map.insertWith (addphase phase) turn (Map.singleton phase [move])
-	addphase phase new old = Map.insertWith (++) phase [move] (Map.union new old)
+	addmove move turn phase =
+		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
 
 forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
 forAllCities gamename playername action = do
@@ -1130,9 +1130,12 @@ moveGen gamename my_playername = do
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 		--foldl :: (a -> b -> a) -> a -> [b] -> a
 		let allowedmoves = foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
-		error $ "genmoves=" ++ show moves ++ ",\n movesthisphase="++ show movesthisphase ++ "\n allowedmoves=" ++ show allowedmoves
+		setDbgMessage $ "genmoves=" ++ show moves ++ ",\n movesthisphase="++ show movesthisphase ++ "\n allowedmoves=" ++ show allowedmoves
 		return allowedmoves
 	return moves
+
+setDbgMessage :: String -> UpdateCivM ()
+setDbgMessage msg = updateCivLensM (const msg) civDebugMsg
 
 checkMovesLeft :: GameName -> UpdateCivM ()
 checkMovesLeft gamename = do

@@ -113,7 +113,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     <td colspan="2">^{playerarea2}
 |]
 		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
-
+	Just dbgmsg <- queryCivLensH civDebugMsg
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
@@ -129,6 +129,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
       <table>
         <tr><td>^{playerlist}
         <tr><td>^{actionarea}
+  <tr><td><p border=1 bgcolor=yellow>#{dbgmsg}
 |]
 
 allowedMovesJulius :: [Move] -> Widget

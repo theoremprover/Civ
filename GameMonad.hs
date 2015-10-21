@@ -197,7 +197,7 @@ executeAction action = do
 					Just (PlayerName playerturnname,playerturn) <- queryCivH $ civPlayerIndexLens gamename playerturnindex
 					when (_playerUserEmail playerturn == userEmail user) $ do
 						setSession "player" playerturnname
-
+						printLogDebug $ "setSession player = " ++ show playerturnname
 					notifyLongPoll action [GameGame gamename]
 					return oK
 

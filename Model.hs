@@ -728,14 +728,15 @@ instance Ord Game where
 type Games = Map.Map GameName Game
 
 data CivState = CivState {
-	_civGames :: Games
+	_civGames :: Games,
+	_civDebugMsg :: String
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''CivState)
 makeLenses ''CivState
 
 initialCivState :: CivState
-initialCivState = CivState Map.empty
+initialCivState = CivState Map.empty ""
 
 data Victory = TechVictory | MilitaryVictory | CultureVictory | EconomicVictory
 	deriving (Show,Eq)
