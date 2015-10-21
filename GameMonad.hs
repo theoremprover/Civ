@@ -26,6 +26,11 @@ import Lenses
 import Polls
 import Acidic
 
+queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
+queryCivLensH lens = do
+	app <- getYesod
+	civstate <- query' (appCivAcid app) GetCivState
+	return $ preview lens civstate
 
 updateCivH :: (UpdateEvent event,MethodState event ~ CivState,MethodResult event ~ UpdateResult) =>
 	event -> Handler (EventResult event)
@@ -101,7 +106,7 @@ postCommandR = do
 			res <- executeAction action
 			sendResponse $ repJson $ encode res
 
-getGame gamename = queryCivLensH $ civGameLens gamename . _Just
+getGameH gamename = queryCivLensH $ civGameLens gamename . _Just
 
 maybeVisitor :: Handler (UserId,User,GameName,Game,Maybe PlayerName)
 maybeVisitor = do
@@ -110,7 +115,7 @@ maybeVisitor = do
 		Nothing -> redirect $ AuthR LoginR
 		Just (_,_,Nothing,_) -> errHandler "gamename not set in this session"
 		Just (userid,user,Just gamename,mb_playername) -> do
-			mb_game <- getGame gamename
+			mb_game <- getGameH gamename
 			case mb_game of
 				Nothing -> errHandler $ "There is no game " ++ show gamename
 				Just game -> return (userid,user,gamename,game,mb_playername)

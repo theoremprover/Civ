@@ -137,7 +137,7 @@ getWaitingR gn = do
 	let gamename = GameName gn
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
-		Just game <- getGame gamename
+		Just game <- getGameH gamename
 		sendJSONJulius
 		longPollingJulius (WaitingR gn) (GameGame gamename)
 		[whamlet|

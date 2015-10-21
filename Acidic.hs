@@ -31,15 +31,6 @@ import Polls
 import ModelVersion
 
 
-{-
-queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
-queryCivLensH lens = do
-	app <- getYesod
-	civstate <- query' (appCivAcid app) GetCivState
-	return $ preview lens civstate
-
--}
-
 data Value a = ModifyValue (a -> a) | Unchanged | SetValue a
 instance (Ord a) => Ord (Value a) where
 	ModifyValue _ <= ModifyValue _ = True
