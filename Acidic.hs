@@ -810,14 +810,25 @@ forAllCities gamename playername action = do
 		city <- getCity gamename coors
 		action (coors,city)
 
+forCityOutskirts :: GameName -> PlayerName -> Coors -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
+forCityOutskirts gamename playername coors action = do
+	city <- getCity gamename coors
+	outskirts <- outskirtsOfCity gamename coors
+	lss <- forM outskirts $ \ outskirt_coors -> do
+		Just square <- getSquare gamename outskirt_coors
+		action (outskirt_coors,city,square)
+	return $ concat lss
+
 forAllOutskirts :: GameName -> PlayerName -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
 forAllOutskirts gamename playername action = do
-	lss <- forAllCities gamename playername $ \ (coors,city) -> do
-		outskirts <- outskirtsOfCity gamename coors
-		forM outskirts $ \ outskirt_coors -> do
-			Just square <- getSquare gamename outskirt_coors
-			action (outskirt_coors,city,square)
+	lss <- forAllCities gamename playername $ \ (coors,_) -> do
+		forCityOutskirts gamename playername coors action
 	return $ concat lss
+
+cityIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
+cityIncome gamename playername coors = do
+	forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
+		squareIncome gamename playername outskirt_coors
 
 squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 squareIncome gamename playername coors = do
@@ -1124,6 +1135,16 @@ moveGen gamename my_playername = do
 						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 					GettingFirstTrade ->
 						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+					StartOfTurn ->
+						return []
+					Trading ->
+						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+					CityManagement -> do
+						movess <- forAllCities gamename my_playername $ \ (coors,city) -> do
+							income <- cityIncome gamename my_playername coors
+							return $
+								[ Move (FigureSource fig) (CityProduction coors squarecoors) | fig <- filter (inHammers income) allOfThem ]
+						return $ concat movess
 					_ ->
 						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just

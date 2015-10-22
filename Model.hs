@@ -373,7 +373,7 @@ data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 $(deriveSafeCopy modelVersion 'base ''CityState)
 
 data Figure = Flag | Wagon
-	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+	deriving (Show,Ord,Ix,Data,Typeable,Eq,Bounded)
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
 figureCosts figure = case figure of
