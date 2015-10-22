@@ -119,3 +119,7 @@ img
     left: 10px
     top : 70px
     z-index: 2
+
+.Centre
+    text-align: center
+    vertical-align: middle

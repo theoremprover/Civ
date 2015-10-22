@@ -81,6 +81,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     <tr><td>^{boardarea}
     <tr><td>^{playerarea1}
 |]
+
 		[p0,p1,p2] -> do
 			playerarea0 <- playerArea di p0 Southward
 			playerarea1 <- playerArea di p1 Westward
@@ -96,6 +97,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     <td>^{boardarea}
     <td>^{playerarea2}
 |]
+
 		[p0,p1,p2,p3] -> do
 			playerarea0 <- playerArea di p0 Southward
 			playerarea1 <- playerArea di p1 Westward
@@ -112,6 +114,52 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <tr>
     <td colspan="2">^{playerarea2}
 |]
+
+		[p0,p1,p2,p3,p4] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Westward
+			playerarea3 <- playerArea di p3 Northward
+			playerarea4 <- playerArea di p4 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td>
+    <td>^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="2">^{playerarea4}
+    <td .Centre rowspan="2">^{boardarea}
+  <tr>
+    <td rowspan="2">^{playerarea2}
+  <tr>
+    <td>
+    <td colspan="2">^{playerarea3}
+|]
+
+		[p0,p1,p2,p3,p4,p5] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Westward
+			playerarea3 <- playerArea di p3 Northward
+			playerarea4 <- playerArea di p4 Eastward
+			playerarea5 <- playerArea di p5 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td rowspan="3">^{playerarea5}
+    <td>^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="3">^{boardarea}
+  <tr>
+    <td rowspan="2">^{playerarea2}
+  <tr>
+    <td rowspan="2">^{playerarea4}
+  <tr>
+    <td>^{playerarea3}
+|]
+
 		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
 	Just dbgmsg <- queryCivLensH civDebugMsg
 	defaultLayout $ do

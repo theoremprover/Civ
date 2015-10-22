@@ -67,7 +67,7 @@ data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable,Enum)
 $(deriveSafeCopy modelVersion 'base ''Orientation)
 
-data Colour = Red | Green | Blue | Violet | Yellow
+data Colour = Red | Green | Blue | Violet | Yellow | White | Grey
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''Colour)
 
@@ -1027,6 +1027,23 @@ boardLayout numplayers = case numplayers of
 		(c 0  4,NT    ), (c 4  4,NT    ), (c 8  4,NT    ), (c 12  4,NT    ),
 		(c 0  8,NT    ), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
 		(c 0 12,CT 3 n), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,CT 2 n) ]
+
+	5 -> [
+		(c 0  2,NT    ), (c 4  0,CT 0 s), (c 8  0,NT    ),
+		(c 0  6,NT    ), (c 4  4,NT    ), (c 8  4,NT    ), (c 12  4,CT 1 w),
+		(c 0 10,CT 4 e), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
+		(c 0 14,NT    ), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,NT    ),
+		(c 0 18,NT    ), (c 4 16,NT    ), (c 8 16,NT    ), (c 12 16,CT 2 w),
+		(c 4 20,CT 3 n), (c 8 20,NT    ) ]
+
+	6 -> [
+		(c 0  0,NT    ), (c 4  0,CT 0 s), (c  8  0,NT    ),
+		(c 0  4,NT    ), (c 4  4,NT    ), (c  8  4,NT    ), (c 12  4,CT 1 w),
+		(c 0  8,CT 5 e), (c 4  8,NT    ), (c  8  8,NT    ), (c 12  8,NT    ),
+		(c 2 12,NT    ), (c 6 12,NT    ), (c 10 12,NT    ), (c 14 12,NT    ),
+		(c 0 16,NT    ), (c 4 16,NT    ), (c  8 16,NT    ), (c 12 16,CT 2 w),
+		(c 0 20,CT 4 e), (c 4 20,NT    ), (c  8 20,NT    ), (c 12 20,NT    ),
+		                 (c 4 24,NT    ), (c  8 24,CT 3 n), (c 12 24,NT    ) ]
 
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 
