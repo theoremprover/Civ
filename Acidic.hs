@@ -750,8 +750,8 @@ finishPlayerPhase gamename = do
 allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
-	(Move (FigureSource _ Wagon) (SquareTarget _),Move (FigureSource _ Wagon) (SquareTarget _)) -> False
-	(Move (FigureSource _ Flag) (SquareTarget _),Move (FigureSource _ Flag) (SquareTarget _)) -> False
+	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
+	(Move (CityProductionSource coors1 _) (SquareTarget _),Move (CityProductionSource coors2 _) (SquareTarget _)) | coors1==coors2 -> False
 	_ -> True
 
 getCity gamename coors = do
@@ -784,25 +784,6 @@ gameAction gamename playername move = runUpdateCivM $ do
 			checkMovesLeft gamename
 	return ()
 
-doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
-doMove gamename playername move@(Move source target) = do
-	Just (Game{..}) <- getGame gamename
-	case (source,target) of
-		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
-			buildCity gamename coors $ newCity playername True Nothing
-		(AutomaticMove (),GetTradeTarget pn) | pn==playername ->
-			getTrade gamename playername
-		(FigureSource pn figure,SquareTarget coors) | pn==playername ->
-			buildFigure gamename playername figure coors
-		_ -> error $ show move ++ " not implemented yet"
-	Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
-	Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-	updateCivLensM (addmove move turn phase) $ civPlayerLens gamename playername . _Just . playerMoves
-	return ()
-	where
-	addmove move turn phase =
-		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
-
 forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
 forAllCities gamename playername action = do
 	Just coorss <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
@@ -814,10 +795,9 @@ forCityOutskirts :: GameName -> PlayerName -> Coors -> ((Coors,City,Square) -> U
 forCityOutskirts gamename playername coors action = do
 	city <- getCity gamename coors
 	outskirts <- outskirtsOfCity gamename coors
-	lss <- forM outskirts $ \ outskirt_coors -> do
+	forM outskirts $ \ outskirt_coors -> do
 		Just square <- getSquare gamename outskirt_coors
 		action (outskirt_coors,city,square)
-	return $ concat lss
 
 forAllOutskirts :: GameName -> PlayerName -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
 forAllOutskirts gamename playername action = do
@@ -827,8 +807,9 @@ forAllOutskirts gamename playername action = do
 
 cityIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 cityIncome gamename playername coors = do
-	forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
+	incomes <- forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
 		squareIncome gamename playername outskirt_coors
+	return $ mconcat incomes
 
 squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 squareIncome gamename playername coors = do
@@ -1111,6 +1092,30 @@ canStayMoveOn mtterrains gamename playername coors = do
 canStayOn = canStayMoveOn movementTypeEndTerrains
 canCross  = canStayMoveOn movementTypeCrossTerrains
 
+buildFigureCoors gamename playername citycoors = do
+	outskirts <- outskirtsOfCity gamename citycoors
+	filterM (canStayOn gamename playername) outskirts
+
+doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
+doMove gamename playername move@(Move source target) = do
+	Game{..} <- getGame gamename
+	case (source,target) of
+		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
+			buildCity gamename coors $ newCity playername True Nothing
+		(AutomaticMove (),GetTradeTarget pn) | pn==playername ->
+			getTrade gamename playername
+		(FigureSource pn figure,SquareTarget coors) | pn==playername ->
+			buildFigure gamename playername figure coors
+		(CityProductionSource _ production,SquareTarget coors) -> case production of
+			ProduceFigure figure -> buildFigure gamename playername figure coors
+			ProduceBuilding building -> buildBuilding gamename playername coors building
+		_ -> error $ show move ++ " not implemented yet"
+	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
+	return ()
+	where
+	addmove turn phase =
+		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
+
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
 
@@ -1118,19 +1123,17 @@ moveGen :: GameName -> PlayerName -> Update CivState [Move]
 moveGen gamename my_playername = do
 	Right moves <- runErrorT $ do
 		playername <- getPlayerTurn gamename
-		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-		Just turn <- queryCivLensM $ civGameLens gamename . _Just . gameTurn
+		Game{..} <- getGame gamename
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
 		moves <- case my_playername == playername of
 			False -> return []
 			True -> do
-				case phase of
+				case _gamePhase of
 					StartOfGame -> return []
 					BuildingFirstCity -> return $
 						[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
 					PlaceFirstFigures -> do
-						outskirts <- outskirtsOfCity gamename (head _playerCityCoors)
-						possible_squares <- filterM (canStayOn gamename playername) outskirts
+						possible_squares <- buildFigureCoors gamename playername (head _playerCityCoors)
 						let possible_figures = [Wagon,Flag] -- TODO: Kosten berechnen bei BuildFigures
 						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 					GettingFirstTrade ->
@@ -1140,10 +1143,24 @@ moveGen gamename my_playername = do
 					Trading ->
 						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
 					CityManagement -> do
-						movess <- forAllCities gamename my_playername $ \ (coors,city) -> do
-							income <- cityIncome gamename my_playername coors
-							return $
-								[ Move (FigureSource fig) (CityProduction coors squarecoors) | fig <- filter (inHammers income) allOfThem ]
+						movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
+							income <- cityIncome gamename my_playername citycoors
+
+							possible_fig_coors <- buildFigureCoors gamename playername citycoors
+							let
+								possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
+								prodfiguremoves = 
+								[ Move (CityProductionSource citycoors (ProduceFigure fig)) (SquareTarget squarecoors) |
+									fig <- filter ((<=income) . consumedIncome) possible_figures,
+									squarecoors <- possible_fig_coors ]
+
+								player_buildings = concatMap enabledBuildings $ playerAbilities player
+								buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
+								all_avail_buildings = buildings_left `intersect` player_buildings
+								avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
+								avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
+								affordable_buildings = filter (--HERE--) avail_buildings
+							return $ prodfiguremoves
 						return $ concat movess
 					_ ->
 						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...

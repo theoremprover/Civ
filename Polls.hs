@@ -30,4 +30,3 @@ coors2action _ _ = False
 
 deriveJSON defaultOptions ''ActionA
 deriveJSON defaultOptions ''Affected
-
