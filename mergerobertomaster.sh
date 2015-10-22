@@ -1,4 +1,6 @@
 #!/bin/sh
+git checkout robert
+source gitcommitpush.sh
 git checkout master
 git pull
 git merge robert
