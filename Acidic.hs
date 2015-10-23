@@ -1160,7 +1160,8 @@ moveGen gamename my_playername = do
 								avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
 								avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
 								affordable_buildings = filter (--HERE--) avail_buildings
-							return $ prodfiguremoves
+							return $ prodfiguremoves ++ prodbuildingmoves
+
 						return $ concat movess
 					_ ->
 						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
