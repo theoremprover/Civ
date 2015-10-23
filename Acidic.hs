@@ -706,13 +706,12 @@ startGame gamename = runUpdateCivM $ do
 	Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
-{-
-	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
-	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
-	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
-	buildCity gamename (Coors 2 4) $ City pn1 True False False NoWalls False (Just Eastward)
-	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
--}
+
+autoPlayGame :: GameName -> Update CivState UpdateResult
+autoPlayGame gamename = do
+	startGame gamename
+	runUpdateCivM $ do
+		
 
 getPlayer gamename playername = do
 	Just player <- queryCivLensM $ civPlayerLens gamename playername
@@ -1098,7 +1097,7 @@ buildFigureCoors gamename playername citycoors = do
 
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
-	Game{..} <- getGame gamename
+	Just (Game{..}) <- getGame gamename
 	case (source,target) of
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
@@ -1123,7 +1122,7 @@ moveGen :: GameName -> PlayerName -> Update CivState [Move]
 moveGen gamename my_playername = do
 	Right moves <- runErrorT $ do
 		playername <- getPlayerTurn gamename
-		Game{..} <- getGame gamename
+		Just (Game{..}) <- getGame gamename
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
 		moves <- case my_playername == playername of
 			False -> return []
@@ -1149,25 +1148,31 @@ moveGen gamename my_playername = do
 							possible_fig_coors <- buildFigureCoors gamename playername citycoors
 							let
 								possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
-								prodfiguremoves = 
-								[ Move (CityProductionSource citycoors (ProduceFigure fig)) (SquareTarget squarecoors) |
-									fig <- filter ((<=income) . consumedIncome) possible_figures,
+								prodfiguremoves = [ Move (CityProductionSource citycoors (ProduceFigure fig)) (SquareTarget squarecoors) |
+									fig <- filter ((<=income).consumedIncome) possible_figures,
 									squarecoors <- possible_fig_coors ]
 
+							let
 								player_buildings = concatMap enabledBuildings $ playerAbilities player
 								buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
 								all_avail_buildings = buildings_left `intersect` player_buildings
 								avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
 								avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
-								affordable_buildings = filter (--HERE--) avail_buildings
-							return $ prodfiguremoves ++ prodbuildingmoves
+								affordable_buildings = filter ((<=income).consumedIncome) avail_buildings
+							prodbuildingmovess <- forCityOutskirts gamename playername citycoors $ \ (coors,city,square) -> do
+								let buildings = (terrainBuildings $ head (_squareTerrain square)) `intersect` affordable_buildings
+								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
+									building <- buildings ]									
+
+							produnitmovess <- return []
+
+							return $ prodfiguremoves ++ (concat prodbuildingmovess) ++ (concat produnitmovess)
 
 						return $ concat movess
 					_ ->
 						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
-		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at turn . _Just . at phase . _Just
+		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
-		--foldl :: (a -> b -> a) -> a -> [b] -> a
 		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
 	return moves
 
@@ -1187,11 +1192,11 @@ checkMovesLeft gamename = do
 			checkMovesLeft gamename
 		_ -> return ()
 
-
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,
 	'startGame,
+	'autoPlayGame,
 	'joinGame,
 	'deleteGame,
 	'createNewGame,

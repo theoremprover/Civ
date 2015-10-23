@@ -67,7 +67,7 @@ data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable,Enum)
 $(deriveSafeCopy modelVersion 'base ''Orientation)
 
-data Colour = Red | Green | Blue | Violet | Yellow | White -- | Grey
+data Colour = Red | Green | Blue | Violet | Yellow | White | Grey
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''Colour)
 
@@ -298,6 +298,13 @@ data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
 
+terrainBuildings terrain = case terrain of
+	Water     -> [ Shipyard,Harbour ]
+	Grassland -> [ Granary,Aquaeduct,Library,University,Market,Bank,Barracks,Academy,Temple,Cathedral ]
+	Desert    -> [ Market,Bank,Barracks,Academy,Temple,Cathedral,TradePost ]
+	Mountains -> [ Market,Bank,Barracks,Academy,Temple,Cathedral,Forge,IronMine ]
+	Forest    -> [ Market,Bank,Barracks,Academy,Temple,Cathedral ]
+
 instance GeneratesIncome BuildingType where
 	generatedIncome buildingtype = case buildingtype of
 		Barracks   -> tradeIncome 2 +# militaryBonusIncome 2
@@ -315,6 +322,24 @@ instance GeneratesIncome BuildingType where
 		Cathedral  -> cultureIncome 3
 		IronMine   -> hammerIncome 4
 		University -> cultureIncome 2 +# tradeIncome 2
+
+instance ConsumesIncome BuildingType where
+	consumedIncome buildingtype = hammerIncome $ case buildingtype of
+		Barracks   ->  7
+		Forge      ->  7
+		Granary    ->  5
+		Harbour    ->  7
+		Library    ->  5
+		Market     ->  7
+		Shipyard   ->  5
+		TradePost  ->  7
+		Temple     ->  7
+		Academy    -> 10
+		Aquaeduct  ->  8
+		Bank       -> 10
+		Cathedral  -> 10
+		IronMine   -> 10
+		University ->  8
 
 data Building = Building BuildingType PlayerName
 	deriving (Show,Data,Typeable,Eq)
@@ -480,6 +505,13 @@ $(deriveSafeCopy modelVersion 'base ''UnitType)
 data UnitCard = UnitCard { unitType::UnitType, unitBalance::UnitBalance }
 	deriving (Show,Eq,Data,Typeable,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitCard)
+
+instance ConsumesIncome (UnitType,UnitLevel) where
+	consumedIncome (Aircraft,_)      = hammerIncome 12
+	consumedIncome (_,UnitLevelI)    = hammerIncome 5
+	consumedIncome (_,UnitLevelII)   = hammerIncome 7
+	consumedIncome (_,UnitLevelIII)  = hammerIncome 9
+	consumedIncome (_,UnitLevelStar) = hammerIncome 11
 
 unit2Ori :: UnitLevel -> Orientation
 unit2Ori UnitLevelI    = Northward

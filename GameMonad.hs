@@ -26,6 +26,9 @@ import Lenses
 import Polls
 import Acidic
 
+
+autoPlay = True
+
 queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
 queryCivLensH lens = do
 	app <- getYesod
@@ -178,11 +181,12 @@ executeAction action = do
 			setSession "player" pn
 			return oK
 
-		StartGameA gamename -> do
+		StartGameA gamename autoplay -> do
 			Just (AssocList playerlist) <- queryCivLensH (civPlayersLens gamename)
 			shuffledplayers <- shuffleList playerlist
 			updateCivH $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH $ StartGame gamename
+			when autoplay $ updateCivH $ AutoPlayGame gamename
 			notifyLongPoll action [GameAdmin,GameGame gamename]
 			return oK
 
@@ -193,11 +197,13 @@ executeAction action = do
 				Just playername -> do
 					updateCivH $ GameAction gamename playername move
 
-					Just playerturnindex <- queryCivH $ civGameLens gamename . _Just . gamePlayersTurn
-					Just (PlayerName playerturnname,playerturn) <- queryCivH $ civPlayerIndexLens gamename playerturnindex
-					when (_playerUserEmail playerturn == userEmail user) $ do
-						setSession "player" playerturnname
-						printLogDebug $ "setSession player = " ++ show playerturnname
+					when autoPlay $ do
+						Just playerturnindex <- queryCivH $ civGameLens gamename . _Just . gamePlayersTurn
+						Just (PlayerName playerturnname,playerturn) <- queryCivH $ civPlayerIndexLens gamename playerturnindex
+						when (_playerUserEmail playerturn == userEmail user) $ do
+							setSession "player" playerturnname
+							printLogDebug $ "setSession player = " ++ show playerturnname
+							
 					notifyLongPoll action [GameGame gamename]
 					return oK
 

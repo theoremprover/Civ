@@ -134,7 +134,9 @@ postWaitingR gn = do
 getWaitingR :: Text -> Handler Html
 getWaitingR gn = do
 	(userid,user,_,game,mb_playername) <- maybeVisitor
-	let gamename = GameName gn
+	let
+		gamename = GameName gn
+		autoplaychecked = if _gameAutoPlay game then "checked" else ""
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
 		Just game <- getGameH gamename
@@ -156,7 +158,8 @@ getWaitingR gn = do
     <td>^{enumToSelect "civ" Russia}
     <td><button type=button onclick="joinGame(#{show gn},'#{userEmail user}')">Join The Game
 $if userEmail user == _gameCreator game
-  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA $ GameName gn},'@{GameR gn}')">Start Game
+  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA (GameName gn) False},'@{GameR gn}')">Start Game
+  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA (GameName gn) True},'@{GameR gn}')">Autoplay Game
 |]
 
 		toWidget [julius|

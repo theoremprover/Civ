@@ -12,7 +12,7 @@ data ActionA =
 	CreateGameA GameName |
 	DeleteGameA GameName |
 	JoinGameA GameName PlayerName PlayerEmail Colour Civ |
-	StartGameA GameName |
+	StartGameA GameName Bool |
 	SetSessionGameA GameName |
 	SetSessionGamePlayerA GameName PlayerName |
 	GameActionA Move
