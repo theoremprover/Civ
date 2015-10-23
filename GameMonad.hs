@@ -11,6 +11,7 @@ import Control.Lens hiding (Action)
 import Data.Acid
 import Data.Acid.Advanced
 import Data.Either
+import System.Random
 
 import qualified Data.ByteString.Lazy as L
 import Data.Conduit.List (consume)
@@ -26,8 +27,6 @@ import Lenses
 import Polls
 import Acidic
 
-
-autoPlay = True
 
 queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
 queryCivLensH lens = do
@@ -189,6 +188,7 @@ executeAction action = do
 			when autoplay $ do
 				randgen <- liftIO $ getStdGen
 				updateCivH $ AutoPlayGame gamename randgen
+				return ()
 			notifyLongPoll action [GameAdmin,GameGame gamename]
 			return oK
 
@@ -198,14 +198,6 @@ executeAction action = do
 				Nothing -> return $ eRR $ show action ++ " cannot be given by visitors"
 				Just playername -> do
 					updateCivH $ GameAction gamename playername move
-
-					when autoPlay $ do
-						Just playerturnindex <- queryCivH $ civGameLens gamename . _Just . gamePlayersTurn
-						Just (PlayerName playerturnname,playerturn) <- queryCivH $ civPlayerIndexLens gamename playerturnindex
-						when (_playerUserEmail playerturn == userEmail user) $ do
-							setSession "player" playerturnname
-							printLogDebug $ "setSession player = " ++ show playerturnname
-							
 					notifyLongPoll action [GameGame gamename]
 					return oK
 

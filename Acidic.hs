@@ -22,6 +22,7 @@ import Data.Monoid
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
+import System.Random
 
 import Logic
 import Lenses
@@ -707,15 +708,29 @@ startGame gamename = runUpdateCivM $ do
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
 
-autoPlayGame :: GameName -> [Int] -> Update CivState UpdateResult
-autoPlayGame gamename rands = do
+autoPlayGame :: GameName -> StdGen -> Update CivState UpdateResult
+autoPlayGame gamename randgen = do
 	startGame gamename
-	runUpdateCivM $ autoPlayLoop gamename rands
+	runUpdateCivM $ autoPlayLoop gamename randgen
+	return oK
 
-autoPlayLoop gamename rands = do
-	playername <- getPlayerTurn gamename
-	moves <- moveGenM gamename playername
-	
+autoPlayLoop :: GameName -> StdGen -> UpdateCivM ()
+autoPlayLoop gamename randgen = do
+	Just (Game{..}) <- getGame gamename
+	case _gamePhase of
+		CityManagement -> return ()
+		_ -> do
+			playername <- getPlayerTurn gamename
+			moves <- moveGenM gamename playername
+			randgen' <- case moves of
+				[] -> do
+					finishPlayerPhase gamename
+					return randgen
+				_  -> do
+					let (moveindex,randgen') = randomR (0,length moves - 1) randgen
+					doMove gamename playername (moves!!moveindex)
+					return randgen'
+			autoPlayLoop gamename randgen'
 
 getPlayer gamename playername = do
 	Just player <- queryCivLensM $ civPlayerLens gamename playername
@@ -1168,6 +1183,7 @@ moveGen gamename my_playername = do
 								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
 									building <- buildings ]									
 
+							
 							produnitmovess <- return [] -- TODO: Implement
 
 							return $ prodfiguremoves ++ (concat prodbuildingmovess) ++ (concat produnitmovess)
@@ -1207,4 +1223,6 @@ $(makeAcidic ''CivState [
 	'gameAction,
 	'moveGen
 	])
+
+$(deriveSafeCopy modelVersion 'base ''StdGen)
 

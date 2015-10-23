@@ -123,7 +123,7 @@ postHomeR = pollHandler >> getHomeR
 postWaitingR gn = do
 	action <- pollHandler
 	case action of
-		StartGameA (GameName gn_action) | gn_action == gn -> do
+		StartGameA (GameName gn_action) _ | gn_action == gn -> do
 			setMessage $ toHtml $ "Game " ++ show gn ++ " has started!"
 			redirect $ GameR gn
 		DeleteGameA (GameName gn_action) -> do
@@ -136,7 +136,6 @@ getWaitingR gn = do
 	(userid,user,_,game,mb_playername) <- maybeVisitor
 	let
 		gamename = GameName gn
-		autoplaychecked = if _gameAutoPlay game then "checked" else ""
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
 		Just game <- getGameH gamename
