@@ -186,7 +186,9 @@ executeAction action = do
 			shuffledplayers <- shuffleList playerlist
 			updateCivH $ SetShuffledPlayers gamename $ AssocList shuffledplayers
 			updateCivH $ StartGame gamename
-			when autoplay $ updateCivH $ AutoPlayGame gamename
+			when autoplay $ do
+				randgen <- liftIO $ getStdGen
+				updateCivH $ AutoPlayGame gamename randgen
 			notifyLongPoll action [GameAdmin,GameGame gamename]
 			return oK
 

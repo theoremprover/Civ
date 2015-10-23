@@ -707,11 +707,15 @@ startGame gamename = runUpdateCivM $ do
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
 
-autoPlayGame :: GameName -> Update CivState UpdateResult
-autoPlayGame gamename = do
+autoPlayGame :: GameName -> [Int] -> Update CivState UpdateResult
+autoPlayGame gamename rands = do
 	startGame gamename
-	runUpdateCivM $ do
-		
+	runUpdateCivM $ autoPlayLoop gamename rands
+
+autoPlayLoop gamename rands = do
+	playername <- getPlayerTurn gamename
+	moves <- moveGenM gamename playername
+	
 
 getPlayer gamename playername = do
 	Just player <- queryCivLensM $ civPlayerLens gamename playername
@@ -1164,7 +1168,7 @@ moveGen gamename my_playername = do
 								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
 									building <- buildings ]									
 
-							produnitmovess <- return []
+							produnitmovess <- return [] -- TODO: Implement
 
 							return $ prodfiguremoves ++ (concat prodbuildingmovess) ++ (concat produnitmovess)
 
