@@ -116,7 +116,6 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 
 
 		[whamlet|
-^{debugarea}
 <table>
   <tr>
     <td><div style="overflow:auto">^{arena}
@@ -124,6 +123,26 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
       <table>
         <tr><td>^{playerlist}
         <tr><td>^{actionarea}
+
+<div .Sidebar>
+  <table>
+    <tr><td>^{playerlist}
+    <tr><td>^{actionarea}
+    <tr><td><a href="#" class="Action-OpenDebug">Show Debug
+    <tr><td><a href="#" class="Action-ShowDialog" onclick="showDialog()">Show Dialog
+    <tr><td><a href=@{HomeR}>Change
+
+<div id="Dialog-Test" title="TestDialog">
+  <p>
+    <span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;">
+    Click <a href=@{HomeR}>here</a> to switch to the next player
+  <p>
+
+<div .DragArea>
+<div .DebugArea>
+  Debug<br />
+  ^{debugarea}
+  <a href="#" class="Action-CloseDebug">close</a>
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -137,7 +156,7 @@ Visitor
 |]
 actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 	return [whamlet|
-<table>
+<table .ActionArea>
   $forall move <- moves
     <tr><td>#{show move}
 |]
@@ -153,7 +172,7 @@ playerList di@(DisplayInfo{..}) = do
 			_playerCiv,playerName playername,_playerColour))
 			(zip [0..] $ fromAssocList _gamePlayers)
 	return [whamlet|
-<table>
+<table .PlayerList>
   <tr>
     <td>
     <td>

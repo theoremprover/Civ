@@ -63,7 +63,7 @@ $(function() {
       });
 
       clone.addClass("PlayerArea-CityItem");
-      clone.appendTo(".Debug");
+      clone.appendTo(".DragArea");
       clone.trigger(e);
 
       var posX = e.pageX - clone.width() / 2;
@@ -71,6 +71,29 @@ $(function() {
       clone.css({position:"absolute", left:posX, top:posY});
   });
 
+  $('.Action-OpenDebug').click(function() {
+      $('.DebugArea').fadeIn();
+  });
+
+  $('.Action-CloseDebug').click(function() {
+     $('.DebugArea').fadeOut();
+  });
+  
+  $('.Action-ShowDialog').click(function() {
+    $( "#Dialog-Test" ).dialog({
+    resizable: false,
+    height: 'auto',
+    modal: true,
+    buttons: {
+      Ok: function() {
+        $( this ).dialog("close");
+      },
+      Cancel: function() {
+        $( this ).dialog("close");
+      }
+    }
+  });
+});
 
 /*
   $(".Eastward,.Westward").each(function () {

@@ -119,3 +119,26 @@ img
     left: 10px
     top : 70px
     z-index: 2
+
+.Sidebar
+    position: fixed
+    bottom: 0px
+    right: 0px
+    width: 200px
+    border: 1px solid black
+    background-color: lightyellow
+    z-index: 10
+    padding: 10px
+
+.DebugArea
+    position: fixed
+    bottom: 0px
+    right: 250px
+    height: 400px
+    width: 600px
+    border: 1px solid black
+    background-color: lightgray
+    padding: 10px
+    z-index: 11
+    display: none
+
