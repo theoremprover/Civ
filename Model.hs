@@ -144,7 +144,7 @@ data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
 	deriving (Show,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''Resource)
 
-data ResourcePattern = One Resource | AnyResource
+data ResourcePattern = One { oneResource::Resource } | AnyResource
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''ResourcePattern)
 
@@ -260,6 +260,9 @@ data City = SecondCitySquare Orientation | City {
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 makeLenses ''City
+
+instance GeneratesIncome City where
+	generatedIncome city = cultureIncome $ maybe 1 (const 2) (_cityMetropolisOrientation city)
 
 newCity owner capital metroori = City owner capital False False NoWalls False metroori
 
@@ -646,9 +649,19 @@ makeLenses ''CultureCard
 data Production =
 	ProduceFigure Figure |
 	ProduceBuilding BuildingType |
-	ProduceWonder Wonder
-	deriving (Show,Eq,Ord,Data,Typeable)
+	ProduceWonder Wonder |
+	ProduceUnit UnitType |
+	HarvestResource Resource |
+	DevoteToArts Culture
+	deriving (Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Production)
+instance Show Production where
+	show (ProduceFigure fig) = "Produce " ++ show fig
+	show (ProduceBuilding buildingtype) = "Build " ++ show buildingtype
+	show (ProduceWonder wonder) = "Build " ++ show wonder
+	show (ProduceUnit unittype) = "Produce " ++ show unittype
+	show (HarvestResource res) = "Harvest " ++ show res
+	show (DevoteToArts (Culture c)) = "Devote to the Arts (" ++ show c ++ " Culture)"
 
 -- The unit types are for ActionSource to be JSON toplevel encodable
 data ActionSource =
@@ -684,8 +697,9 @@ instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
 		(_,GetTradeTarget _) -> "Get Trade"
-		(FigureSource _ figure,SquareTarget coors) -> "Build " ++ show figure ++ " on " ++ show coors
-		(CityProductionSource _ prod,SquareTarget coors) -> "Build " ++ show prod ++ " on " ++ show coors
+		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
+		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
+		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(HaltSource (),_) -> "HALTED"
 		(source,target) -> show (source,target)
 
@@ -701,7 +715,10 @@ data Player = Player {
 	_playerCoins            :: Coins,
 	_playerTechs            :: [TechCard],
 	_playerInvestments      :: TokenStack Investment (),
-	_playerItems            :: ([Resource],[Hut],[Village],[Artifact]),
+	_playerResources        :: [Resource],
+	_playerHuts             :: [Hut],
+	_playerVillages         :: [Village],
+	_playerArtifacts        :: [Artifact],
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
 	_playerFigures          :: TokenStack Figure (),
@@ -721,7 +738,7 @@ makePlayer useremail colour civ = Player
 	useremail colour civ (allPolicyCards,[]) Despotism
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
-	([],[],[],[])
+	[] [] [] []
 	[] [] initialFigureStack [] Northward initialCityStack
 	0 [] [] Map.empty
 
@@ -1123,10 +1140,12 @@ boardLayout numplayers = case numplayers of
 deriveJSON defaultOptions ''Trade
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
+deriveJSON defaultOptions ''Culture
 deriveJSON defaultOptions ''Civ
 deriveJSON defaultOptions ''Colour
 deriveJSON defaultOptions ''BuildingType
 deriveJSON defaultOptions ''Wonder
+deriveJSON defaultOptions ''UnitType
 deriveJSON defaultOptions ''Production
 deriveJSON defaultOptions ''ActionSource
 deriveJSON defaultOptions ''ActionTarget

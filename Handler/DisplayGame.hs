@@ -290,18 +290,17 @@ horRow reveal revealcard card2route card2val cards = return [whamlet|
 	cardroute card = card2route (card2val card) (reveal || revealcard card)
 
 itemTokens :: DisplayInfo -> PlayerName -> Player -> Bool -> Handler Widget
-itemTokens di playername player reveal = return [whamlet|
+itemTokens di playername (player@Player{..}) reveal = return [whamlet|
 <div>
   $forall (route,datasource) <- routes
     <img style="float:left" data-source=#{data2markup datasource} src=@{route}>
 |]
 	where
-	(resources,huts,villages,artifacts) = _playerItems player
 	routes =
-		map (\ r -> (resourceRoute r,ResourceSource playername r)) resources ++
-		map (\ h -> ((if reveal then revealedHutRoute else const hutRoute) h,HutSource playername h)) huts ++
-		map (\ v -> ((if reveal then revealedVillageRoute else const villageRoute) v,VillageSource playername v)) villages ++
-		map (\ a -> (artifactRoute a,ArtifactSource playername a)) artifacts
+		map (\ r -> (resourceRoute r,ResourceSource playername r)) _playerResources ++
+		map (\ h -> ((if reveal then revealedHutRoute else const hutRoute) h,HutSource playername h)) _playerHuts ++
+		map (\ v -> ((if reveal then revealedVillageRoute else const villageRoute) v,VillageSource playername v)) _playerVillages ++
+		map (\ a -> (artifactRoute a,ArtifactSource playername a)) _playerArtifacts
 
 dial :: DisplayInfo -> PlayerName -> Player -> Handler Widget
 dial di playername player@(Player{..}) = do
@@ -336,7 +335,7 @@ unitColumn :: DisplayInfo -> (PlayerName,Player) -> Handler Widget
 unitColumn di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 	let
 		reveal = isNothing myPlayerNameDI || (Just playername == myPlayerNameDI)
-		unitlevel = playerUnitLevel player
+		unitlevel = getValueAbility1 unitLevel player
 		unitcards = map (\ uc@(UnitCard{..}) -> (uc,unit2Ori (fromJust $ unitlevel unitType))) $ sort _playerUnits
 	return [whamlet|
 <table>
