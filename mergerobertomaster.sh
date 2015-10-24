@@ -1,8 +1,7 @@
 #!/bin/sh
 git checkout robert
-git pull
-git merge origin master
 source gitcommitpush.sh
+git merge origin master
 
 git checkout master
 git pull
