@@ -32,3 +32,5 @@ tokenStackHeights stack = map countvals $ Map.assocs stack where
 tokenStackToList = Map.assocs
 
 tokenStackLookup = Map.lookup
+
+tokenStackAvailableKeys tokenstack = map fst $ filter ((>0).snd) $ tokenStackHeights tokenstack

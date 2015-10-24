@@ -599,8 +599,13 @@ valueAbilities values = foldl (flip ($)) a modvalues
 	ismod (ModifyValue f) = f
 	ismod _ = id
 
+getValueAbility1 :: (Ord a,Show a) => (Abilities -> arg -> Value a) -> Player -> arg -> a
+getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg) player
+
+{-
 playerUnitLevel :: Player -> UnitType -> Maybe UnitLevel
 playerUnitLevel player unittype = getValueAbility (\ abilities -> (unitLevel abilities) unittype) player
+-}
 
 playerNumberOfCoins :: Player -> Coins
 playerNumberOfCoins player@(Player{..}) =
@@ -769,7 +774,7 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
-	(Move (CityProductionSource coors1 _) (SquareTarget _),Move (CityProductionSource coors2 _) (SquareTarget _)) | coors1==coors2 -> False
+	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
 	_ -> True
 
 getCity gamename coors = do
@@ -825,9 +830,11 @@ forAllOutskirts gamename playername action = do
 
 cityIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 cityIncome gamename playername coors = do
-	incomes <- forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
+	outskirt_incomes <- forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
 		squareIncome gamename playername outskirt_coors
-	return $ mconcat incomes
+	city <- getCity gamename coors
+	let city_income = generatedIncome city
+	return $ mconcat $ city_income : outskirt_incomes
 
 squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 squareIncome gamename playername coors = do
@@ -921,36 +928,36 @@ getCultureCard gamename playername level = do
 getResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
 getResource gamename playername resource = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameResourceStack) resource
-	updateCivLensM (resource:) $ civPlayerLens gamename playername . _Just . playerItems . _1
+	updateCivLensM (resource:) $ civPlayerLens gamename playername . _Just . playerResources
 
 returnResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
 returnResource gamename playername resource = do
-	updateCivLensM (delete resource) $ civPlayerLens gamename playername . _Just . playerItems . _1
+	updateCivLensM (delete resource) $ civPlayerLens gamename playername . _Just . playerResources
 	putOnStackM (civGameLens gamename . _Just . gameResourceStack) resource ()
 
 getHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
 getHut gamename playername hut = do
-	updateCivLensM (hut:) $ civPlayerLens gamename playername . _Just . playerItems . _2
+	updateCivLensM (hut:) $ civPlayerLens gamename playername . _Just . playerHuts
 
 returnHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
 returnHut gamename playername hut = do
-	updateCivLensM (delete hut) $ civPlayerLens gamename playername . _Just . playerItems . _2
+	updateCivLensM (delete hut) $ civPlayerLens gamename playername . _Just . playerHuts
 
 getVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
 getVillage gamename playername village = do
-	updateCivLensM (village:) $ civPlayerLens gamename playername . _Just . playerItems . _3
+	updateCivLensM (village:) $ civPlayerLens gamename playername . _Just . playerVillages
 
 returnVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
 returnVillage gamename playername village = do
-	updateCivLensM (delete village) $ civPlayerLens gamename playername . _Just . playerItems . _3
+	updateCivLensM (delete village) $ civPlayerLens gamename playername . _Just . playerVillages
 
 getArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
 getArtifact gamename playername artifact = do
-	updateCivLensM (artifact:) $ civPlayerLens gamename playername . _Just . playerItems . _4
+	updateCivLensM (artifact:) $ civPlayerLens gamename playername . _Just . playerArtifacts
 
 returnArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
 returnArtifact gamename playername artifact = do
-	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerItems . _4
+	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerArtifacts
 
 addCoins :: Coins -> GameName -> PlayerName -> UpdateCivM ()
 addCoins coins gamename playername = do
@@ -1127,6 +1134,10 @@ doMove gamename playername move@(Move source target) = do
 		(CityProductionSource _ production,SquareTarget coors) -> case production of
 			ProduceFigure figure -> buildFigure gamename playername figure coors
 			ProduceBuilding building -> buildBuilding gamename playername coors building
+		(CityProductionSource _ (HarvestResource res),NoTarget ()) -> do
+			getResource gamename playername res
+		(CityProductionSource _ (DevoteToArts culture),NoTarget ()) -> do
+			addCulture culture gamename playername
 		_ -> error $ show move ++ " not implemented yet"
 	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
@@ -1183,10 +1194,33 @@ moveGen gamename my_playername = do
 								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
 									building <- buildings ]									
 
-							
-							produnitmovess <- return [] -- TODO: Implement
+							produnitmovess <- forM (allOfThem::[UnitType]) $ \ unittype -> do
+								let mb_unitlevel = getValueAbility1 unitLevel player unittype
+								return $ case mb_unitlevel of
+									Nothing -> []
+									Just unitlevel -> case consumedIncome (unittype,unitlevel) <= income of
+										False -> []
+										True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
 
-							return $ prodfiguremoves ++ (concat prodbuildingmovess) ++ (concat produnitmovess)
+							let
+								producible_res = case AnyResource `elem` inResource income of
+									True -> [ Linen,Iron,Incense,Wheat ]
+									False -> nub $ map oneResource $ inResource income
+								avail_res = tokenStackAvailableKeys _gameResourceStack
+								harvestmoves = map (\ res -> Move (CityProductionSource citycoors (HarvestResource res)) (NoTarget ())) $
+									producible_res `intersect` avail_res
+
+							let
+								culture = inCulture income
+								devotemove = 
+									Move (CityProductionSource citycoors (DevoteToArts culture)) (NoTarget ())
+
+							return $
+								prodfiguremoves ++
+								(concat prodbuildingmovess) ++
+								(concat produnitmovess) ++
+								harvestmoves ++
+								[ devotemove ]
 
 						return $ concat movess
 					_ ->
