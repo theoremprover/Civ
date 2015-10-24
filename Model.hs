@@ -13,6 +13,7 @@ import Data.Typeable
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
 import Data.List
 import Data.Ord
+import Data.Monoid
 import Data.Time
 import Control.Lens
 import qualified Data.Map as Map
@@ -27,6 +28,8 @@ import qualified Data.Ix as Ix
 
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
+
+type Turn = Int
 
 type Coor = Int
 data Coors = Coors { xCoor :: Coor, yCoor :: Coor }
@@ -64,7 +67,7 @@ data Orientation = Northward | Eastward | Southward | Westward
 	deriving (Show,Eq,Ord,Ix.Ix,Bounded,Data,Typeable,Enum)
 $(deriveSafeCopy modelVersion 'base ''Orientation)
 
-data Colour = Red | Green | Blue | Violet | Yellow
+data Colour = Red | Green | Blue | Violet | Yellow | White | Grey
 	deriving (Show,Eq,Data,Typeable,Ix,Bounded,Ord)
 $(deriveSafeCopy modelVersion 'base ''Colour)
 
@@ -83,7 +86,7 @@ data TileID =
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
 data Phase = StartOfGame |
-	BuildingFirstCity | GettingFirstTrade |
+	BuildingFirstCity | PlaceFirstFigures | GettingFirstTrade |
 	StartOfTurn |
 	Trading |
 	CityManagement |
@@ -142,29 +145,45 @@ data Resource = Incense | Wheat | Linen | Iron | Spy | Atom
 $(deriveSafeCopy modelVersion 'base ''Resource)
 
 data ResourcePattern = One Resource | AnyResource
-	deriving (Show,Data,Typeable,Eq,Ord)
+	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''ResourcePattern)
+
+instance Ord ResourcePattern where
+	One r1      <= One r2      = r1==r2
+	_           <= AnyResource = True
+	AnyResource <= _           = True
 
 initialResourceStack :: Int -> TokenStack Resource ()
 initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
 	(Wheat,numplayers),(Incense,numplayers),(Linen,numplayers),(Iron,numplayers) ]
 
-data Terrain = Grassland | Desert | Mountains | Forest | Water
+data Income = Income {
+	inTrade    :: Trade,
+	inHammers  :: Hammers,
+	inCulture  :: Culture,
+	inCoins    :: Coins,
+	inMilBonus :: MilitaryBonus,
+	inResource :: [ResourcePattern] }
 	deriving (Show,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''Terrain)
-
-data Income = Income { inTrade::Trade,inHammers::Hammers,inCulture::Culture,inCoins::Coins,inMilBonus::MilitaryBonus,inResource::[ResourcePattern] }
-	deriving (Show,Data,Typeable,Eq)
-
-instance Num Income where
-	(Income t1 h1 c1 co1 m1 r1) + (Income t2 h2 c2 co2 m2 r2) = Income (t1+t2) (h1+h2) (c1+c2) (co1+co2) (m1+m2) (r1++r2)
-	(Income t1 h1 c1 co1 m1 r1) * (Income t2 h2 c2 co2 m2 r2) = error $ "Called '*' on Income"
-	negate (Income t h c co m r) = Income (-t) (-h) (-c) (-co) (-m) r
-	abs (Income t h c co m r) = Income (abs t) (abs h) (abs c) (abs co) (abs m) r
-	signum (Income t h c co m r) = Income (signum t) (signum h) (signum c) (signum co) (signum m) r
-	fromInteger _ = error $ "Called fromInteger on Income"
 
 noIncome = Income (Trade 0) (Hammers 0) (Culture 0) (Coins 0) (MilitaryBonus 0) []
+
+infixl 6 +#
+(Income t1 h1 c1 co1 m1 r1) +# (Income t2 h2 c2 co2 m2 r2) = Income (t1+t2) (h1+h2) (c1+c2) (co1+co2) (m1+m2) (r1++r2)
+
+instance Ord Income where
+	(Income t1 h1 c1 co1 m1 r1) <= (Income t2 h2 c2 co2 m2 r2) =
+		t1<=t2 && h1<=h2 && c1<=c2 && co1<=co2 && m1<=m2 && all (==True) (zipWith (<=) r1 r2)
+
+instance Monoid Income where
+	mempty  = noIncome
+	mappend = (+#)
+
+class GeneratesIncome x where
+	generatedIncome :: x -> Income
+
+class ConsumesIncome x where
+	consumedIncome :: x -> Income
 
 tradeIncome         x = noIncome { inTrade = Trade x }
 hammerIncome        x = noIncome { inHammers = Hammers x }
@@ -173,8 +192,9 @@ oneCoin               = noIncome { inCoins = Coins 1 }
 militaryBonusIncome x = noIncome { inMilBonus = MilitaryBonus x }
 resourceIncome      x = noIncome { inResource = x }
 
-class GeneratesIncome x where
-	generatedIncome :: x -> Income
+data Terrain = Grassland | Desert | Mountains | Forest | Water
+	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord)
+$(deriveSafeCopy modelVersion 'base ''Terrain)
 
 instance GeneratesIncome Terrain where
 	generatedIncome terrain = case terrain of
@@ -186,6 +206,14 @@ instance GeneratesIncome Terrain where
 
 data MovementType = Land | CrossWater | StayInWater | Air
 	deriving (Show,Ord,Eq)
+
+movementTypeEndTerrains mt = case mt `elem` [Land,CrossWater] of
+	True  -> [Grassland,Desert,Mountains,Forest]
+	False -> allOfThem
+
+movementTypeCrossTerrains mt = case mt of
+	Land -> [Grassland,Desert,Mountains,Forest]
+	_    -> allOfThem
 
 data Artifact = AttilaVillage | Atlantis | ArkOfCovenant | SevenCitiesOfGold | SchoolOfConfucius
 	deriving (Show,Data,Ord,Typeable,Eq)
@@ -241,6 +269,18 @@ data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	deriving (Show,Ord,Ix,Enum,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingMarker)
 
+buildingMarkerToType bm = fromJust $ lookup bm buildingMarkerType
+buildingMarkerType = [
+	(BarracksOrAcademy,  [Barracks,Academy]),
+	(ForgeOrIronMine,    [Forge,IronMine]),
+	(GranaryOrAquaeduct, [Granary,Aquaeduct]),
+	(TempleOrCathedral,  [Temple,Cathedral]),
+	(LibraryOrUniversity,[Library,University]),
+	(MarketOrBank,       [Market,Bank]),
+	(Harbours,           [Harbour]),
+	(TradePosts,         [TradePost]),
+	(Shipyards,          [Shipyard]) ]
+
 buildingTypeToMarker :: BuildingType -> BuildingMarker
 buildingTypeToMarker bt | bt `elem` [Barracks,Academy]   = BarracksOrAcademy
 buildingTypeToMarker bt | bt `elem` [Forge,IronMine]     = ForgeOrIronMine
@@ -258,23 +298,48 @@ data BuildingType = Barracks | Forge | Granary | Harbour | Library |
 	deriving (Show,Data,Ord,Ix,Enum,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''BuildingType)
 
+terrainBuildings terrain = case terrain of
+	Water     -> [ Shipyard,Harbour ]
+	Grassland -> [ Granary,Aquaeduct,Library,University,Market,Bank,Barracks,Academy,Temple,Cathedral ]
+	Desert    -> [ Market,Bank,Barracks,Academy,Temple,Cathedral,TradePost ]
+	Mountains -> [ Market,Bank,Barracks,Academy,Temple,Cathedral,Forge,IronMine ]
+	Forest    -> [ Market,Bank,Barracks,Academy,Temple,Cathedral ]
+
 instance GeneratesIncome BuildingType where
 	generatedIncome buildingtype = case buildingtype of
-		Barracks   -> tradeIncome 2 + militaryBonusIncome 2
+		Barracks   -> tradeIncome 2 +# militaryBonusIncome 2
 		Forge      -> hammerIncome 3
-		Granary    -> hammerIncome 1 + tradeIncome 1
-		Harbour    -> hammerIncome 1 + tradeIncome 2
-		Library    -> cultureIncome 1 + tradeIncome 1
-		Market     -> hammerIncome 1 + tradeIncome 1 + cultureIncome 1
-		Shipyard   -> hammerIncome 2 + militaryBonusIncome 2
-		TradePost  -> cultureIncome 1 + tradeIncome 2
+		Granary    -> hammerIncome 1 +# tradeIncome 1
+		Harbour    -> hammerIncome 1 +# tradeIncome 2
+		Library    -> cultureIncome 1 +# tradeIncome 1
+		Market     -> hammerIncome 1 +# tradeIncome 1 +# cultureIncome 1
+		Shipyard   -> hammerIncome 2 +# militaryBonusIncome 2
+		TradePost  -> cultureIncome 1 +# tradeIncome 2
 		Temple     -> cultureIncome 2
-		Academy    -> tradeIncome 2 + militaryBonusIncome 4
-		Aquaeduct  -> hammerIncome 2 + tradeIncome 2
-		Bank       -> hammerIncome 1 + tradeIncome 1 + cultureIncome 1 + oneCoin
+		Academy    -> tradeIncome 2 +# militaryBonusIncome 4
+		Aquaeduct  -> hammerIncome 2 +# tradeIncome 2
+		Bank       -> hammerIncome 1 +# tradeIncome 1 +# cultureIncome 1 +# oneCoin
 		Cathedral  -> cultureIncome 3
 		IronMine   -> hammerIncome 4
-		University -> cultureIncome 2 + tradeIncome 2
+		University -> cultureIncome 2 +# tradeIncome 2
+
+instance ConsumesIncome BuildingType where
+	consumedIncome buildingtype = hammerIncome $ case buildingtype of
+		Barracks   ->  7
+		Forge      ->  7
+		Granary    ->  5
+		Harbour    ->  7
+		Library    ->  5
+		Market     ->  7
+		Shipyard   ->  5
+		TradePost  ->  7
+		Temple     ->  7
+		Academy    -> 10
+		Aquaeduct  ->  8
+		Bank       -> 10
+		Cathedral  -> 10
+		IronMine   -> 10
+		University ->  8
 
 data Building = Building BuildingType PlayerName
 	deriving (Show,Data,Typeable,Eq)
@@ -357,8 +422,12 @@ data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 $(deriveSafeCopy modelVersion 'base ''CityState)
 
 data Figure = Flag | Wagon
-	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+	deriving (Show,Ord,Ix,Data,Typeable,Eq,Bounded)
 $(deriveSafeCopy modelVersion 'base ''Figure)
+
+instance ConsumesIncome Figure where
+	consumedIncome Flag  = hammerIncome 4
+	consumedIncome Wagon = hammerIncome 6
 
 initialFigureStack :: TokenStack Figure ()
 initialFigureStack = tokenStackFromList $ replicateUnit [
@@ -436,6 +505,13 @@ $(deriveSafeCopy modelVersion 'base ''UnitType)
 data UnitCard = UnitCard { unitType::UnitType, unitBalance::UnitBalance }
 	deriving (Show,Eq,Data,Typeable,Ord)
 $(deriveSafeCopy modelVersion 'base ''UnitCard)
+
+instance ConsumesIncome (UnitType,UnitLevel) where
+	consumedIncome (Aircraft,_)      = hammerIncome 12
+	consumedIncome (_,UnitLevelI)    = hammerIncome 5
+	consumedIncome (_,UnitLevelII)   = hammerIncome 7
+	consumedIncome (_,UnitLevelIII)  = hammerIncome 9
+	consumedIncome (_,UnitLevelStar) = hammerIncome 11
 
 unit2Ori :: UnitLevel -> Orientation
 unit2Ori UnitLevelI    = Northward
@@ -567,6 +643,53 @@ data CultureCard = CultureCard {
 $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
 
+data Production =
+	ProduceFigure Figure |
+	ProduceBuilding BuildingType |
+	ProduceWonder Wonder
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''Production)
+
+-- The unit types are for ActionSource to be JSON toplevel encodable
+data ActionSource =
+	AutomaticMove () |
+	HaltSource () |
+	FigureSource PlayerName Figure |
+	FigureOnBoardSource Figure PlayerName Coors |
+	ResourceSource PlayerName Resource |
+	CitySource PlayerName | MetropolisSource PlayerName |
+	CityProductionSource Coors Production |
+	SquareSource Coors |
+	DialCoinSource PlayerName | DialCultureSource PlayerName |
+	HutSource PlayerName Hut | VillageSource PlayerName Village |
+	TechCoinSource PlayerName Tech |
+	ArtifactSource PlayerName Artifact
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''ActionSource)
+
+data ActionTarget =
+	NoTarget () |
+	SquareTarget Coors |
+	BuildFirstCityTarget PlayerName Coors |
+	TechTarget PlayerName Tech |
+	FigureOnBoardTarget Figure PlayerName Coors |
+	GetTradeTarget PlayerName
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''ActionTarget)
+
+data Move = Move ActionSource ActionTarget
+	deriving (Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''Move)
+instance Show Move where
+	show (Move source target) = case (source,target) of
+		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(_,GetTradeTarget _) -> "Get Trade"
+		(FigureSource _ figure,SquareTarget coors) -> "Build " ++ show figure ++ " on " ++ show coors
+		(CityProductionSource _ prod,SquareTarget coors) -> "Build " ++ show prod ++ " on " ++ show coors
+		(HaltSource (),_) -> "HALTED"
+		(source,target) -> show (source,target)
+
+
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
 	_playerColour           :: Colour,
@@ -587,7 +710,8 @@ data Player = Player {
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
-	_playerCityCoors        :: [Coors]
+	_playerCityCoors        :: [Coors],
+	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move])
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -599,7 +723,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	([],[],[],[])
 	[] [] initialFigureStack [] Northward initialCityStack
-	0 [] []
+	0 [] [] Map.empty
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -639,7 +763,7 @@ data Game = Game {
 	_gameCreator          :: UserName,
 	_gameState            :: GameState,
 	_gamePlayers          :: Players,
-	_gameTurn             :: Int,
+	_gameTurn             :: Turn,
 	_gamePhase            :: Phase,
 	_gameStartPlayer      :: Int,
 	_gamePlayersTurn      :: Int,
@@ -669,14 +793,15 @@ instance Ord Game where
 type Games = Map.Map GameName Game
 
 data CivState = CivState {
-	_civGames :: Games
+	_civGames :: Games,
+	_civDebugMsg :: String
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''CivState)
 makeLenses ''CivState
 
 initialCivState :: CivState
-initialCivState = CivState Map.empty
+initialCivState = CivState Map.empty ""
 
 data Victory = TechVictory | MilitaryVictory | CultureVictory | EconomicVictory
 	deriving (Show,Eq)
@@ -968,6 +1093,23 @@ boardLayout numplayers = case numplayers of
 		(c 0  8,NT    ), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
 		(c 0 12,CT 3 n), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,CT 2 n) ]
 
+	5 -> [
+		(c 0  2,NT    ), (c 4  0,CT 0 s), (c 8  0,NT    ),
+		(c 0  6,NT    ), (c 4  4,NT    ), (c 8  4,NT    ), (c 12  4,CT 1 w),
+		(c 0 10,CT 4 e), (c 4  8,NT    ), (c 8  8,NT    ), (c 12  8,NT    ),
+		(c 0 14,NT    ), (c 4 12,NT    ), (c 8 12,NT    ), (c 12 12,NT    ),
+		(c 0 18,NT    ), (c 4 16,NT    ), (c 8 16,NT    ), (c 12 16,CT 2 w),
+		(c 4 20,CT 3 n), (c 8 20,NT    ) ]
+
+	6 -> [
+		(c 0  0,NT    ), (c 4  0,CT 0 s), (c  8  0,NT    ),
+		(c 0  4,NT    ), (c 4  4,NT    ), (c  8  4,NT    ), (c 12  4,CT 1 w),
+		(c 0  8,CT 5 e), (c 4  8,NT    ), (c  8  8,NT    ), (c 12  8,NT    ),
+		(c 2 12,NT    ), (c 6 12,NT    ), (c 10 12,NT    ), (c 14 12,NT    ),
+		(c 0 16,NT    ), (c 4 16,NT    ), (c  8 16,NT    ), (c 12 16,CT 2 w),
+		(c 0 20,CT 4 e), (c 4 20,NT    ), (c  8 20,NT    ), (c 12 20,NT    ),
+		                 (c 4 24,NT    ), (c  8 24,CT 3 n), (c 12 24,NT    ) ]
+
 	n -> error $ "boardLayout for " ++ show n ++ " players not yet implemented!"
 
 	where
@@ -977,9 +1119,21 @@ boardLayout numplayers = case numplayers of
 	e = Eastward
 	w = Westward
 
+
 deriveJSON defaultOptions ''Trade
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Civ
 deriveJSON defaultOptions ''Colour
-
+deriveJSON defaultOptions ''BuildingType
+deriveJSON defaultOptions ''Wonder
+deriveJSON defaultOptions ''Production
+deriveJSON defaultOptions ''ActionSource
+deriveJSON defaultOptions ''ActionTarget
+deriveJSON defaultOptions ''Move
+deriveJSON defaultOptions ''Tech
+deriveJSON defaultOptions ''Artifact
+deriveJSON defaultOptions ''Figure
+deriveJSON defaultOptions ''Resource
+deriveJSON defaultOptions ''Hut
+deriveJSON defaultOptions ''Village

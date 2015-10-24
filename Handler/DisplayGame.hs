@@ -2,8 +2,8 @@
 
 module Handler.DisplayGame where
 
-import Import hiding (map,minimum,maximum,concat,lookup,replicate,head)
-import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head)
+import Import hiding (map,minimum,maximum,concat,lookup,replicate,head,zip)
+import Prelude (map,minimum,maximum,concat,lookup,replicate,tail,init,head,zip)
 
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -16,6 +16,8 @@ import qualified Text.Blaze.Renderer.String (renderHtml)
 import Text.Blaze (string)
 import Data.Text.Lazy.Builder (fromString)
 import Text.Julius (RawJavascript(..))
+import Data.Acid.Advanced
+import Data.List ((!!))
 
 import GameMonad
 import Model
@@ -26,8 +28,9 @@ import Handler.StaticResources
 import Lenses
 import Logic
 import TokenStack
-import Actions
 import Acidic
+
+default (Int, Float)
 
 
 movelisttarget2markup :: [Move] -> String
@@ -51,15 +54,18 @@ data DisplayInfo = DisplayInfo {
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
-displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> [Move] -> Handler Html
-displayGame (userid,user,gamename,game,mb_playername) moves = do
+displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
+displayGame (userid,user,gamename,game,mb_playername) = do
+	app <- getYesod
+	moves <- case mb_playername of
+		Nothing -> return []
+		Just playername -> update' (appCivAcid app) $ MoveGen gamename playername 
 	let
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
-		moves = moveGen gamename game mb_playername
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
@@ -75,6 +81,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
     <tr><td>^{boardarea}
     <tr><td>^{playerarea1}
 |]
+
 		[p0,p1,p2] -> do
 			playerarea0 <- playerArea di p0 Southward
 			playerarea1 <- playerArea di p1 Westward
@@ -90,6 +97,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
     <td>^{boardarea}
     <td>^{playerarea2}
 |]
+
 		[p0,p1,p2,p3] -> do
 			playerarea0 <- playerArea di p0 Southward
 			playerarea1 <- playerArea di p1 Westward
@@ -106,14 +114,59 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
   <tr>
     <td colspan="2">^{playerarea2}
 |]
-		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
 
+		[p0,p1,p2,p3,p4] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Westward
+			playerarea3 <- playerArea di p3 Northward
+			playerarea4 <- playerArea di p4 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td>
+    <td>^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="2">^{playerarea4}
+    <td .Centre rowspan="2">^{boardarea}
+  <tr>
+    <td rowspan="2">^{playerarea2}
+  <tr>
+    <td>
+    <td colspan="2">^{playerarea3}
+|]
+
+		[p0,p1,p2,p3,p4,p5] -> do
+			playerarea0 <- playerArea di p0 Southward
+			playerarea1 <- playerArea di p1 Westward
+			playerarea2 <- playerArea di p2 Westward
+			playerarea3 <- playerArea di p3 Northward
+			playerarea4 <- playerArea di p4 Eastward
+			playerarea5 <- playerArea di p5 Eastward
+			return [whamlet|
+<table>
+  <tr>
+    <td rowspan="3">^{playerarea5}
+    <td>^{playerarea0}
+    <td rowspan="2">^{playerarea1}
+  <tr>
+    <td rowspan="3">^{boardarea}
+  <tr>
+    <td rowspan="2">^{playerarea2}
+  <tr>
+    <td rowspan="2">^{playerarea4}
+  <tr>
+    <td>^{playerarea3}
+|]
+
+		pas -> error $ "Layout for " ++ show (length pas) ++ " players not implemented (yet)."
+	Just dbgmsg <- queryCivLensH civDebugMsg
 	defaultLayout $ do
 		setTitle "Civilization Boardgame"
 		sendJSONJulius
 		longPollingJulius (GameR $ gameName gamename) (GameGame gamename)
 		allowedMovesJulius moves
-
 
 		[whamlet|
 <table>
@@ -141,6 +194,7 @@ displayGame (userid,user,gamename,game,mb_playername) moves = do
 <div .DragArea>
 <div .DebugArea>
   Debug<br />
+  <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
 |]
@@ -156,9 +210,10 @@ Visitor
 |]
 actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 	return [whamlet|
-<table .ActionArea>
-  $forall move <- moves
-    <tr><td>#{show move}
+<div style="overflow:scroll">
+  <table .ActionArea>
+    $forall move <- moves
+      <tr><td><button type=button onclick="sendAction(JSON.stringify(#{data2markup $ GameActionA move}))">#{show move}
 |]
 
 playerList :: DisplayInfo -> Handler Widget
@@ -365,11 +420,11 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
         <td valign=top>
           <table .PlayerArea-Wagons.NoSpacing.>
             $forall i <- unusedwagons
-              <tr><td><img .Wagon data-source=#{data2markup $ WagonSource playername} src=@{wagonRoute _playerColour}>
+              <tr><td><img .Wagon data-source=#{data2markup $ FigureSource playername Wagon} src=@{wagonRoute _playerColour}>
         <td valign=top>
           <table .PlayerArea-Flags.NoSpacing>
             $forall i <- unusedflags
-              <tr><td><img .Flag data-source=#{data2markup $ FlagSource playername} src=@{flagRoute _playerColour}>
+              <tr><td><img .Flag data-source=#{data2markup $ FigureSource playername Flag} src=@{flagRoute _playerColour}>
         <td valign=top>
           $forall _ <- leftcities 
             <img .Debug-DragCity data-source=#{data2markup $ CitySource playername} src=@{cityRoute' (False,NoWalls,_playerColour)}>
@@ -435,6 +490,7 @@ boardArea (DisplayInfo{..}) moves = do
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
+                      ^{figuresSquare playercolour (_squareFigures square) (Coors x y)}
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -465,10 +521,24 @@ partialDebugArea di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Debug>
 |]
-{-
-	flagSize  = scalex 45 1.27,
-	wagonSize = scalex 65 0.86,
-	pieceSquareProps = map (zip [10..]) [
+
+figuresSquare :: (PlayerName -> Colour) -> TokenStack Figure PlayerName -> Coors -> Widget
+figuresSquare playercolour figurestack coors = [whamlet|
+<div>
+  $forall ((x,y),(figure,playername,colour)) <- zip this_poss figures
+    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
+|]
+	where
+	this_poss = pos!!n
+	showcoor c = show $ ((round $ (c * fromInteger 94)) :: Int)
+	figureassocs = tokenStackToList figurestack
+	n = length figures
+	figures = concatMap (\ (figure,pns) -> map (\ pn -> (figure,pn,playercolour pn)) pns) figureassocs
+	cfi x r = ceiling (fromIntegral x / r) :: Int
+	n1 = cfi n 3
+	n2 = cfi (n-n1) 2
+	n3 = n-n1-n2
+	pos = [
 		[],
 		[(0.5,0.5)],
 		[(0.33,0.33),(0.67,0.67)],
@@ -479,11 +549,4 @@ partialDebugArea di@(DisplayInfo{..}) = do
 		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
--}
-figuresSquare :: DisplayInfo -> TokenStack Figure PlayerName -> Handler Widget
-figuresSquare (DisplayInfo{..}) figures = do
-	return [whamlet|
-|]
-	where
-	flagplayers  = tokenStackLookup Flag  figures
-	wagonplayers = tokenStackLookup Wagon figures
+		-- TODO: Expand

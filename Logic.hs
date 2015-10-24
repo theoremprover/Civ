@@ -48,4 +48,3 @@ shuffleList l = shufflelist' l []
 	shufflelist' ls acc = do
 		i <- liftIO $ randomRIO (0,length ls - 1)
 		shufflelist' (take i ls ++ drop (i+1) ls) ((ls!!i) : acc)
-

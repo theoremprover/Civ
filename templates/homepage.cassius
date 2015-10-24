@@ -120,11 +120,15 @@ img
     top : 70px
     z-index: 2
 
+.Centre
+    text-align: center
+    vertical-align: middle
+
 .Sidebar
     position: fixed
     bottom: 0px
     right: 0px
-    width: 200px
+    width: 250px
     border: 1px solid black
     background-color: lightyellow
     z-index: 10
@@ -141,4 +145,3 @@ img
     padding: 10px
     z-index: 11
     display: none
-
