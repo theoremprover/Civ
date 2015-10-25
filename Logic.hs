@@ -21,6 +21,12 @@ surroundingSquares :: Coor -> Coors -> [ Coors ]
 surroundingSquares radius coors = delete coors
 	[ coors +/+ Coors x y | x <- [-radius..radius], y <- [-radius..radius] ]
 
+neighbourSquares :: Coors -> [ Coors ]
+neighbourSquares coors = [ coors +/+ Coors dx dy | dx <- [-1,1], dy <- [-1,1] ]
+
+coorDistance :: Coors -> Coors -> Int
+coorDistance (Coors x1 y1) (Coors x2 y2) = max (abs $ x2-x1) (abs $ y2-y1)
+
 outskirtsOf :: [ Coors ] -> [ Coors ]
 outskirtsOf coorss = nub $ concatMap (surroundingSquares 1) coorss \\ coorss
 

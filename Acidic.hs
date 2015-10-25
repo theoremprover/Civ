@@ -70,7 +70,7 @@ data Abilities = Abilities {
 	researchCostBonus   :: Value Trade,
 	unitStackLimit      :: Value Int,
 	moveRange           :: Value Coor,
-	movementType        :: MovementType,
+	movementType        :: Value MovementType,
 	cardCoins           :: Coins,
 	threeTradeHammers   :: Value Int,
 	maxCities           :: Value Int,
@@ -117,7 +117,7 @@ defaultAbilities = Abilities {
 	researchCostBonus = SetValue (Trade 0),
 	unitStackLimit  = SetValue 2,
 	moveRange       = SetValue 2,
-	movementType    = Land,
+	movementType    = SetValue Land,
 	cardCoins       = Coins 0,
 	threeTradeHammers = SetValue 1,
 	maxCities       = SetValue 2,
@@ -162,7 +162,7 @@ unchangedAbilities = Abilities {
 	researchCostBonus = Unchanged,
 	unitStackLimit  = Unchanged,
 	moveRange       = Unchanged,
-	movementType    = Land,
+	movementType    = Unchanged,
 	cardCoins       = Coins 0,
 	threeTradeHammers = Unchanged,
 	maxCities       = Unchanged,
@@ -766,9 +766,22 @@ finishPlayerPhase gamename = do
 	when (_gamePlayersTurn == _gameStartPlayer) $ do
 		updateCivLensM nextPhase $ civGameLens gamename . _Just . gamePhase
 		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-		when (phase==StartOfTurn) $ do
-			incPlayerIndex gamename gamePlayersTurn
-			incPlayerIndex gamename gameStartPlayer
+		case phase of
+			CityManagement -> do
+				forAllPlayers $ \ (playername,player) -> do
+					forAllCities gamename playername $ \ (coors,_) -> do
+						updateCivLensM (const noIncome) $
+							civCityLens gamename coors . cityIncomeBonus
+
+			Movement -> do
+				forAllPlayers $ \ (playername,player) -> do
+					let range = getValueAbility moveRange player
+					updateCivLensM (map $ \ (f,(c,_)) -> (f,(c,range))) $
+						civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+
+			StartOfTurn -> do
+				incPlayerIndex gamename gamePlayersTurn
+				incPlayerIndex gamename gameStartPlayer
 
 allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
@@ -789,13 +802,23 @@ outskirtsOfCity gamename coors = do
 		Just ori -> [addCoorsOri coors ori]
 
 figuresOfPlayerOnSquare playername Square{..} =
-	concatMap (\ (fig,pns) -> map (const fig) $ filter (==playername) pns) $
-		tokenStackToList _squareFigures
+	map fst $ filter ((==playername).snd) _squareFigures
 
 buildFigure gamename playername figure coors = do
-	Just (Square{..}) <- getSquare gamename coors
 	Just () <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figure
-	putOnStackM (civSquareLens gamename coors . squareFigures) figure playername
+	placeFigure gamename playername figure coors
+	updateCivLensM (addAssoc (figure,coors)) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+
+placeFigure gamename playername figure coors = do
+	updateCivLensM ((figure,playername):) $ civSquareLens gamename coors . squareFigures
+
+unplaceFigure gamename playername figure coors = do
+	updateCivLensM (delete (figure,playername)) $ civSquareLens gamename coors . squareFigures
+
+destroyFigure gamename playername figure coors = do
+	updateCivLensM (deleteAssoc (figure,coors)) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	unplaceFigure gamename playername figure coors
+	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figure ()
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
 gameAction gamename playername move = runUpdateCivM $ do
@@ -806,6 +829,11 @@ gameAction gamename playername move = runUpdateCivM $ do
 			doMove gamename playername move
 			checkMovesLeft gamename
 	return ()
+
+forAllPlayers :: GameName -> ((PlayerName,Player) -> UpdateCivM a) -> UpdateCivM [a]
+forAllPlayers gamename action = do
+	players <- queryCivLensM $ civPlayersLens gamename
+	forM (fromAssocList players) action
 
 forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
 forAllCities gamename playername action = do
@@ -839,7 +867,7 @@ cityIncome gamename playername coors = do
 squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 squareIncome gamename playername coors = do
 	Just (Square{..}) <- getSquare gamename coors
-	return $ case null $ filter (/=playername) (concatMap snd (tokenStackToList _squareFigures)) of
+	return $ case null $ filter ((/=playername).snd) _squareFigures of
 		False -> noIncome
 		True  -> case _squareTokenMarker of
 			Just (BuildingMarker (Building buildingtype pn)) | pn==playername -> generatedIncome buildingtype
@@ -1104,12 +1132,21 @@ buildBuilding gamename playername coors buildingtype = do
 
 victory victorytype gamename playername = error "Not implemented yet"
 
+moveFigure :: GameName -> PlayerName -> Figure -> Coors -> Coors -> UpdateCivM ()
+moveFigure gamename playername figure sourcecoors targetcoors = do
+	unplaceFigure gamename playername figure sourcecoors
+	let distance = coorDistance sourcecoors targetcoors
+	updateCivLensM () $ -- TODO: HERE
+		civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	placeFigure gamename playername figure targetcoors
+
 canStayMoveOn :: (MovementType -> [Terrain]) -> GameName -> PlayerName -> Coors -> UpdateCivM Bool
 canStayMoveOn mtterrains gamename playername coors = do
 	Just (square@(Square{..})) <- getSquare gamename coors
 	Just (player@(Player{..})) <- getPlayer gamename playername
 	let stacklimit = getValueAbility unitStackLimit player
-	let terrains = mtterrains $ maximum $ map movementType $ playerAbilities player
+	let terrains = mtterrains $ getValueAbility movementType player
+	?? -- TODO: Auf OutOfBounds und Unrevealed erweitern
 	return $ 
 		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
 		(head _squareTerrain) `elem` terrains
@@ -1138,6 +1175,9 @@ doMove gamename playername move@(Move source target) = do
 			getResource gamename playername res
 		(CityProductionSource _ (DevoteToArts culture),NoTarget ()) -> do
 			addCulture culture gamename playername
+		(FigureOnBoardSource figure pn sourcecoors,SquareTarget targetcoors) | pn==playername -> do
+			moveFigure gamename playername figure sourcecoors targetcoors
+		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 		_ -> error $ show move ++ " not implemented yet"
 	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
@@ -1222,7 +1262,42 @@ moveGen gamename my_playername = do
 								harvestmoves ++
 								[ devotemove ]
 
-						return $ concat movess
+						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
+
+					Movement -> do
+						let
+							range = getValueAbility moveRange player
+							movementtype = getValueAbility movementType player
+							board = _gameBoard
+
+
+						cmovess <- forM (fromAssocList _playerFiguresOnBoard) $ \ (figure,(coors,leftrange)) -> do
+							canstay <- canStayOn gamename playername coors
+							case (canstay,leftrange) of
+								(True, 0) -> return ([],False)
+								(False,0) -> do
+									destroyFigure gamename playername figure coors
+									return ([],False)
+								_ -> do
+									targetcoorss <- forM (neighbourSquares coors) $ \ targetcoors -> do
+										?? -- TODO: Reveals einbinden
+										cancross <- canCross gamename playername targetcoors
+										case cancross of
+											False -> return []
+											True  -> case leftrange <= 1 of
+												True  -> return []
+												False -> return [targetcoors]
+									return ([ Move (FigureOnBoardSource figure playername coors) (SquareTarget targetcs) |
+										targetcs <- concat targetcoorss ],not canstay)
+						
+						let
+							cmoves = concat cmovess
+							finishmoves = case all not (map snd cmoves) of 
+								True -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
+								False -> []
+
+						return $ finishmoves ++ map fst cmoves
+
 					_ ->
 						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just

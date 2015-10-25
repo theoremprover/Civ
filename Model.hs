@@ -165,6 +165,7 @@ data Income = Income {
 	inMilBonus :: MilitaryBonus,
 	inResource :: [ResourcePattern] }
 	deriving (Show,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Income)
 
 noIncome = Income (Trade 0) (Hammers 0) (Culture 0) (Coins 0) (MilitaryBonus 0) []
 
@@ -249,12 +250,13 @@ data Walls = NoWalls | Walls
 $(deriveSafeCopy modelVersion 'base ''Walls)
 
 data City = SecondCitySquare Orientation | City {
-	_cityOwner :: PlayerName,
-	_cityCapital :: Bool,
-	_cityDoubleProd :: Bool,
-	_cityFortified :: Bool,
-	_cityWalls :: Walls,
-	_cityCaravan :: Bool,
+	_cityOwner                 :: PlayerName,
+	_cityCapital               :: Bool,
+	_cityDoubleProd            :: Bool,
+	_cityFortified             :: Bool,
+	_cityWalls                 :: Walls,
+	_cityCaravan               :: Bool,
+	_cityIncomeBonus           :: Income,   -- Temporary Bonus per phase, will be reset before CityManagement!
 	_cityMetropolisOrientation :: Maybe Orientation
 	}
 	deriving (Show,Data,Typeable,Eq)
@@ -262,9 +264,11 @@ $(deriveSafeCopy modelVersion 'base ''City)
 makeLenses ''City
 
 instance GeneratesIncome City where
-	generatedIncome city = cultureIncome $ maybe 1 (const 2) (_cityMetropolisOrientation city)
+	generatedIncome City{..} =
+		cultureIncome (maybe 1 (const 2) _cityMetropolisOrientation) +#
+		_cityIncomeBonus
 
-newCity owner capital metroori = City owner capital False False NoWalls False metroori
+newCity owner capital metroori = City owner capital False False NoWalls False noIncome metroori
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
@@ -446,7 +450,7 @@ data Square =
 		_squareResource    :: Maybe Resource,
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
-		_squareFigures     :: TokenStack Figure PlayerName
+		_squareFigures     :: [(Figure,PlayerName)]
 		}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
@@ -686,7 +690,8 @@ data ActionTarget =
 	BuildFirstCityTarget PlayerName Coors |
 	TechTarget PlayerName Tech |
 	FigureOnBoardTarget Figure PlayerName Coors |
-	GetTradeTarget PlayerName
+	GetTradeTarget PlayerName |
+	FinishPhaseTarget ()
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
 
@@ -698,11 +703,12 @@ instance Show Move where
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
 		(_,GetTradeTarget _) -> "Get Trade"
 		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
+		(FigureOnBoardSource figure _ sourcecoors,SquareTarget targetcoors) -> "Move " ++ show figure ++ " " ++ show sourcecoors ++ " -> " ++ show targetcoors
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(HaltSource (),_) -> "HALTED"
+		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
-
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
@@ -722,6 +728,7 @@ data Player = Player {
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
 	_playerFigures          :: TokenStack Figure (),
+	_playerFiguresOnBoard   :: AssocList Figure (Coors,Int),
 	_playerCultureCards     :: [CultureCard],
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
@@ -739,7 +746,7 @@ makePlayer useremail colour civ = Player
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
-	[] [] initialFigureStack [] Northward initialCityStack
+	[] [] initialFigureStack [] [] Northward initialCityStack
 	0 [] [] Map.empty
 
 data GameState = Waiting | Running | Finished
@@ -761,6 +768,18 @@ lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
 
 nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
 nthAssocList i assoclist = (fromAssocList assoclist)!!i
+
+addAssoc :: (key,val) -> AssocList key val -> AssocList key val
+addAssoc assoc assoclist = assoclist { fromAssocList = assoc:(fromAssocList assoclist) }
+
+deleteAssoc :: (key,val) -> AssocList key val -> AssocList key val
+deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAssocList assoclist) }
+
+mapAssoc :: key -> (val -> val) -> AssocList key val 
+mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList assoclist) } where
+	mf (k,v) = case k==key of
+		False -> (k,v)
+		True  -> (k,f v)
 
 type Players = AssocList PlayerName Player
 
@@ -1063,7 +1082,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 	where
 
-	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok emptyTokenStack
+	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok []
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
