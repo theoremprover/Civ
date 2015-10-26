@@ -441,8 +441,6 @@ boardArea (DisplayInfo{..}) moves = do
 		(xcoors,ycoors) = (map xCoor allcoors,map yCoor allcoors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
-		playerori owner = _playerOrientation (playernameToPlayerDI owner)
-		playercolour owner = _playerColour (playernameToPlayerDI owner)
 		cityori (city@City{..}) = case _cityMetropolisOrientation of
 			Nothing -> pori
 			Just metropolisori -> addOri metropolisori Westward
@@ -489,7 +487,7 @@ boardArea (DisplayInfo{..}) moves = do
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
-                      ^{figuresSquare playercolour (_squareFigures square) (Coors x y)}
+                      ^{figuresSquare playernameToPlayerDI (_squareFigures square) (Coors x y)}
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -521,18 +519,18 @@ partialDebugArea di@(DisplayInfo{..}) = do
 <div .Debug>
 |]
 
-figuresSquare :: (PlayerName -> Colour) -> SquareFigures -> Coors -> Widget
-figuresSquare playercolour squarefigures coors = [whamlet|
+figuresSquare :: (PlayerName -> Player) -> SquareFigures -> Widget
+figuresSquare playername2player squarefigures = [whamlet|
 <div>
-  $forall ((x,y),(figure,playername,colour)) <- zip this_poss figures
-    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
+  $forall ((x,y),(playername,figureid,Figure{..})) <- zip this_poss figures
+    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername figureCoors}>
 |]
 	where
 	this_poss = pos!!n
 	showcoor c = show $ ((round $ (c * fromInteger 94)) :: Int)
-	figureassocs = tokenStackToList figurestack
 	n = length figures
-	figures = concatMap (\ (figure,pns) -> map (\ pn -> (figure,pn,playercolour pn)) pns) figureassocs
+	figures = map (\ (pn,figid) -> (pn,figid,fromJust $ Map.lookup figid (_playerFiguresOnBoard $ playername2player pn)))
+		squarefigures
 	cfi x r = ceiling (fromIntegral x / r) :: Int
 	n1 = cfi n 3
 	n2 = cfi (n-n1) 2

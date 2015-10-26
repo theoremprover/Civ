@@ -23,6 +23,7 @@ import Data.Aeson.TH
 import Entities
 import TokenStack
 import ModelVersion
+import AssocList
 
 import qualified Data.Ix as Ix
 
@@ -445,7 +446,7 @@ instance ConsumesIncome FigureType where
 	consumedIncome Flag  = hammerIncome 4
 	consumedIncome Wagon = hammerIncome 6
 
-initialFigureStack :: TokenStack Figure Int
+initialFigureStack :: TokenStack FigureType FigureID
 initialFigureStack = tokenStackFromList $
 	[ (Flag,figureid) | figureid <- [0..5] ] ++
 	[ (Wagon,wagonid) | wagonid  <- [10..11] ]
@@ -724,8 +725,6 @@ instance Show Move where
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
 
-type FigureID = (Figure,(Coors,Int))
-
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
 	_playerColour           :: Colour,
@@ -743,7 +742,7 @@ data Player = Player {
 	_playerArtifacts        :: [Artifact],
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
-	_playerFigures          :: TokenStack Figure (),
+	_playerFigures          :: TokenStack FigureType FigureID,
 	_playerFiguresOnBoard   :: Map.Map FigureID Figure,
 	_playerCultureCards     :: [CultureCard],
 	_playerOrientation      :: Orientation,
@@ -1151,6 +1150,7 @@ boardLayout numplayers = case numplayers of
 
 
 deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''Orientation
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Culture

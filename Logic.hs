@@ -55,24 +55,3 @@ shuffleList l = shufflelist' l []
 		i <- liftIO $ randomRIO (0,length ls - 1)
 		shufflelist' (take i ls ++ drop (i+1) ls) ((ls!!i) : acc)
 
-data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''AssocList)
-
-lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
-lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
-
-nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
-nthAssocList i assoclist = (fromAssocList assoclist)!!i
-
-addAssoc :: (key,val) -> AssocList key val -> AssocList key val
-addAssoc assoc assoclist = assoclist { fromAssocList = assoc:(fromAssocList assoclist) }
-
-deleteAssoc :: (key,val) -> AssocList key val -> AssocList key val
-deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAssocList assoclist) }
-
-mapAssoc :: key -> (val -> val) -> AssocList key val 
-mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList assoclist) } where
-	mf (k,v) = case k==key of
-		False -> (k,v)
-		True  -> (k,f v)
