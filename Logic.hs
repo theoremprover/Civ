@@ -40,6 +40,14 @@ addCoorsOri (Coors x y) ori = case ori of
 addOri :: Orientation -> Orientation -> Orientation
 addOri o1 o2 = toEnum $ mod (fromEnum o1 + fromEnum o2) 4
 
+coorDiffOri :: Coors -> Coors -> Orientation
+coorDiffOri c1@(Coors x1 y1) c2@(Coors x2 y2) = case (x1==x2,y1==y2) of
+	(True,False) | y1<y2 -> Southward 
+	(True,False) | y1>y2 -> Northward 
+	(False,True) | x1<x2 -> Eastward 
+	(False,True) | x1>x2 -> Westward 
+	_ -> error $ "Cannot calculate coorDiffOri " ++ show c1 ++ " " ++ show c2 
+
 shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do

@@ -29,6 +29,7 @@ import Lenses
 import Logic
 import TokenStack
 import Acidic
+import AssocList
 
 default (Int, Float)
 
@@ -433,7 +434,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 |]
 
 boardArea :: DisplayInfo -> [Move] -> Handler Widget
-boardArea (DisplayInfo{..}) moves = do
+boardArea di@(DisplayInfo{..}) moves = do
 	let
 		arr = _gameBoard gameDI
 		arrlookup coors = arr!coors
@@ -442,17 +443,17 @@ boardArea (DisplayInfo{..}) moves = do
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
 		cityori (city@City{..}) = case _cityMetropolisOrientation of
-			Nothing -> pori
+			Nothing -> playerori _cityOwner
 			Just metropolisori -> addOri metropolisori Westward
-			where
-			pori = playerori _cityOwner
+		playerori playername = _playerOrientation $ playernameToPlayerDI playername
+		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
 		rowcolspan :: Coors -> Maybe (Int,Int,String)
 		rowcolspan coors = case arrlookup coors of
 			Square _ _ _ _ _ (Just (CityMarker city)) _ -> case city of
 				SecondCitySquare _          -> Nothing
-				City _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
-				City _ _ _ _ _ _ (Just ori) -> case ori of
+				City _ _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
+				City _ _ _ _ _ _ _ (Just ori) -> case ori of
 					Southward -> Just (2,1,"VertDoubleSquareContainer")
 					Eastward  -> Just (1,2,"HorDoubleSquareContainer")
 					_         -> error $ "Strange orientation: " ++ show coors
@@ -487,7 +488,7 @@ boardArea (DisplayInfo{..}) moves = do
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
-                      ^{figuresSquare playernameToPlayerDI (_squareFigures square) (Coors x y)}
+                      ^{figuresSquare di (_squareFigures square)}
 
   <div style="z-index: 2;">
     <table .NoSpacing>
@@ -519,22 +520,24 @@ partialDebugArea di@(DisplayInfo{..}) = do
 <div .Debug>
 |]
 
-figuresSquare :: (PlayerName -> Player) -> SquareFigures -> Widget
-figuresSquare playername2player squarefigures = [whamlet|
+figuresSquare :: DisplayInfo -> SquareFigures -> Widget
+figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 <div>
   $forall ((x,y),(playername,figureid,Figure{..})) <- zip this_poss figures
-    <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername figureCoors}>
+    <img src=@{figureRoute _figureType (_playerColour $ playernameToPlayerDI playername)} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername _figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername _figureCoors}>
 |]
 	where
 	this_poss = pos!!n
 	showcoor c = show $ ((round $ (c * fromInteger 94)) :: Int)
 	n = length figures
-	figures = map (\ (pn,figid) -> (pn,figid,fromJust $ Map.lookup figid (_playerFiguresOnBoard $ playername2player pn)))
+	figures = map (\ (pn,figid) -> (pn,figid,fromJust $ Map.lookup figid (_playerFiguresOnBoard $ playernameToPlayerDI pn)))
 		squarefigures
+{-
 	cfi x r = ceiling (fromIntegral x / r) :: Int
 	n1 = cfi n 3
 	n2 = cfi (n-n1) 2
 	n3 = n-n1-n2
+-}
 	pos = [
 		[],
 		[(0.5,0.5)],
