@@ -802,23 +802,29 @@ outskirtsOfCity gamename coors = do
 		Just ori -> [addCoorsOri coors ori]
 
 figuresOfPlayerOnSquare playername Square{..} =
-	map fst $ filter ((==playername).snd) _squareFigures
+	map fst $ filter ((==playername).fst) _squareFigures
 
-buildFigure gamename playername figure coors = do
-	Just () <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figure
-	placeFigure gamename playername figure coors
-	updateCivLensM (addAssoc (figure,coors)) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+getFigure gamename playername figureid = do
+	Just figure <- queryCivLensM $ civPlayerLens gamename playername . _Just . figuresOnBoard . at figureid
+	return figure
 
-placeFigure gamename playername figure coors = do
-	updateCivLensM ((figure,playername):) $ civSquareLens gamename coors . squareFigures
+buildFigure gamename playername figuretype coors = do
+	Just figureid <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figuretype
+	let figure = Figure figuretype coors 0
+	updateCivLensM (Map.insert figureid figure) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	placeFigure gamename playername figureid coors
 
-unplaceFigure gamename playername figure coors = do
-	updateCivLensM (delete (figure,playername)) $ civSquareLens gamename coors . squareFigures
+placeFigure gamename playername figureid coors = do
+	updateCivLensM ((playername,figureid):) $ civSquareLens gamename coors . squareFigures
 
-destroyFigure gamename playername figure coors = do
-	updateCivLensM (deleteAssoc (figure,coors)) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
-	unplaceFigure gamename playername figure coors
-	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figure ()
+unplaceFigure gamename playername figureid coors = do
+	updateCivLensM (delete (playername,figureid)) $ civSquareLens gamename coors . squareFigures
+
+destroyFigure gamename playername figureid = do
+	Figure{..} <- getFigure gamename playername figureid
+	unplaceFigure gamename playername figureid figureCoors
+	updateCivLensM (Map.delete figureid) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figureType figureid
 
 gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
 gameAction gamename playername move = runUpdateCivM $ do

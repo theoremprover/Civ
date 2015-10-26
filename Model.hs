@@ -428,17 +428,29 @@ data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CityState)
 
-data Figure = Flag | Wagon
+data FigureType = Flag | Wagon
 	deriving (Show,Ord,Ix,Data,Typeable,Eq,Bounded)
+$(deriveSafeCopy modelVersion 'base ''FigureType)
+
+data Figure = Figure {
+	figureType      :: FigureType,
+	figureCoors     :: Coors,
+	figureRangeLeft :: Coor }
+	deriving (Show,Ord,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Figure)
 
-instance ConsumesIncome Figure where
+type FigureID = Int
+
+instance ConsumesIncome FigureType where
 	consumedIncome Flag  = hammerIncome 4
 	consumedIncome Wagon = hammerIncome 6
 
-initialFigureStack :: TokenStack Figure ()
-initialFigureStack = tokenStackFromList $ replicateUnit [
-	(Flag,6), (Wagon,2) ]
+initialFigureStack :: TokenStack Figure Int
+initialFigureStack = tokenStackFromList $
+	[ (Flag,figureid) | figureid <- [0..5] ] ++
+	[ (Wagon,wagonid) | wagonid  <- [10..11] ]
+
+type SquareFigures = [(PlayerName,FigureID)]
 
 data Square =
 	OutOfBounds |
@@ -450,7 +462,7 @@ data Square =
 		_squareResource    :: Maybe Resource,
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
-		_squareFigures     :: [(Figure,PlayerName)]
+		_squareFigures     :: SquareFigures
 		}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
@@ -732,7 +744,7 @@ data Player = Player {
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
 	_playerFigures          :: TokenStack Figure (),
-	_playerFiguresOnBoard   :: AssocList Figure (Coors,Int),
+	_playerFiguresOnBoard   :: Map.Map FigureID Figure,
 	_playerCultureCards     :: [CultureCard],
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
@@ -750,7 +762,7 @@ makePlayer useremail colour civ = Player
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
-	[] [] initialFigureStack [] [] Northward initialCityStack
+	[] [] initialFigureStack Map.empty [] Northward initialCityStack
 	0 [] [] Map.empty
 
 data GameState = Waiting | Running | Finished

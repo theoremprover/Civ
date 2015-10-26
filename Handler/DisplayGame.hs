@@ -521,8 +521,8 @@ partialDebugArea di@(DisplayInfo{..}) = do
 <div .Debug>
 |]
 
-figuresSquare :: (PlayerName -> Colour) -> TokenStack Figure PlayerName -> Coors -> Widget
-figuresSquare playercolour figurestack coors = [whamlet|
+figuresSquare :: (PlayerName -> Colour) -> SquareFigures -> Coors -> Widget
+figuresSquare playercolour squarefigures coors = [whamlet|
 <div>
   $forall ((x,y),(figure,playername,colour)) <- zip this_poss figures
     <img src=@{figureRoute figure colour} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figure playername coors} data-target=#{data2markup $ FigureOnBoardTarget figure playername coors}>
