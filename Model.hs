@@ -672,7 +672,7 @@ data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
 	FigureSource PlayerName Figure |
-	FigureOnBoardSource Figure PlayerName Coors |
+	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
 	CityProductionSource Coors Production |
@@ -691,6 +691,7 @@ data ActionTarget =
 	TechTarget PlayerName Tech |
 	FigureOnBoardTarget Figure PlayerName Coors |
 	GetTradeTarget PlayerName |
+	RevealTileTarget Orientation Coors |
 	FinishPhaseTarget ()
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
@@ -703,12 +704,15 @@ instance Show Move where
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
 		(_,GetTradeTarget _) -> "Get Trade"
 		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
-		(FigureOnBoardSource figure _ sourcecoors,SquareTarget targetcoors) -> "Move " ++ show figure ++ " " ++ show sourcecoors ++ " -> " ++ show targetcoors
+		(FigureOnBoardSource figureid _ sourcecoors,SquareTarget targetcoors) -> "Move " ++ show figureid ++ " " ++ show sourcecoors ++ " -> " ++ show targetcoors
+		(FigureOnBoardSource figureid _ sourcecoors,RevealTileTarget ori coors) -> "Reveal Tile at " ++ show coors ++ " with " ++ show figureid
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(HaltSource (),_) -> "HALTED"
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
+
+type FigureID = (Figure,(Coors,Int))
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
@@ -758,28 +762,6 @@ newtype GameName = GameName Text
 $(deriveSafeCopy modelVersion 'base ''GameName)
 
 gameName (GameName gn) = gn
-
-data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''AssocList)
-
-lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
-lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
-
-nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
-nthAssocList i assoclist = (fromAssocList assoclist)!!i
-
-addAssoc :: (key,val) -> AssocList key val -> AssocList key val
-addAssoc assoc assoclist = assoclist { fromAssocList = assoc:(fromAssocList assoclist) }
-
-deleteAssoc :: (key,val) -> AssocList key val -> AssocList key val
-deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAssocList assoclist) }
-
-mapAssoc :: key -> (val -> val) -> AssocList key val 
-mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList assoclist) } where
-	mf (k,v) = case k==key of
-		False -> (k,v)
-		True  -> (k,f v)
 
 type Players = AssocList PlayerName Player
 

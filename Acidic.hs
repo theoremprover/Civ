@@ -1132,21 +1132,24 @@ buildBuilding gamename playername coors buildingtype = do
 
 victory victorytype gamename playername = error "Not implemented yet"
 
-moveFigure :: GameName -> PlayerName -> Figure -> Coors -> Coors -> UpdateCivM ()
-moveFigure gamename playername figure sourcecoors targetcoors = do
-	unplaceFigure gamename playername figure sourcecoors
-	let distance = coorDistance sourcecoors targetcoors
-	updateCivLensM () $ -- TODO: HERE
-		civPlayerLens gamename playername . _Just . playerFiguresOnBoard
-	placeFigure gamename playername figure targetcoors
+subtractRange :: GameName -> PlayerName -> FigureID -> Int -> UpdateCivM ()
+subtractRange gamename playername figureid range = do
+	updateCivLensM (mapAssoc ) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
 
+moveFigure :: GameName -> PlayerName -> FigureID -> Coors -> UpdateCivM ()
+moveFigure gamename playername figureid@(figure,(sourcecoors,range)) targetcoors = do
+	unplaceFigure gamename playername figureid
+	let distance = coorDistance sourcecoors targetcoors
+	subtractRange gamename playername figureid distance
+	placeFigure gamename playername (figure,(targetcoors,range))
+
+-- Nur definiert für revealed squares!
 canStayMoveOn :: (MovementType -> [Terrain]) -> GameName -> PlayerName -> Coors -> UpdateCivM Bool
 canStayMoveOn mtterrains gamename playername coors = do
 	Just (square@(Square{..})) <- getSquare gamename coors
 	Just (player@(Player{..})) <- getPlayer gamename playername
 	let stacklimit = getValueAbility unitStackLimit player
 	let terrains = mtterrains $ getValueAbility movementType player
-	?? -- TODO: Auf OutOfBounds und Unrevealed erweitern
 	return $ 
 		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
 		(head _squareTerrain) `elem` terrains
@@ -1175,8 +1178,11 @@ doMove gamename playername move@(Move source target) = do
 			getResource gamename playername res
 		(CityProductionSource _ (DevoteToArts culture),NoTarget ()) -> do
 			addCulture culture gamename playername
-		(FigureOnBoardSource figure pn sourcecoors,SquareTarget targetcoors) | pn==playername -> do
-			moveFigure gamename playername figure sourcecoors targetcoors
+		(FigureOnBoardSource figureid pn sourcecoors,SquareTarget targetcoors) | pn==playername -> do
+			moveFigure gamename playername figureid sourcecoors targetcoors
+		(FigureOnBoardSource figureid pn sourcecoors,RevealTileTarget ori tileorigin) | pn==playername -> do
+			subtractRange gamename playername figureid 1
+			revealTile gamename tileorigin ori
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 		_ -> error $ show move ++ " not implemented yet"
 	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
@@ -1270,25 +1276,30 @@ moveGen gamename my_playername = do
 							movementtype = getValueAbility movementType player
 							board = _gameBoard
 
-
-						cmovess <- forM (fromAssocList _playerFiguresOnBoard) $ \ (figure,(coors,leftrange)) -> do
+						cmovess <- forM (fromAssocList _playerFiguresOnBoard) $ \ figureid@(figure,(coors,leftrange)) -> do
 							canstay <- canStayOn gamename playername coors
 							case (canstay,leftrange) of
 								(True, 0) -> return ([],False)
 								(False,0) -> do
-									destroyFigure gamename playername figure coors
+									destroyFigure gamename playername figureid
 									return ([],False)
 								_ -> do
-									targetcoorss <- forM (neighbourSquares coors) $ \ targetcoors -> do
-										?? -- TODO: Reveals einbinden
-										cancross <- canCross gamename playername targetcoors
-										case cancross of
-											False -> return []
-											True  -> case leftrange <= 1 of
-												True  -> return []
-												False -> return [targetcoors]
-									return ([ Move (FigureOnBoardSource figure playername coors) (SquareTarget targetcs) |
-										targetcs <- concat targetcoorss ],not canstay)
+									targetss <- forM (neighbourSquares coors) $ \ targetcoors -> do
+										mb_square <- getSquare gamename targetcoors
+										case mb_square of
+											Nothing -> return []
+											Just OutOfBounds -> return []
+											Just (UnrevealedSquare tileid tileorigin) ->
+												return [ RevealTileTarget tileid tileorigin ]
+											Just _ -> do
+												cancross <- canCross gamename playername targetcoors
+												case cancross of
+													False -> return []
+													True  -> case leftrange <= 1 of
+														True  -> return []
+														False -> return [SquareTarget targetcoors]
+									return ([ Move (FigureOnBoardSource figureid playername) target |
+										target <- concat targetss ],not canstay)
 						
 						let
 							cmoves = concat cmovess
