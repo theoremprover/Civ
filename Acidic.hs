@@ -74,7 +74,6 @@ data Abilities = Abilities {
 	movementType        :: Value MovementType,
 	cardCoins           :: Coins,
 	threeTradeHammers   :: Value Int,
-	maxCities           :: Value Int,
 	productionBonus     :: Player -> Value Int,
 	buildWonderHook     :: HookM (),
 	drawCultureHook     :: HookM (),
@@ -121,7 +120,6 @@ defaultAbilities = Abilities {
 	movementType    = SetValue Land,
 	cardCoins       = Coins 0,
 	threeTradeHammers = SetValue 1,
-	maxCities       = SetValue 2,
 	productionBonus = const $ SetValue 0,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
@@ -166,7 +164,6 @@ unchangedAbilities = Abilities {
 	movementType    = Unchanged,
 	cardCoins       = Coins 0,
 	threeTradeHammers = Unchanged,
-	maxCities       = Unchanged,
 	productionBonus = const Unchanged,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
@@ -334,7 +331,7 @@ techAbilities tech = case tech of
 		enabledBuildings   = [Aquaeduct],
  		cardAbilities      = cardAbility [CityManagement] "Engineering: Split Production" splitProduction_Engineering $ const [] }
 	Irrigation           -> unchangedAbilities {
-		maxCities          = SetValue 3 }
+		getThisHook        = pushThirdCity }
 	Bureaucracy          -> unchangedAbilities {
 		cardCoins          = Coins 1,
 		cardAbilities      = cardAbility [Research] "Bureaucracy: Switch Policy" switchPolicy_Bureaucracy $ const [] }
@@ -437,6 +434,9 @@ healDamage damage gamename playername = do
 healAllDamage gamename playername = do
 	--TODO
 	return ()
+
+pushThirdCity gamename playername = do
+	putOnStackM (civPlayerLens gamename playername . _Just . playerCityStack) () ()
 
 plusHammers hammers gamename playername = do
 	--TODO
@@ -807,9 +807,6 @@ oneMoreFigure figtype gamename playername = do
 	Just figstack <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFigures
 	let nextid = maximum (concat $ tokenStackElems figstack) + 1
 	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figtype nextid
-
-figuresOfPlayerOnSquare playername Square{..} =
-	map fst $ filter ((==playername).fst) _squareFigures
 
 getFigure gamename playername figureid = do
 	Just figure <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid
@@ -1206,18 +1203,15 @@ canStayMoveOn mtterrains gamename playername figuretype coors = do
 	let stacklimit = getValueAbility unitStackLimit player
 	let terrains = mtterrains $ getValueAbility movementType player
 	return $ 
-		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
+		stacklimit > length (filter ((==playername).fst) _squareFigures) &&
 		(head _squareTerrain) `elem` terrains &&
 		(not (isVillage _squareTokenMarker) || figuretype==Flag) &&
 		(not (isHut _squareTokenMarker) || figuretype==Flag)
 
 canStayOn gamename playername figuretype coors = do
 	canstayonterrain <- canStayMoveOn movementTypeEndTerrains gamename playername figuretype coors
-	Just (square@(Square{..})) <- getSquare gamename coors
-	let iscity = case _squareTokenMarker of
-		Just (CityMarker _) -> True
-		_                   -> False
-	return $ canstayonterrain && not iscity
+	Just Square{..} <- getSquare gamename coors
+	return $ canstayonterrain && not (isCity _squareTokenMarker)
 
 canCross = canStayMoveOn movementTypeCrossTerrains
 
@@ -1351,11 +1345,6 @@ moveGen gamename my_playername = do
 						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
 
 					Movement -> do
-						let
-							range = getValueAbility moveRange player
-							movementtype = getValueAbility movementType player
-							board = _gameBoard
-
 						cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
 							canstay <- canStayOn gamename playername _figureType _figureCoors
 							case _figureRangeLeft of
@@ -1386,8 +1375,8 @@ moveGen gamename my_playername = do
 						
 						let
 							cmoves = concat cmovess
-							finishmoves = case all not (map snd cmoves) of 
-								True -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
+							finishmoves = case all (not.snd) cmoves of
+								True  -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
 								False -> []
 
 						return $ finishmoves ++ map fst cmoves
