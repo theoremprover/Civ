@@ -23,6 +23,7 @@ import Data.Aeson.TH
 import Entities
 import TokenStack
 import ModelVersion
+import AssocList
 
 import qualified Data.Ix as Ix
 
@@ -165,6 +166,7 @@ data Income = Income {
 	inMilBonus :: MilitaryBonus,
 	inResource :: [ResourcePattern] }
 	deriving (Show,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Income)
 
 noIncome = Income (Trade 0) (Hammers 0) (Culture 0) (Coins 0) (MilitaryBonus 0) []
 
@@ -249,12 +251,13 @@ data Walls = NoWalls | Walls
 $(deriveSafeCopy modelVersion 'base ''Walls)
 
 data City = SecondCitySquare Orientation | City {
-	_cityOwner :: PlayerName,
-	_cityCapital :: Bool,
-	_cityDoubleProd :: Bool,
-	_cityFortified :: Bool,
-	_cityWalls :: Walls,
-	_cityCaravan :: Bool,
+	_cityOwner                 :: PlayerName,
+	_cityCapital               :: Bool,
+	_cityDoubleProd            :: Bool,
+	_cityFortified             :: Bool,
+	_cityWalls                 :: Walls,
+	_cityCaravan               :: Bool,
+	_cityIncomeBonus           :: Income,   -- Temporary Bonus per phase, will be reset before CityManagement!
 	_cityMetropolisOrientation :: Maybe Orientation
 	}
 	deriving (Show,Data,Typeable,Eq)
@@ -262,9 +265,11 @@ $(deriveSafeCopy modelVersion 'base ''City)
 makeLenses ''City
 
 instance GeneratesIncome City where
-	generatedIncome city = cultureIncome $ maybe 1 (const 2) (_cityMetropolisOrientation city)
+	generatedIncome City{..} =
+		cultureIncome (maybe 1 (const 2) _cityMetropolisOrientation) +#
+		_cityIncomeBonus
 
-newCity owner capital metroori = City owner capital False False NoWalls False metroori
+newCity owner capital metroori = City owner capital False False NoWalls False noIncome metroori
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
@@ -366,6 +371,12 @@ data TokenMarker =
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
 makeLenses ''TokenMarker
 
+isHut (Just (HutMarker _)) = True
+isHut _ = False
+
+isVillage (Just (VillageMarker _)) = True
+isVillage _ = False
+
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
 	ChichenItza | Pyramids | GreatLighthouse | StatueZeus |
@@ -424,17 +435,28 @@ data CityState = CityState1 | CityState2 | CityState3 | CityState4 | CityState5
 	deriving (Show,Ord,Ix,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''CityState)
 
-data Figure = Flag | Wagon
+data FigureType = Flag | Wagon
 	deriving (Show,Ord,Ix,Data,Typeable,Eq,Bounded)
-$(deriveSafeCopy modelVersion 'base ''Figure)
+$(deriveSafeCopy modelVersion 'base ''FigureType)
 
-instance ConsumesIncome Figure where
+data Figure = Figure {
+	_figureType      :: FigureType,
+	_figureCoors     :: Coors,
+	_figureRangeLeft :: Coor }
+	deriving (Show,Ord,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''Figure)
+makeLenses ''Figure
+
+type FigureID = Int
+
+instance ConsumesIncome FigureType where
 	consumedIncome Flag  = hammerIncome 4
 	consumedIncome Wagon = hammerIncome 6
 
-initialFigureStack :: TokenStack Figure ()
-initialFigureStack = tokenStackFromList $ replicateUnit [
-	(Flag,6), (Wagon,2) ]
+initialFigureStack :: TokenStack FigureType FigureID
+initialFigureStack = tokenStackFromList $ [ (Flag,[0..5]), (Wagon,[10..11]) ]
+
+type SquareFigures = [(PlayerName,FigureID)]
 
 data Square =
 	OutOfBounds |
@@ -446,7 +468,7 @@ data Square =
 		_squareResource    :: Maybe Resource,
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
-		_squareFigures     :: TokenStack Figure PlayerName
+		_squareFigures     :: SquareFigures
 		}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
@@ -647,7 +669,7 @@ $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
 
 data Production =
-	ProduceFigure Figure |
+	ProduceFigure FigureType |
 	ProduceBuilding BuildingType |
 	ProduceWonder Wonder |
 	ProduceUnit UnitType |
@@ -667,8 +689,8 @@ instance Show Production where
 data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
-	FigureSource PlayerName Figure |
-	FigureOnBoardSource Figure PlayerName Coors |
+	FigureSource PlayerName FigureType |
+	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
 	CityProductionSource Coors Production |
@@ -684,9 +706,12 @@ data ActionTarget =
 	NoTarget () |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
+	BuildCityTarget () |
 	TechTarget PlayerName Tech |
-	FigureOnBoardTarget Figure PlayerName Coors |
-	GetTradeTarget PlayerName
+	FigureOnBoardTarget FigureID PlayerName Coors |
+	GetTradeTarget PlayerName |
+	RevealTileTarget Orientation Coors |
+	FinishPhaseTarget ()
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
 
@@ -696,13 +721,16 @@ $(deriveSafeCopy modelVersion 'base ''Move)
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(FigureOnBoardSource figureid _ sourcecoors,BuildCityTarget ()) -> "Build city at " ++ show sourcecoors ++ " with " ++ show figureid
 		(_,GetTradeTarget _) -> "Get Trade"
 		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
+		(FigureOnBoardSource figureid _ sourcecoors,SquareTarget targetcoors) -> "Move " ++ show figureid ++ " " ++ show sourcecoors ++ " -> " ++ show targetcoors
+		(FigureOnBoardSource figureid _ sourcecoors,RevealTileTarget ori coors) -> "Reveal Tile at " ++ show coors ++ " with " ++ show figureid
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(HaltSource (),_) -> "HALTED"
+		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
-
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
@@ -721,7 +749,8 @@ data Player = Player {
 	_playerArtifacts        :: [Artifact],
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
-	_playerFigures          :: TokenStack Figure (),
+	_playerFigures          :: TokenStack FigureType FigureID,
+	_playerFiguresOnBoard   :: Map.Map FigureID Figure,
 	_playerCultureCards     :: [CultureCard],
 	_playerOrientation      :: Orientation,
 	_playerCityStack        :: TokenStack () (),
@@ -739,7 +768,7 @@ makePlayer useremail colour civ = Player
 	(Trade 0) (Culture 0) (Coins 0) []
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
-	[] [] initialFigureStack [] Northward initialCityStack
+	[] [] initialFigureStack Map.empty [] Northward initialCityStack
 	0 [] [] Map.empty
 
 data GameState = Waiting | Running | Finished
@@ -751,16 +780,6 @@ newtype GameName = GameName Text
 $(deriveSafeCopy modelVersion 'base ''GameName)
 
 gameName (GameName gn) = gn
-
-data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''AssocList)
-
-lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
-lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
-
-nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
-nthAssocList i assoclist = (fromAssocList assoclist)!!i
 
 type Players = AssocList PlayerName Player
 
@@ -1063,7 +1082,7 @@ tileSquares tileid = concatMap (\(y,l) -> map (\ (x,sq) -> (Coors x y,sq)) l) $ 
 
 	where
 
-	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok emptyTokenStack
+	sq terrain coin tok natwon res = Square Nothing [terrain] coin res natwon tok []
 	d = sq Desert
 	g = sq Grassland
 	m = sq Mountains
@@ -1138,6 +1157,7 @@ boardLayout numplayers = case numplayers of
 
 
 deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''Orientation
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Culture
@@ -1152,6 +1172,7 @@ deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Move
 deriveJSON defaultOptions ''Tech
 deriveJSON defaultOptions ''Artifact
+deriveJSON defaultOptions ''FigureType
 deriveJSON defaultOptions ''Figure
 deriveJSON defaultOptions ''Resource
 deriveJSON defaultOptions ''Hut

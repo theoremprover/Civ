@@ -26,6 +26,7 @@ import TokenStack
 import Lenses
 import Polls
 import Acidic
+import AssocList
 
 
 queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
@@ -137,7 +138,7 @@ executeAction action = do
 			unitstack    <- shuffle initialUnitStack
 			culturestack <- shuffle initialCultureStack
 			res <- updateCivH $ CreateNewGame gamename $ Game
-				now (userEmail user) Waiting emptyPlayers 1 StartOfGame 0 0
+				now (userEmail user) Waiting emptyPlayers 0 StartOfGame 0 0
 				emptyBoard
 				tilestack hutstack villagestack
 				initialBuildingStack personstack unitstack culturestack
