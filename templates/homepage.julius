@@ -81,19 +81,34 @@ $(function() {
   
   $('.Action-ShowDialog').click(function() {
     $( "#Dialog-Test" ).dialog({
-    resizable: false,
-    height: 'auto',
-    modal: true,
-    buttons: {
-      Ok: function() {
-        $( this ).dialog("close");
-      },
-      Cancel: function() {
-        $( this ).dialog("close");
+      resizable: false,
+      height: 'auto',
+      modal: true,
+      buttons: {
+        Ok: function() {
+          $( this ).dialog("close");
+        },
+        Cancel: function() {
+          $( this ).dialog("close");
+        }
       }
+    });
+  });
+
+  $("#ZoomSlider").slider({
+    range: "min",
+    value: 100,
+    min: 1,
+    max: 100,
+    slide: function(event, ui) {
+      $("#Zoom").val(ui.value+"%");
+      var zoom = ui.value/100;
+      var $gameArea = $('.GameArea');
+      $gameArea.css('zoom', zoom);
+      $gameArea.css('-moz-transform', 'scale('+zoom+')');
+      $gameArea.css('-o-transform', 'scale('+zoom+')');
     }
   });
-});
 
 /*
   $(".Eastward,.Westward").each(function () {

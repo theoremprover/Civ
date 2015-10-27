@@ -169,16 +169,13 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		allowedMovesJulius moves
 
 		[whamlet|
-<table>
-  <tr>
-    <td><div style="overflow:auto">^{arena}
-    <td valign=bottom>
-      <table>
-        <tr><td>^{playerlist}
-        <tr><td>^{actionarea}
+<div .GameArea>
+  <div>^{arena}
+  <div .DragArea>
 
 <div .Sidebar>
   <table>
+    <tr><td>Zoom <input type="text" id="Zoom" readonly style="border:0;" /><div id="ZoomSlider" />
     <tr><td>^{playerlist}
     <tr><td>^{actionarea}
     <tr><td><a href="#" class="Action-OpenDebug">Show Debug
@@ -191,7 +188,6 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     Click <a href=@{HomeR}>here</a> to switch to the next player
   <p>
 
-<div .DragArea>
 <div .DebugArea>
   Debug<br />
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
@@ -462,7 +458,7 @@ boardArea (DisplayInfo{..}) moves = do
 
 	return [whamlet|
 <div .Parent>
-  <div .Child style="z-index: 1;">
+  <div .Child style="z-index: 1">
     <table .NoSpacing border=1>
       $forall y <- ys
         <tr>
@@ -491,14 +487,14 @@ boardArea (DisplayInfo{..}) moves = do
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
                       ^{figuresSquare playercolour (_squareFigures square) (Coors x y)}
 
-  <div style="z-index: 2;">
+  <div style="z-index: 2">
     <table .NoSpacing>
       $forall y <- ys
-        <tr>
+        <tr .TileContainer-Row>
           $forall x <- xs
             $case arrlookup (Coors x y)
               $of OutOfBounds
-                <td .TileContainer><img .Center src=@{transparentSquareRoute}> 
+                <td .TileContainer-OutOfBounds><img .Center src=@{transparentSquareRoute}> 
               $of UnrevealedSquare tileid coors
                 $if (==) coors (Coors x y)
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show Northward} src=@{boardTileRoute tileid False}>
