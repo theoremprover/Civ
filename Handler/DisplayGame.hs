@@ -34,9 +34,11 @@ import AssocList
 default (Int, Float)
 
 
+{-
 movelisttarget2markup :: [Move] -> String
 movelisttarget2markup []    = data2markup $ NoTarget ()
 movelisttarget2markup (Move _ target : _) = data2markup target
+-}
 
 data2markup :: (ToJSON a) => a -> String
 data2markup a = Data.ByteString.Lazy.Char8.unpack $ encode a
@@ -468,7 +470,7 @@ boardArea di@(DisplayInfo{..}) moves = do
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer .Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{movelisttarget2markup $ filter (coors2action (Coors x y)) moves} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer .Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _

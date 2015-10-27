@@ -719,7 +719,7 @@ autoPlayLoop :: GameName -> StdGen -> UpdateCivM ()
 autoPlayLoop gamename randgen = do
 	Just (Game{..}) <- getGame gamename
 	case _gamePhase of
-		CityManagement -> return ()
+		Movement -> return ()
 		_ -> do
 			playername <- getPlayerTurn gamename
 			moves <- moveGenM gamename playername
