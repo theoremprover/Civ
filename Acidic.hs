@@ -658,15 +658,14 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
-	Just players <- queryCivLensM $ civPlayersLens gamename
-	updateCivLensM (const $ initialResourceStack (numPlayers players)) $
-		civGameLens gamename . _Just . gameResourceStack
-
 	forAllPlayers gamename $ \ (playername,player@(Player{..})) -> do
-		forM [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
+		forM_ [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
 		let (starttech,startgov) = civStartTechAndGov _playerCiv
 		addTech gamename playername (Just TechLevelI) starttech
 		setGovernment startgov gamename playername
+		forM_ [Incense,Wheat,Linen,Iron] $ \ res -> do
+			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
+		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> a gamename playername
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
@@ -778,8 +777,10 @@ finishPlayerPhase gamename = do
 				return ()
 
 			StartOfTurn -> do
-				incPlayerIndex gamename gamePlayersTurn
-				incPlayerIndex gamename gameStartPlayer
+				updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
+				when (_gameTurn>1) $ do
+					incPlayerIndex gamename gamePlayersTurn
+					incPlayerIndex gamename gameStartPlayer
 
 			_ -> return ()
 
@@ -821,6 +822,7 @@ buildFigure gamename playername figuretype coors = do
 	placeFigure gamename playername figureid coors
 
 placeFigure gamename playername figureid coors = do
+	updateCivLensM (\ (Just figure) -> Just $ figure { _figureCoors = coors }) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid
 	updateCivLensM ((playername,figureid):) $ civSquareLens gamename coors . squareFigures
 
 unplaceFigure gamename playername figureid coors = do
@@ -867,6 +869,11 @@ forAllOutskirts gamename playername action = do
 	lss <- forAllCities gamename playername $ \ (coors,_) -> do
 		forCityOutskirts gamename playername coors action
 	return $ concat lss
+
+forAllPlayerFigures :: GameName -> PlayerName -> ((FigureID,Figure) -> UpdateCivM a) -> UpdateCivM [a]
+forAllPlayerFigures gamename playername action = do
+	Just figuremap <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	forM (Map.assocs figuremap) action
 
 cityIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 cityIncome gamename playername coors = do
@@ -1118,6 +1125,27 @@ queryCivLensM lens = do
 	civstate <- Control.Monad.State.get
 	return $ preview lens civstate
 
+playernamesOnSquare square = case square of
+	Square _ _ _ _ _ _ sqfigures -> nub $ map fst sqfigures
+	_ -> []
+
+canBuildCityHere :: GameName -> PlayerName -> Coors -> UpdateCivM Bool
+canBuildCityHere gamename playername coors = do
+	let cityarea = coors : surroundingSquares 1 coors
+	Just player <- getPlayer gamename playername
+	let citynexttohuts = getValueAbility buildCityNextToHuts player
+	empties <- forM cityarea $ \ cs -> do
+		mb_square <- getSquare gamename cs
+		return $ case mb_square of
+			Nothing -> False
+			Just square -> case square of
+				Square _ (terrain:_) _ _ _ mbtokmark _ ->
+					((citynexttohuts && isHut mbtokmark) || isNothing mbtokmark) &&
+					terrain `elem` (allOfThem \\ [Water]) &&
+					null (playernamesOnSquare square \\ [playername])
+				_ -> False
+	return $ all (==True) empties
+
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
 	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
@@ -1132,40 +1160,70 @@ buildCity gamename coors city@(City{..}) = do
 buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
 buildBuilding gamename playername coors buildingtype = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) (buildingTypeToMarker buildingtype)
-	updateCivLensM (const $ Just $ BuildingMarker $ Building buildingtype playername) $
-		civSquareLens gamename coors . squareTokenMarker
+	setTokenMarker gamename (BuildingMarker $ Building buildingtype playername) coors
 
 victory victorytype gamename playername = error "Not implemented yet"
 
-subtractRange :: GameName -> PlayerName -> FigureID -> Coor -> UpdateCivM ()
-subtractRange gamename playername figureid range = do
-	updateCivLensM (+(-range)) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid . _Just . figureRangeLeft
+modifyRange :: GameName -> PlayerName -> FigureID -> (Coor -> Coor) -> UpdateCivM ()
+modifyRange gamename playername figureid rangef = do
+	updateCivLensM rangef $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid . _Just . figureRangeLeft
+
+setTokenMarker gamename tokenmarker coors = do
+	updateCivLensM (const $ Just tokenmarker) $ civSquareLens gamename coors . squareTokenMarker
+
+clearTokenMarker gamename coors = do
+	updateCivLensM (const Nothing) $ civSquareLens gamename coors . squareTokenMarker
 
 moveFigure :: GameName -> PlayerName -> FigureID -> Coors -> UpdateCivM ()
 moveFigure gamename playername figureid targetcoors = do
 	Just Figure{..} <- getFigure gamename playername figureid
 	unplaceFigure gamename playername figureid _figureCoors
 	let distance = coorDistance _figureCoors targetcoors
-	subtractRange gamename playername figureid distance
+	modifyRange gamename playername figureid (+(-distance))
 	placeFigure gamename playername figureid targetcoors
 
+	Just Square{..} <- getSquare gamename targetcoors
+	case _squareTokenMarker of
+		Just (ArtifactMarker artifact) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getArtifact gamename playername artifact
+		Just (HutMarker hut) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getHut gamename playername hut
+		Just (VillageMarker village) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getVillage gamename playername village
+		_ -> return ()
+
 -- Nur definiert für revealed squares!
-canStayMoveOn :: (MovementType -> [Terrain]) -> GameName -> PlayerName -> Coors -> UpdateCivM Bool
-canStayMoveOn mtterrains gamename playername coors = do
+canStayMoveOn :: (MovementType -> [Terrain]) -> GameName -> PlayerName -> FigureType -> Coors -> UpdateCivM Bool
+canStayMoveOn mtterrains gamename playername figuretype coors = do
 	Just (square@(Square{..})) <- getSquare gamename coors
 	Just (player@(Player{..})) <- getPlayer gamename playername
 	let stacklimit = getValueAbility unitStackLimit player
 	let terrains = mtterrains $ getValueAbility movementType player
 	return $ 
 		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
-		(head _squareTerrain) `elem` terrains
+		(head _squareTerrain) `elem` terrains &&
+		(not (isVillage _squareTokenMarker) || figuretype==Flag) &&
+		(not (isHut _squareTokenMarker) || figuretype==Flag)
 
-canStayOn = canStayMoveOn movementTypeEndTerrains
-canCross  = canStayMoveOn movementTypeCrossTerrains
+canStayOn gamename playername figuretype coors = do
+	canstayonterrain <- canStayMoveOn movementTypeEndTerrains gamename playername figuretype coors
+	Just (square@(Square{..})) <- getSquare gamename coors
+	let iscity = case _squareTokenMarker of
+		Just (CityMarker _) -> True
+		_                   -> False
+	return $ canstayonterrain && not iscity
 
-buildFigureCoors gamename playername citycoors = do
+canCross = canStayMoveOn movementTypeCrossTerrains
+
+buildFigureCoors gamename playername figuretype citycoors = do
 	outskirts <- outskirtsOfCity gamename citycoors
-	filterM (canStayOn gamename playername) outskirts
+	filterM (canStayOn gamename playername figuretype) outskirts
 
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
@@ -1177,6 +1235,9 @@ doMove gamename playername move@(Move source target) = do
 			getTrade gamename playername
 		(FigureSource pn figure,SquareTarget coors) | pn==playername -> do
 			buildFigure gamename playername figure coors
+		(FigureOnBoardSource figureid pn coors,BuildCityTarget ()) | pn==playername -> do
+			destroyFigure gamename playername figureid
+			buildCity gamename coors $ newCity playername False Nothing
 		(CityProductionSource _ (ProduceFigure figure),SquareTarget coors) -> do
 			buildFigure gamename playername figure coors
 		(CityProductionSource _ (ProduceBuilding building),SquareTarget coors) -> do
@@ -1191,7 +1252,7 @@ doMove gamename playername move@(Move source target) = do
 		(FigureOnBoardSource figureid pn _,SquareTarget targetcoors) | pn==playername -> do
 			moveFigure gamename playername figureid targetcoors
 		(FigureOnBoardSource figureid pn _,RevealTileTarget ori tileorigin) | pn==playername -> do
-			subtractRange gamename playername figureid 1
+			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 		_ -> error $ show move ++ " not implemented yet"
@@ -1206,7 +1267,7 @@ moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
 
 moveGen :: GameName -> PlayerName -> Update CivState [Move]
 moveGen gamename my_playername = do
-	Right moves <- runErrorT $ do
+	res <- runErrorT $ do
 		playername <- getPlayerTurn gamename
 		Just (Game{..}) <- getGame gamename
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
@@ -1218,20 +1279,29 @@ moveGen gamename my_playername = do
 					BuildingFirstCity -> return $
 						[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
 					PlaceFirstFigures -> do
-						possible_squares <- buildFigureCoors gamename playername (head _playerCityCoors)
+						possible_squares <- buildFigureCoors gamename playername Wagon (head _playerCityCoors)
 						let possible_figures = [Wagon,Flag]
 						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 					GettingFirstTrade ->
 						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
-					StartOfTurn ->
-						return []
+					StartOfTurn -> do
+						buildcitymovess <- case tokenStackAvailableKeys _playerCityStack of
+							[] -> return []
+							_ -> do
+								forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+									canbuildcityhere <- canBuildCityHere gamename playername _figureCoors
+									return $ case canbuildcityhere && (_figureType==Wagon) of
+										False -> []
+										True -> [ Move (FigureOnBoardSource figureid playername _figureCoors) (BuildCityTarget ()) ] 
+						return $ concat buildcitymovess
+
 					Trading ->
 						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
 					CityManagement -> do
 						movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
 							income <- cityIncome gamename my_playername citycoors
 
-							possible_fig_coors <- buildFigureCoors gamename playername citycoors
+							possible_fig_coors <- buildFigureCoors gamename playername Wagon citycoors
 							let
 								possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
 								prodfiguremoves = [ Move (CityProductionSource citycoors (ProduceFigure figty)) (SquareTarget squarecoors) |
@@ -1286,8 +1356,8 @@ moveGen gamename my_playername = do
 							movementtype = getValueAbility movementType player
 							board = _gameBoard
 
-						cmovess <- forM (Map.assocs _playerFiguresOnBoard) $ \ (figureid,Figure{..}) -> do
-							canstay <- canStayOn gamename playername _figureCoors
+						cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+							canstay <- canStayOn gamename playername _figureType _figureCoors
 							case _figureRangeLeft of
 								0 -> case canstay of
 									True  -> return []
@@ -1304,8 +1374,8 @@ moveGen gamename my_playername = do
 												let ori = coorDiffOri _figureCoors targetcoors
 												return [ (RevealTileTarget ori tileorigin,False) ]
 											Just _ -> do
-												cancross_target <- canCross gamename playername targetcoors
-												canstay_target <- canStayOn gamename playername targetcoors
+												cancross_target <- canCross gamename playername _figureType targetcoors
+												canstay_target <- canStayOn gamename playername _figureType targetcoors
 												case (cancross_target,canstay_target) of
 													(False,False) -> return []
 													(True,False) | _figureRangeLeft <=1 -> return []
@@ -1322,12 +1392,15 @@ moveGen gamename my_playername = do
 
 						return $ finishmoves ++ map fst cmoves
 
-					_ ->
-						return [ Move (HaltSource ()) (NoTarget ()) ]   -- TODO: Entfernen...
+					Research ->
+						return [ Move (AutomaticMove ()) (FinishPhaseTarget ())  ]
+
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
 		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
-	return moves
+	case res of
+		Right moves -> return moves
+		Left msg -> error msg
 
 setDbgMessage :: String -> UpdateCivM ()
 setDbgMessage msg = updateCivLensM (const msg) civDebugMsg

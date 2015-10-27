@@ -525,8 +525,8 @@ partialDebugArea di@(DisplayInfo{..}) = do
 figuresSquare :: DisplayInfo -> SquareFigures -> Widget
 figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 <div>
-  $forall ((x,y),(playername,figureid,Figure{..})) <- zip this_poss figures
-    <img src=@{figureRoute _figureType (_playerColour $ playernameToPlayerDI playername)} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername _figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername _figureCoors}>
+  $forall ((x,y),(playername,figureid,figure@(Figure{..}))) <- zip this_poss figures
+    <img src=@{figureRoute _figureType (_playerColour $ playernameToPlayerDI playername)} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername _figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername _figureCoors} alt="alt" title="#{show figure}">
 |]
 	where
 	this_poss = pos!!n

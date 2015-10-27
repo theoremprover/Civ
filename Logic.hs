@@ -24,7 +24,7 @@ surroundingSquares radius coors = delete coors
 neighbourSquares :: Coors -> [ Coors ]
 neighbourSquares coors = [ coors +/+ Coors dx dy | (dx,dy) <- [(-1,0),(1,0),(0,-1),(0,1)] ]
 
-coorDistance :: Coors -> Coors -> Int
+coorDistance :: Coors -> Coors -> Coor
 coorDistance (Coors x1 y1) (Coors x2 y2) = max (abs $ x2-x1) (abs $ y2-y1)
 
 outskirtsOf :: [ Coors ] -> [ Coors ]

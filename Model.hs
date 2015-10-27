@@ -371,6 +371,12 @@ data TokenMarker =
 $(deriveSafeCopy modelVersion 'base ''TokenMarker)
 makeLenses ''TokenMarker
 
+isHut (Just (HutMarker _)) = True
+isHut _ = False
+
+isVillage (Just (VillageMarker _)) = True
+isVillage _ = False
+
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
 	ChichenItza | Pyramids | GreatLighthouse | StatueZeus |
@@ -700,6 +706,7 @@ data ActionTarget =
 	NoTarget () |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
+	BuildCityTarget () |
 	TechTarget PlayerName Tech |
 	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
@@ -714,6 +721,7 @@ $(deriveSafeCopy modelVersion 'base ''Move)
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(FigureOnBoardSource figureid _ sourcecoors,BuildCityTarget ()) -> "Build city at " ++ show sourcecoors ++ " with " ++ show figureid
 		(_,GetTradeTarget _) -> "Get Trade"
 		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
 		(FigureOnBoardSource figureid _ sourcecoors,SquareTarget targetcoors) -> "Move " ++ show figureid ++ " " ++ show sourcecoors ++ " -> " ++ show targetcoors
