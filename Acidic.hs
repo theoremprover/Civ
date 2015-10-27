@@ -666,7 +666,7 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const $ initialResourceStack (numPlayers players)) $
 		civGameLens gamename . _Just . gameResourceStack
 
-	forM (fromAssocList players) $ \ (playername,player@(Player{..})) -> do
+	forAllPlayers gamename $ \ (playername,player@(Player{..})) -> do
 		forM [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
 		let (starttech,startgov) = civStartTechAndGov _playerCiv
 		addTech gamename playername (Just TechLevelI) starttech
