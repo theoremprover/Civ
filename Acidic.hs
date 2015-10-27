@@ -414,7 +414,7 @@ techAbilities tech = case tech of
 cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
 cardAbility _ _ _ f phase = f phase
 
-modifyValuePerNCoins n player = ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
+modifyValuePerNCoins n player = Unchanged -- TODO: ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
 
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
@@ -602,12 +602,6 @@ valueAbilities values = foldl (flip ($)) a modvalues
 
 getValueAbility1 :: (Ord a,Show a) => (Abilities -> arg -> Value a) -> Player -> arg -> a
 getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg) player
-
-playerNumberOfCoins :: Player -> Coins
-playerNumberOfCoins player@(Player{..}) =
-	_playerCoins +
-	sum (map cardCoins (playerAbilities player))
-	-- TODO: z.B. Add Coins auf dem Battlefield
 
 -- abstrahieren auf ein Argument für ability
 getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
@@ -1249,12 +1243,26 @@ doMove gamename playername move@(Move source target) = do
 			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
+		(_,DebugTarget msg) -> return ()
 		_ -> error $ show move ++ " not implemented yet"
 	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
 	where
 	addmove turn phase =
 		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
+
+playerNumCoins :: GameName -> PlayerName -> Update CivState Coins
+playerNumCoins gamename playername = do
+	res <- runErrorT $ do
+		incomess <- forAllCities gamename playername $ \ (coors,_) -> cityIncome gamename playername coors
+		Just player@(Player{..}) <- getPlayer gamename playername
+		return $
+			inCoins (mconcat incomess) +
+			_playerCoins +
+			sum (map cardCoins (playerAbilities player))
+	case res of
+		Right coins -> return coins
+		Left msg -> error msg
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
@@ -1370,7 +1378,7 @@ moveGen gamename my_playername = do
 														case canstay_target of
 															False | _figureRangeLeft <=1 -> return []
 															_ -> do
-																return [(SquareTarget targetcoors,not canstay_target)]
+																return [(SquareTarget targetcoors,not canstay)]
 									return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
 										(target,mustmove) <- concat targetmustss ]
 						
@@ -1417,7 +1425,8 @@ $(makeAcidic ''CivState [
 	'deleteGame,
 	'createNewGame,
 	'gameAction,
-	'moveGen
+	'moveGen,
+	'playerNumCoins
 	])
 
 $(deriveSafeCopy modelVersion 'base ''StdGen)

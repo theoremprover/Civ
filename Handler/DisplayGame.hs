@@ -57,12 +57,15 @@ data DisplayInfo = DisplayInfo {
 	playernameToPlayerDI :: (PlayerName -> Player)
 }
 
+queryUpdateCivH event = do
+	app <- getYesod
+	update' (appCivAcid app) event
+
 displayGame :: (UserId,User,GameName,Game,Maybe PlayerName) -> Handler Html
 displayGame (userid,user,gamename,game,mb_playername) = do
-	app <- getYesod
 	moves <- case mb_playername of
 		Nothing -> return []
-		Just playername -> update' (appCivAcid app) $ MoveGen gamename playername 
+		Just playername -> queryUpdateCivH $ MoveGen gamename playername 
 	let
 		toplayer playername = fromJust $ lookupAssocList playername (_gamePlayers game)
 		mb_myplayer = fmap toplayer mb_playername
@@ -325,10 +328,11 @@ itemTokens di playername (player@Player{..}) reveal = return [whamlet|
 		map (\ a -> (artifactRoute a,ArtifactSource playername a)) _playerArtifacts
 
 dial :: DisplayInfo -> PlayerName -> Player -> Handler Widget
-dial di playername player@(Player{..}) = do
+dial di@(DisplayInfo{..}) playername player@(Player{..}) = do
+	Coins coins <- queryUpdateCivH $ PlayerNumCoins gameNameDI playername
 	let
 		tradeangle = div ((tradeTrade _playerTrade - 1) * 360) 28
-		coinangle = tradeangle + div ((coinsCoins _playerCoins - 1) * 360) 16
+		coinangle = tradeangle + div ((coins - 1) * 360) 16
 		Culture culture = _playerCulture
 		culturerow =
 			replicate (div culture 5) fiveCultureRoute ++
@@ -534,12 +538,6 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 	n = length figures
 	figures = map (\ (pn,figid) -> (pn,figid,fromJust $ Map.lookup figid (_playerFiguresOnBoard $ playernameToPlayerDI pn)))
 		squarefigures
-{-
-	cfi x r = ceiling (fromIntegral x / r) :: Int
-	n1 = cfi n 3
-	n2 = cfi (n-n1) 2
-	n3 = n-n1-n2
--}
 	pos = [
 		[],
 		[(0.5,0.5)],
