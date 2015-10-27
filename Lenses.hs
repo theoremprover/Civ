@@ -12,6 +12,7 @@ import Control.Monad.Error (runErrorT,throwError)
 import Data.Acid
 import Data.Acid.Advanced
 
+import AssocList
 import Model
 
 type instance Index   (AssocList key val) = key

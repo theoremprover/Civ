@@ -23,6 +23,7 @@ import Data.Aeson.TH
 import Entities
 import TokenStack
 import ModelVersion
+import AssocList
 
 import qualified Data.Ix as Ix
 
@@ -433,11 +434,12 @@ data FigureType = Flag | Wagon
 $(deriveSafeCopy modelVersion 'base ''FigureType)
 
 data Figure = Figure {
-	figureType      :: FigureType,
-	figureCoors     :: Coors,
-	figureRangeLeft :: Coor }
+	_figureType      :: FigureType,
+	_figureCoors     :: Coors,
+	_figureRangeLeft :: Coor }
 	deriving (Show,Ord,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Figure)
+makeLenses ''Figure
 
 type FigureID = Int
 
@@ -445,10 +447,8 @@ instance ConsumesIncome FigureType where
 	consumedIncome Flag  = hammerIncome 4
 	consumedIncome Wagon = hammerIncome 6
 
-initialFigureStack :: TokenStack Figure Int
-initialFigureStack = tokenStackFromList $
-	[ (Flag,figureid) | figureid <- [0..5] ] ++
-	[ (Wagon,wagonid) | wagonid  <- [10..11] ]
+initialFigureStack :: TokenStack FigureType FigureID
+initialFigureStack = tokenStackFromList $ [ (Flag,[0..5]), (Wagon,[10..11]) ]
 
 type SquareFigures = [(PlayerName,FigureID)]
 
@@ -663,7 +663,7 @@ $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
 
 data Production =
-	ProduceFigure Figure |
+	ProduceFigure FigureType |
 	ProduceBuilding BuildingType |
 	ProduceWonder Wonder |
 	ProduceUnit UnitType |
@@ -683,7 +683,7 @@ instance Show Production where
 data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
-	FigureSource PlayerName Figure |
+	FigureSource PlayerName FigureType |
 	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
@@ -701,7 +701,7 @@ data ActionTarget =
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	TechTarget PlayerName Tech |
-	FigureOnBoardTarget Figure PlayerName Coors |
+	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
 	RevealTileTarget Orientation Coors |
 	FinishPhaseTarget ()
@@ -724,8 +724,6 @@ instance Show Move where
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
 
-type FigureID = (Figure,(Coors,Int))
-
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
 	_playerColour           :: Colour,
@@ -743,7 +741,7 @@ data Player = Player {
 	_playerArtifacts        :: [Artifact],
 	_playerGreatPersonCards :: [GreatPersonCard],
 	_playerUnits            :: [UnitCard],
-	_playerFigures          :: TokenStack Figure (),
+	_playerFigures          :: TokenStack FigureType FigureID,
 	_playerFiguresOnBoard   :: Map.Map FigureID Figure,
 	_playerCultureCards     :: [CultureCard],
 	_playerOrientation      :: Orientation,
@@ -1151,6 +1149,7 @@ boardLayout numplayers = case numplayers of
 
 
 deriveJSON defaultOptions ''Trade
+deriveJSON defaultOptions ''Orientation
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Culture
@@ -1165,6 +1164,7 @@ deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Move
 deriveJSON defaultOptions ''Tech
 deriveJSON defaultOptions ''Artifact
+deriveJSON defaultOptions ''FigureType
 deriveJSON defaultOptions ''Figure
 deriveJSON defaultOptions ''Resource
 deriveJSON defaultOptions ''Hut

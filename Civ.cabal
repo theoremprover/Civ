@@ -25,6 +25,7 @@ library
                      Handler.Common
                      Handler.Home
                      GameMonad
+                     AssocList
                      Logic
                      Version
                      Handler.DisplayGame

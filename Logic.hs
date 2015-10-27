@@ -22,7 +22,7 @@ surroundingSquares radius coors = delete coors
 	[ coors +/+ Coors x y | x <- [-radius..radius], y <- [-radius..radius] ]
 
 neighbourSquares :: Coors -> [ Coors ]
-neighbourSquares coors = [ coors +/+ Coors dx dy | dx <- [-1,1], dy <- [-1,1] ]
+neighbourSquares coors = [ coors +/+ Coors dx dy | (dx,dy) <- [(-1,0),(1,0),(0,-1),(0,1)] ]
 
 coorDistance :: Coors -> Coors -> Int
 coorDistance (Coors x1 y1) (Coors x2 y2) = max (abs $ x2-x1) (abs $ y2-y1)
@@ -40,6 +40,14 @@ addCoorsOri (Coors x y) ori = case ori of
 addOri :: Orientation -> Orientation -> Orientation
 addOri o1 o2 = toEnum $ mod (fromEnum o1 + fromEnum o2) 4
 
+coorDiffOri :: Coors -> Coors -> Orientation
+coorDiffOri c1@(Coors x1 y1) c2@(Coors x2 y2) = case (x1==x2,y1==y2) of
+	(True,False) | y1<y2 -> Southward 
+	(True,False) | y1>y2 -> Northward 
+	(False,True) | x1<x2 -> Eastward 
+	(False,True) | x1>x2 -> Westward 
+	_ -> error $ "Cannot calculate coorDiffOri " ++ show c1 ++ " " ++ show c2 
+
 shuffle :: (Ord a,MonadIO m) => TokenStack a b -> m (TokenStack a b)
 shuffle tokenstack = do
 	ss <- forM (Map.toList tokenstack) $ \ (key,l) -> do
@@ -55,24 +63,3 @@ shuffleList l = shufflelist' l []
 		i <- liftIO $ randomRIO (0,length ls - 1)
 		shufflelist' (take i ls ++ drop (i+1) ls) ((ls!!i) : acc)
 
-data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
-	deriving (Data,Typeable,Show)
-$(deriveSafeCopy modelVersion 'base ''AssocList)
-
-lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
-lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
-
-nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
-nthAssocList i assoclist = (fromAssocList assoclist)!!i
-
-addAssoc :: (key,val) -> AssocList key val -> AssocList key val
-addAssoc assoc assoclist = assoclist { fromAssocList = assoc:(fromAssocList assoclist) }
-
-deleteAssoc :: (key,val) -> AssocList key val -> AssocList key val
-deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAssocList assoclist) }
-
-mapAssoc :: key -> (val -> val) -> AssocList key val 
-mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList assoclist) } where
-	mf (k,v) = case k==key of
-		False -> (k,v)
-		True  -> (k,f v)

@@ -26,6 +26,7 @@ import TokenStack
 import Lenses
 import Polls
 import Acidic
+import AssocList
 
 
 queryCivLensH :: (MonadHandler m, HandlerSite m ~ App) => Traversal' CivState a -> m (Maybe a)
