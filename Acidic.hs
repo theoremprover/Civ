@@ -1331,9 +1331,8 @@ moveGen gamename my_playername = do
 									producible_res `intersect` avail_res
 
 							let
-								culture = inCulture income
 								devotemove = 
-									Move (CityProductionSource citycoors (DevoteToArts culture)) (NoTarget ())
+									Move (CityProductionSource citycoors (DevoteToArts (inCulture income))) (NoTarget ())
 
 							return $
 								prodfiguremoves ++
@@ -1364,12 +1363,14 @@ moveGen gamename my_playername = do
 												return [ (RevealTileTarget ori tileorigin,False) ]
 											Just _ -> do
 												cancross_target <- canCross gamename playername _figureType targetcoors
-												canstay_target <- canStayOn gamename playername _figureType targetcoors
-												case (cancross_target,canstay_target) of
-													(False,False) -> return []
-													(True,False) | _figureRangeLeft <=1 -> return []
-													(True,False) -> return [(SquareTarget targetcoors,True)]
-													(_,True) -> return [(SquareTarget targetcoors,False)]
+												case cancross_target of
+													False -> return []
+													True -> do
+														canstay_target <- canStayOn gamename playername _figureType targetcoors
+														case canstay_target of
+															False | _figureRangeLeft <=1 -> return []
+															_ -> do
+																return [(SquareTarget targetcoors,not canstay_target)]
 									return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
 										(target,mustmove) <- concat targetmustss ]
 						
