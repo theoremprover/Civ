@@ -60,12 +60,25 @@ img
     width : 376px
     height: 376px
 
+.TileContainer img
+    width: 376px
+    height: 376px
+
+.TileContainer-Row
+    height: 94px
+
+.TileContainer-OutOfBounds
+    width: 94px
+    height: 94px
+
 .SquareContainer
     width : 94px
     height: 94px
+
 .HorDoubleSquareContainer
     width : 188px
     height: 94px
+
 .VertDoubleSquareContainer
     width : 94px
     height: 188px
@@ -81,10 +94,6 @@ img
     width : 45px
     height: 57px
 
-.TechCoinPos
-    left: 10px
-    top : 70px
-
 .MarkedSquare
     border: 5px dotted red
 
@@ -99,14 +108,78 @@ img
     -o-animation: blink 1s
     -o-animation-iteration-count: infinite
 
-.PlayerArea
-    width: 200px
-    height: 200px
 .PlayerArea-CityItem
     z-index: 2
-.Map-SquareContainer
+.PlayerArea
+    // border: 1px solid black
+.PlayerArea-Cards,.PlayerArea-Cards-Culture,.PlayerArea-Cards-GreatPersons,.PlayerArea-Techtree,.PlayerArea-Items,.PlayerArea-Policies,.PlayerArea-Dial,.PlayerArea-Units,.PlayerArea-Wagons,.PlayerArea-Flags,.PlayerArea-TechArea
+    // border: 1px solid black
+.Areas td
+    // border: 1px solid black
+
+
+.TechTree-Item
+    position: relative
     z-index: 1
-.Debug
-    width: 200px
-    height: 100px
-    border: 5px solid black
+
+.TechTree-Item-TechCard
+    position: relative
+
+.TechTree-Item-Coin
+    position: absolute
+    left: 10px
+    top : 70px
+    z-index: 2
+
+.Centre
+    text-align: center
+    vertical-align: middle
+
+.Sidebar
+    position: fixed
+    bottom: 0px
+    right: 0px
+    width: 250px
+    border: 1px solid black
+    background-color: lightyellow
+    z-index: 10
+    padding: 10px
+
+.DebugArea
+    position: fixed
+    bottom: 0px
+    right: 250px
+    height: 400px
+    width: 600px
+    border: 1px solid black
+    background-color: lightgray
+    padding: 10px
+    z-index: 11
+    display: none
+
+.Dialog-Test
+    display: none
+
+.Map-Col
+    width: 94px
+    height: 0px
+.Map-Row
+    height: 94px
+.Map-Layer1
+    z-index: 1
+    border: 1px solid black
+.Map-Layer2
+    z-index: 2
+
+.PlateContainer
+    #border: 2px solid red
+    height: 90%
+    width: 90%
+    margin: auto
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+
+.PlateContainer img
+    height: 100%
+    width: 100%

@@ -18,14 +18,15 @@ library
                      Import
                      Import.NoFoundation
                      Model
+                     ModelVersion
                      Entities
                      Settings
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
                      GameMonad
+                     AssocList
                      Logic
-                     Actions
                      Version
                      Handler.DisplayGame
                      Handler.HandlerPolling
@@ -106,6 +107,7 @@ library
                  , blaze-markup
                  , random
                  , array
+                 , wai
 
 executable         Civ
     if flag(library-only)

@@ -12,6 +12,7 @@ import Control.Monad.Error (runErrorT,throwError)
 import Data.Acid
 import Data.Acid.Advanced
 
+import AssocList
 import Model
 
 type instance Index   (AssocList key val) = key
@@ -40,6 +41,9 @@ civPlayerLens gamename playername = civPlayersLens gamename . assocListLens play
 
 civPlayersLens :: GameName -> Traversal' CivState Players
 civPlayersLens gamename = civGameLens gamename . _Just . gamePlayers
+
+civCityLens :: GameName -> Coors -> Traversal' CivState City
+civCityLens gamename coors = civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
 
 civPlayerIndexLens :: GameName -> Int -> Traversal' CivState (PlayerName,Player)
 civPlayerIndexLens gamename index = civPlayersLens gamename . nthAssocListLens index

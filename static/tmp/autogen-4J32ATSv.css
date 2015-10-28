@@ -1,0 +1,230 @@
+.Message {
+    border-style: solid;
+    border-color: red;
+}
+.NoSpacing {
+    padding: 0px;
+    margin : 0px;
+    border : 0px;
+}
+img {
+    display: block;
+}
+.Northward {
+    display: block;
+}
+.Eastward {
+    -moz-transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+    -o-transform: rotate(90deg);
+    transform: rotate(90deg);
+    transform-origin: 50% 50%;
+}
+.Southward {
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    -o-transform: rotate(180deg);
+    transform: rotate(180deg);
+    transform-origin: 50% 50%;
+}
+.Westward {
+    -moz-transform: rotate(270deg);
+    -webkit-transform: rotate(270deg);
+    -o-transform: rotate(270deg);
+    transform: rotate(270deg);
+    transform-origin: 50% 50%;
+}
+.NorthwardSquare {
+    white-space: nowrap;
+}
+.EastwardSquare {
+    white-space: nowrap;
+    transform: translate(0px, -100%) rotate(90deg);
+    transform-origin: 0px 100%;
+}
+.SouthwardSquare {
+    white-space: nowrap;
+    transform: rotate(180deg);
+    transform-origin: 50% 50%;
+}
+.WestwardSquare {
+    white-space: nowrap;
+    transform: rotate(270deg) translate(-100%,0px);
+    transform-origin: 0px 0px;
+}
+.Parent {
+    position: relative;
+}
+.Child {
+    position: absolute;
+}
+.TileContainer {
+    width : 376px;
+    height: 376px;
+}
+.SquareContainer {
+    width : 94px;
+    height: 94px;
+}
+.HorDoubleSquareContainer {
+    width : 188px;
+    height: 94px;
+}
+.VertDoubleSquareContainer {
+    width : 94px;
+    height: 188px;
+}
+.Center {
+    margin: auto;
+}
+.Wagon {
+    width : 65px;
+    height: 56px;
+}
+.Flag {
+    width : 45px;
+    height: 57px;
+}
+.MarkedSquare {
+    border: 5px dotted red;
+}
+.PossibleSquare {
+    border: 5px dotted yellow;
+}
+.Blink {
+    -webkit-animation: blink 1s;
+    -webkit-animation-iteration-count: infinite;
+    -moz-animation: blink 1s;
+    -moz-animation-iteration-count: infinite;
+    -o-animation: blink 1s;
+    -o-animation-iteration-count: infinite;
+}
+.PlayerArea-CityItem {
+    z-index: 2;
+}
+.Map-SquareContainer {
+    z-index: 1;
+}
+.PlayerArea {
+    // border: 1px solid black;
+}
+.PlayerArea-Cards,.PlayerArea-Cards-Culture,.PlayerArea-Cards-GreatPersons,.PlayerArea-Techtree,.PlayerArea-Items,.PlayerArea-Policies,.PlayerArea-Dial,.PlayerArea-Units,.PlayerArea-Wagons,.PlayerArea-Flags,.PlayerArea-TechArea {
+    // border: 1px solid black;
+}
+.Areas td {
+    // border: 1px solid black;
+}
+.TechTree-Item {
+    position: relative;
+    z-index: 1;
+}
+.TechTree-Item-TechCard {
+    position: relative;
+}
+.TechTree-Item-Coin {
+    position: absolute;
+    left: 10px;
+    top : 70px;
+    z-index: 2;
+}
+.Sidebar {
+    position: fixed;
+    bottom: 0px;
+    right: 0px;
+    border: 1px solid black;
+    background-color: lightyellow;
+    z-index: 10;
+    padding: 10px;
+}
+.DebugArea {
+    border: 1px solid black;
+    height: 1000px;
+    width: 2500px;
+    position: fixed;
+    bottom: 0px;
+    right: 500px;
+    background-color: lightgray;
+    opacity: 0.95;
+    z-index: 10;
+    overflow: auto;
+    padding: 10px;
+}
+.overlay {
+    background: transparent url(images/overlay.png) repeat top left;
+    position: fixed;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    z-index: 100;
+}
+.box {
+    position: fixed;
+    top: -200px;
+    left: 30%;
+    right: 30%;
+    background-color: #fff;
+    color: #7F7F7F;
+    padding: 20px;
+    border: 2px solid #ccc;
+    -moz-border-radius: 20px;
+    -webkit-border-radius: 20px;
+    -khtml-border-radius: 20px;
+    -moz-box-shadow: 0 1px 5px #333;
+    -webkit-box-shadow: 0 1px 5px #333;
+    z-index: 101;
+}
+a.boxclose {
+    float: right;
+    width: 26px;
+    height: 26px;
+    background: transparent url(images/cancel.png) repeat top left;
+    margin-top: -30px;
+    margin-right: -30px;
+    cursor: pointer;
+}
+.box h1 {
+    border-bottom: 1px dashed #7F7F7F;
+    margin: -20px -20px 0px -20px;
+    padding: 10px;
+    background-color: #FFEFEF;
+    color: #EF7777;
+    -moz-border-radius: 20px 20px 0px 0px;
+    -webkit-border-top-left-radius: 20px;
+    -webkit-border-top-right-radius: 20px;
+    -khtml-border-top-left-radius: 20px;
+    -khtml-border-top-right-radius: 20px;
+}
+@-webkit-keyframes blink  {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+@-moz-keyframes blink  {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+@-o-keyframes blink  {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}

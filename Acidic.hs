@@ -1,43 +1,629 @@
-{-# LANGUAGE RankNTypes,ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies,RankNTypes,ScopedTypeVariables,LambdaCase #-}
 
 module Acidic where
 
-import Import hiding (Update,Query,array,delete)
+import Import (ask,lift,App,getYesod,Handler,MonadHandler,appCivAcid,HandlerSite)
+--hiding (Update,Query,array,delete,head,(++),map,zip,unlines,concatMap,filter)
 
-import qualified Prelude
+import Prelude
 
 import Data.Acid
 import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
+import Data.List
+import Control.Monad
 import Control.Lens hiding (Action)
+import qualified Data.Map as Map
 import Control.Monad.State (modify,get,gets,MonadState)
 import Data.List (delete)
+import Data.SafeCopy (SafeCopy, base, deriveSafeCopy)
+import Data.Monoid
 
 import Data.Array.IArray (array,(//),assocs)
 import Data.Ix
+import System.Random
 
 import Logic
 import Lenses
 import TokenStack
 import Model
---import Polls
+import Polls
+import ModelVersion
+import AssocList
 
+
+data Value a = ModifyValue (a -> a) | Unchanged | SetValue a
+instance (Ord a) => Ord (Value a) where
+	ModifyValue _ <= ModifyValue _ = True
+	ModifyValue f <= _ = True
+	_ <= ModifyValue g = False
+	SetValue a <= SetValue b = a<=b
+	SetValue a <= _ = False
+	_ <= SetValue b = False
+	Unchanged <= Unchanged = True
+
+instance (Show a) => Show (Value a) where
+	show (ModifyValue f) = "ModifyValue <fn>"
+	show Unchanged = "Unchanged"
+	show (SetValue a) = "SetValue " ++ show a
+instance (Eq a) => Eq (Value a) where
+	ModifyValue _ == _ = False
+	_ == ModifyValue _ = False
+	Unchanged == Unchanged = True
+	SetValue a == SetValue b = a==b
+	_ == _ = False
+
+type HookM a = GameName -> PlayerName -> UpdateCivM a
+
+noopHookM = constHookM ()
+constHookM a _ _ = return a
+
+data Abilities = Abilities {
+	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
+	unitAttackBonus          :: UnitType -> Strength,
+	lootBonus                :: Value Int,
+	battleStrengthBonus      :: Value Strength,
+	battleHandSize           :: Player -> Value Int,
+	cultureCardLimit         :: Player -> Value Int,
+	cultureTrackTradeBonus   :: Player -> Value Int,
+	cultureTrackCultureBonus :: Player -> Value Int,
+	researchCostBonus   :: Value Trade,
+	unitStackLimit      :: Value Int,
+	moveRange           :: Value Coor,
+	movementType        :: Value MovementType,
+	cardCoins           :: Coins,
+	threeTradeHammers   :: Value Int,
+	maxCities           :: Value Int,
+	productionBonus     :: Player -> Value Int,
+	buildWonderHook     :: HookM (),
+	drawCultureHook     :: HookM (),
+	buildArmyHook       :: HookM (),
+	getThisHook         :: HookM (),
+	getTechHook         :: Tech -> HookM (),
+	startOfGameHook     :: HookM (),
+	spendResourceHook   :: HookM (),
+	investCoinHook      :: HookM (),
+	afterBattleHook     :: [UnitCard] -> [UnitCard] -> HookM (),
+	getGreatPersonHook  :: HookM (),
+	wonBattleHook       :: HookM (),
+	discoverHutHook     :: HookM (),
+	discoverVillageHook :: HookM (),
+	conquerCityHook     :: HookM (),
+	devoteToArtsBonusHook :: Coors -> HookM Culture,
+	exploreTileHook     :: HookM (),
+	indianResourceSpending :: Value Bool,
+	enabledGovernments  :: [Government],
+	enabledBuildings    :: [BuildingType],
+	armiesAsScouts      :: Value Bool,
+	wondersNonobsoletable :: Value Bool,
+	sacrificeForTech    :: Value Bool,
+	exploreHutWithoutBattle :: Value Bool,
+	buildCityNextToHuts :: Value Bool,
+	canBuildMetropolis  :: Value Bool,
+	cardAbilities       :: Phase -> [(String,HookM ())],
+	resourceAbilities   :: Phase -> [(String,[ResourcePattern],HookM ())] }
+
+defaultAbilities = Abilities {
+	unitLevel       = \case
+		Aircraft -> SetValue Nothing
+		_        -> SetValue (Just UnitLevelI),
+	unitAttackBonus = const 0,
+	lootBonus       = SetValue 0,
+	battleStrengthBonus = SetValue 0,
+	battleHandSize  = const $ SetValue 3,
+	cultureCardLimit = const $ SetValue 2,
+	cultureTrackTradeBonus = const $ SetValue 0,
+	cultureTrackCultureBonus = const $ SetValue 0,
+	researchCostBonus = SetValue (Trade 0),
+	unitStackLimit  = SetValue 2,
+	moveRange       = SetValue 2,
+	movementType    = SetValue Land,
+	cardCoins       = Coins 0,
+	threeTradeHammers = SetValue 1,
+	maxCities       = SetValue 2,
+	productionBonus = const $ SetValue 0,
+	buildWonderHook = noopHookM,
+	drawCultureHook = noopHookM,
+	buildArmyHook   = noopHookM,
+	getThisHook     = noopHookM,
+	getTechHook     = \ _ -> noopHookM,
+	startOfGameHook = noopHookM,
+	spendResourceHook  = noopHookM,
+	investCoinHook     = noopHookM,
+	afterBattleHook    = \ _ _ -> noopHookM,
+	getGreatPersonHook = noopHookM,
+	wonBattleHook      = noopHookM,
+	discoverHutHook     = noopHookM,
+	discoverVillageHook = noopHookM,
+	conquerCityHook     = noopHookM,
+	devoteToArtsBonusHook  = \ _ -> constHookM (Culture 0),
+	exploreTileHook    = noopHookM,
+	indianResourceSpending = SetValue False,
+	enabledGovernments  = [Despotism,Anarchy],
+	enabledBuildings    = [],
+	armiesAsScouts      = SetValue False,
+	wondersNonobsoletable = SetValue False,
+	sacrificeForTech    = SetValue False,
+	exploreHutWithoutBattle = SetValue False,
+	buildCityNextToHuts = SetValue False,
+	canBuildMetropolis  = SetValue False,
+	cardAbilities       = const [],
+	resourceAbilities   = const [] }
+
+unchangedAbilities = Abilities {
+	unitLevel       = const Unchanged,
+	unitAttackBonus = const 0,
+	lootBonus       = Unchanged,
+	battleStrengthBonus = Unchanged,
+	battleHandSize  = const Unchanged,
+	cultureCardLimit = const Unchanged,
+	cultureTrackTradeBonus = const Unchanged,
+	cultureTrackCultureBonus = const Unchanged,
+	researchCostBonus = Unchanged,
+	unitStackLimit  = Unchanged,
+	moveRange       = Unchanged,
+	movementType    = Unchanged,
+	cardCoins       = Coins 0,
+	threeTradeHammers = Unchanged,
+	maxCities       = Unchanged,
+	productionBonus = const Unchanged,
+	buildWonderHook = noopHookM,
+	drawCultureHook = noopHookM,
+	buildArmyHook   = noopHookM,
+	getThisHook     = noopHookM,
+	getTechHook     = \ _ -> noopHookM,
+	startOfGameHook = noopHookM,
+	spendResourceHook  = noopHookM,
+	investCoinHook     = noopHookM,
+	afterBattleHook    = \ _ _ -> noopHookM,
+	getGreatPersonHook = noopHookM,
+	wonBattleHook      = noopHookM,
+	discoverHutHook     = noopHookM,
+	discoverVillageHook = noopHookM,
+	conquerCityHook     = noopHookM,
+	devoteToArtsBonusHook  = \ _ -> constHookM (Culture 0),
+	exploreTileHook    = noopHookM,
+	indianResourceSpending = Unchanged,
+	enabledGovernments  = [],
+	enabledBuildings    = [],
+	armiesAsScouts      = SetValue False,
+	wondersNonobsoletable = Unchanged,
+	sacrificeForTech    = Unchanged,
+	exploreHutWithoutBattle = Unchanged,
+	buildCityNextToHuts = Unchanged,
+	canBuildMetropolis  = Unchanged,
+	cardAbilities       = const [],
+	resourceAbilities   = const [] }
+
+civAbilities civ = case civ of
+	America  -> defaultAbilities {
+		startOfGameHook   = getGreatPerson,
+		threeTradeHammers = SetValue 2 }
+	Arabs    -> defaultAbilities {
+		startOfGameHook   = \ gn pn -> forM_ [Iron,Linen,Incense,Wheat] (getResource gn pn),
+		spendResourceHook = addCulture 1,
+		investCoinHook    = drawCultureCard }
+	Aztecs   -> defaultAbilities {
+		afterBattleHook = \ ownunitskilled enemyunitskilled ->
+			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
+		getGreatPersonHook = build2UnitsHook_Aztecs,
+		wonBattleHook      = addTrade 3 }
+	China    -> defaultAbilities {
+		startOfGameHook = buildCapitalWallsHook_China,
+		discoverHutHook = addCulture 3,
+		discoverVillageHook = addCulture 3,
+		afterBattleHook = \ ownunitskilled enemyunitskilled -> resurrectOneUnitHook_China ownunitskilled }
+	Egypt    -> defaultAbilities {
+		wondersNonobsoletable = SetValue True,
+		startOfGameHook = startBuildWonderHook_Egypt,
+		cardAbilities = cardAbility [CityManagement] "Egypt: Free Building" freeBuilding_Egypt $ const [] }
+	English  -> defaultAbilities {
+		movementType = SetValue CrossWater,
+		armiesAsScouts = SetValue True }
+	French   -> defaultAbilities {
+		battleStrengthBonus = ModifyValue (+2),
+		startOfGameHook     = extraStartPolicyHook_French }
+	Germany  -> defaultAbilities {
+		startOfGameHook = \ gn pn -> forM_ [Infantry,Infantry] $ drawUnit gn pn,
+		getTechHook     = getTechHook_Germany }
+	Greeks   -> defaultAbilities {
+		getTechHook        = getTechHook_Greeks,
+		getGreatPersonHook = drawExtraPersonHook_Greeks }
+	Indians  -> defaultAbilities {
+		indianResourceSpending = SetValue True,
+		devoteToArtsBonusHook  = extraCultureDevote_Indians }
+	Japanese -> defaultAbilities {
+		researchCostBonus = SetValue (Trade 3),
+		unitAttackBonus = \case
+			Infantry -> 1
+			_        -> 0 }
+	Mongols  -> defaultAbilities {
+		startOfGameHook = \ gn pn -> forM_ [Cavalry,Cavalry] $ drawUnit gn pn,
+		lootBonus       = ModifyValue (+1) }
+	Rome     -> defaultAbilities {
+		buildWonderHook     = drawCultureCard,
+		discoverVillageHook = drawCultureCard,
+		conquerCityHook     = drawCultureCard }
+	Russia   -> defaultAbilities {
+		startOfGameHook  = oneMoreFigure Flag,
+		unitStackLimit   = ModifyValue (+1),
+		sacrificeForTech = SetValue True }
+	Spanish  -> defaultAbilities {
+		startOfGameHook = oneMoreFigure Wagon,
+		moveRange       = ModifyValue (+1),
+		exploreTileHook = buildUnlockedBuilding_Spanish }
+	Zulu     -> defaultAbilities {
+		startOfGameHook         = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
+		exploreHutWithoutBattle = SetValue True,
+		buildCityNextToHuts     = SetValue True }
+
+techAbilities tech = case tech of
+	Pottery              -> unchangedAbilities {
+		enabledBuildings   = [Granary],
+		cultureCardLimit   = const $ ModifyValue (+1),
+		resourceAbilities  = resourceAbility [CityManagement] "Pottery: Gain Coin" [AnyResource,AnyResource] (addCoinToTech Pottery) $ const [] }
+	Writing              -> unchangedAbilities {
+		enabledBuildings   = [Library],
+		resourceAbilities  = resourceAbility [CityManagement] "Writing: Cancel City Action" [One Spy] cancelCityAction_Writing $ const [] }
+	CodeOfLaws           -> unchangedAbilities {
+		enabledGovernments = [Republic],
+		enabledBuildings   = [TradePost],
+		cardAbilities      = cardAbility [Research] "Code Of Laws: Add Coin" addCoinAfterWonBattle_CodeOfLaws $ const [] }
+	Currency             -> unchangedAbilities {
+		enabledBuildings   = [Market],
+		resourceAbilities  = resourceAbility [CityManagement] "Currency: Gain 3 Culture" [One Incense] (addCulture 3) $ const [] }
+	Metalworking         -> unchangedAbilities {
+		enabledBuildings   = [Barracks],
+		resourceAbilities  = resourceAbility [Battle] "Metalworking: Increase Attack" [One Iron] increaseAttack_Metalworking $ const [] }
+	Masonry              -> unchangedAbilities {
+		unitStackLimit     = SetValue 3,
+		cardAbilities      = cardAbility [CityManagement] "Masonry: Build City Walls" buildCityWalls_Masonry $ const [] }		
+	Agriculture          -> unchangedAbilities {
+		getThisHook        = growIntoMetropolisHook_Agriculture,
+		canBuildMetropolis = SetValue True }
+	HorsebackRiding      -> unchangedAbilities {
+		moveRange          = SetValue 3,
+		resourceAbilities  = resourceAbility [Trading] "Horseback Riding: Get Trade" [One Linen] getTrade_HoresebackRiding $ const [] }
+	AnimalHusbandry      -> unchangedAbilities {
+		cardAbilities      = cardAbility [Battle] "Animal Husbandry: Heal 3 Damage" (healDamage 3) $ const [],
+		resourceAbilities  = resourceAbility [CityManagement] "Animal Husbandry: +3 Hammers" [One Wheat] (plusHammers 3) $ const [] }
+	Philosophy           -> unchangedAbilities {
+		enabledBuildings   = [Temple],
+		resourceAbilities  = resourceAbility [CityManagement] "Philosophy: Get Great Person" [AnyResource,AnyResource,AnyResource] getGreatPerson $ const [] }
+	Navigation           -> unchangedAbilities {
+		enabledBuildings   = [Harbour],
+		movementType       = SetValue CrossWater }
+	Navy                 -> unchangedAbilities {
+		enabledBuildings   = [Shipyard],
+		buildArmyHook      = armyToShipyardOutskirtsHook_Navy }
+	PublicAdministration -> unchangedAbilities {
+		cardCoins          = Coins 1,
+		cultureCardLimit   = const $ ModifyValue (+1),
+		resourceAbilities  = resourceAbility allPhases "Public Administration: Cancel Culture Event" [One Spy] cancelCultureEvent $ const [] }
+	Mysticism            -> unchangedAbilities {
+		drawCultureHook    = drawAnotherCultureCardHook_Mysticism,
+		resourceAbilities  = resourceAbility [CityManagement] "Mysticism: Force Discard Coin" [One Spy] forceDiscardCoin_Mysticism $ const [] }
+	MonarchyTech         -> unchangedAbilities {
+		enabledGovernments = [Monarchy],
+		resourceAbilities  = resourceAbility [CityManagement] "Monarchy: Destroy Wonder/Unit" [One Linen] destroyWonderOrUnit_MonarchyTech $ const [] }
+	DemocracyTech        -> unchangedAbilities {
+		unitLevel = setUnitLevel [Infantry] UnitLevelII,
+		enabledGovernments = [Democracy],
+ 		cardAbilities      = cardAbility [CityManagement] "Democracy: Add Coin" addCoin_Democracy $ const [] }
+	Chivalry             -> unchangedAbilities {
+		unitLevel = setUnitLevel [Cavalry] UnitLevelII,
+		enabledGovernments = [Feudalism],
+		resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 5 Culture" [One Incense] (addCulture 5) $ const [] }
+	Mathematics          -> unchangedAbilities {
+		unitLevel = setUnitLevel [Artillery] UnitLevelII,
+		resourceAbilities  = resourceAbility [Battle] "Mathematics: Deal 3 Damage" [One Iron] (dealDamage 3) $ const [] }
+	Logistics            -> unchangedAbilities {
+		unitLevel = setUnitLevel [Infantry,Cavalry,Artillery] UnitLevelII }
+	PrintingPress        -> unchangedAbilities {
+		unitStackLimit     = SetValue 4,
+		enabledBuildings   = [University],
+ 		cardAbilities      = cardAbility [CityManagement] "Printing Press: Add Coin" addCoin_PrintingPress $ const [] }
+	Sailing              -> unchangedAbilities {
+		moveRange          = SetValue 4,
+		movementType       = SetValue StayInWater }
+	Construction         -> unchangedAbilities {
+		enabledBuildings   = [Forge],
+		resourceAbilities  = resourceAbility [CityManagement] "Construction: +5 Hammers" [One Wheat] (plusHammers 5) $ const [] }
+	Engineering          -> unchangedAbilities {
+		enabledBuildings   = [Aquaeduct],
+ 		cardAbilities      = cardAbility [CityManagement] "Engineering: Split Production" splitProduction_Engineering $ const [] }
+	Irrigation           -> unchangedAbilities {
+		maxCities          = SetValue 3 }
+	Bureaucracy          -> unchangedAbilities {
+		cardCoins          = Coins 1,
+		cardAbilities      = cardAbility [Research] "Bureaucracy: Switch Policy" switchPolicy_Bureaucracy $ const [] }
+	Theology             -> unchangedAbilities {
+		enabledGovernments = [Fundamentalism],
+		enabledBuildings   = [Cathedral],
+		cultureCardLimit   = const $ ModifyValue (+1) }
+	CommunismTech        -> unchangedAbilities {
+		enabledGovernments = [Communism],
+		cardAbilities      = cardAbility [Movement] "Communism: Lock Square" lockSquare_CommunismTech $ const [] }
+	Gunpowder            -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Infantry] UnitLevelIII,
+		resourceAbilities  = resourceAbility [CityManagement] "Gunpowder: Destroy Wonder/Buliding" [AnyResource,AnyResource] destroyWonderBuilding_Gunpowder $ const [] }
+	Railroad             -> unchangedAbilities {
+		enabledBuildings   = [IronMine],
+		cardCoins          = Coins 1,
+		unitLevel          = setUnitLevel [Cavalry] UnitLevelIII }
+	MetalCasting         -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Artillery] UnitLevelIII,
+		resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 7 Culture" [One Incense] (addCulture 7) $ const [] }
+	Ecology              -> unchangedAbilities {
+		cultureTrackTradeBonus = modifyValuePerNCoins 3,
+		resourceAbilities  = resourceAbility [StartOfTurn] "Ecology: Change Terrain" [One Wheat] (changeTerrain_Ecology) $ const [] }
+	Biology              -> unchangedAbilities {
+		unitStackLimit     = SetValue 5,
+		cardAbilities      = cardAbility [Battle] "Animal Husbandry: Heal All Damage" healAllDamage $ const [] }
+	SteamEngine          -> unchangedAbilities {
+		moveRange          = SetValue 5,
+		movementType       = SetValue StayInWater,
+		resourceAbilities  = resourceAbility [CityManagement] "Steam Engine: Move Figures" [One Linen] moveFigures_SteamEngine $ const [] }
+	Banking              -> unchangedAbilities {
+		resourceAbilities  = resourceAbility [CityManagement] "Banking: +7 Hammers" [One Wheat] (plusHammers 7) $ const [],
+		enabledBuildings   = [Bank] }
+	MilitaryScience      -> unchangedAbilities {
+		enabledBuildings   = [Academy],
+		productionBonus    = modifyValuePerNCoins 3 }
+	Education            -> unchangedAbilities {
+		buildWonderHook    = addCoinToCard Education,
+		resourceAbilities  = resourceAbility [CityManagement] "Education: Learn Tech" [One Wheat,One Incense,One Iron,One Linen] learnTech_Education $ const [] }
+	Computers            -> unchangedAbilities {
+		cardCoins          = Coins 1,
+		battleHandSize     = modifyValuePerNCoins 5,
+		cultureCardLimit   = modifyValuePerNCoins 5 }
+	MassMedia            -> unchangedAbilities {
+		cardAbilities      = cardAbility allPhases "Mass Media: Immune Culture Events" cancelCultureEventCancel_MassMedia $ const [],
+		resourceAbilities  = resourceAbility allPhases "Mass Media: Cancel Resource Ability" [One Spy] cancelResourceAbility_MassMedia $ const [] }
+	Ballistics           -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Artillery] UnitLevelStar,
+		resourceAbilities  = resourceAbility [Battle] "Ballistics: Deal 6 Damage" [One Iron] (dealDamage 6) $ const [] }
+	ReplacementParts     -> unchangedAbilities {
+		unitStackLimit     = SetValue 6,
+		unitLevel          = setUnitLevel [Infantry] UnitLevelStar }
+	Flight               -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Aircraft] UnitLevelStar,
+		moveRange          = SetValue 6,
+		movementType       = SetValue Air }
+	Plastics             -> unchangedAbilities {
+		cardAbilities      = cardAbility [StartOfTurn] "Plastics: Build Unit/Figure/Building" buildUnitFigureBuilding_Plastics $ const [],
+		resourceAbilities  = resourceAbility [CityManagement] "Plastics: +10 Hammers" [One Wheat] (plusHammers 10) $ const [] }
+	CombustionEngine     -> unchangedAbilities {
+		unitLevel          = setUnitLevel [Cavalry] UnitLevelStar,
+		cardAbilities      =
+			cardAbility [Movement] "Combustion Engine: Destroy Building" destroyBuilding_CombustionEngine $
+			cardAbility [Battle] "Combustion Engine: Destroy Walls" destroyWalls_CombustionEngine $ const [] }
+	AtomicTheory         -> unchangedAbilities {
+		resourceAbilities  =
+			resourceAbility [CityManagement] "Atomic Theory: Additional City Actions" [One Atom] additionalCityActions_AtomicTheory $
+			resourceAbility [Movement] "Atomic Theory: Nuke City" [One Atom] nukeCity_AtomicTheory $ const [] }
+	SpaceFlight          -> unchangedAbilities {
+		getThisHook        = victory TechVictory }
+
+	where
+
+	setUnitLevel unittypes unitlevel ut | ut `elem` unittypes = SetValue (Just unitlevel)
+	setUnitLevel _ _ _ = Unchanged
+
+	resourceAbility phases name respats action f phase | phase `elem` phases = [(name,respats,action)]
+	resourceAbility _ _ _ _ f phase = f phase
+
+cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
+cardAbility _ _ _ f phase = f phase
+
+modifyValuePerNCoins n player = ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
+
+additionalCityActions_AtomicTheory gamename playername = do
+	--TODO
+	return ()
+
+nukeCity_AtomicTheory gamename playername = do
+	--TODO
+	return ()
+
+dealDamage damage gamename playername = do
+	--TODO
+	return ()
+
+healDamage damage gamename playername = do
+	--TODO
+	return ()
+healAllDamage gamename playername = do
+	--TODO
+	return ()
+
+plusHammers hammers gamename playername = do
+	--TODO
+	return ()
+
+switchPolicy_Bureaucracy gamename playername = do
+	--TODO
+	return ()
+
+addCoinAfterWonBattle_CodeOfLaws gamename playername = do
+	--TODO
+	return ()
+
+destroyBuilding_CombustionEngine gamename playername = do
+	--TODO
+	return ()
+
+destroyWalls_CombustionEngine gamename playername = do
+	--TODO
+	return ()
+
+lockSquare_CommunismTech gamename playername = do
+	--TODO
+	return ()
+
+destroyWonderBuilding_Gunpowder gamename playername = do
+	--TODO
+	return ()
+
+getTrade_HoresebackRiding gamename playername = do
+	--TODO
+	return ()
+
+cancelCultureEvent gamename playername = do
+	--TODO
+	return ()
+
+addCoin_Democracy gamename playername = do
+	addTrade (-6) gamename playername
+	addCoinToCard Democracy gamename playername
+
+addCoinToCard tech gamename playername = do
+	--TODO
+	return ()
+
+addCoin_PrintingPress gamename playername = do
+	addCulture (-5) gamename playername
+	addCoinToCard PrintingPress gamename playername
+
+changeTerrain_Ecology gamename playername = do
+	--TODO
+	return ()
+
+learnTech_Education gamename playername = do
+	--TODO
+	return ()
+
+growIntoMetropolisHook_Agriculture gamename playername = do
+	--TODO
+	return ()
+
+buildCityWalls_Masonry gamename playername = do
+	--TODO
+	return ()
+
+cancelCultureEventCancel_MassMedia gamename playername = do
+	--TODO
+	return ()
+
+cancelResourceAbility_MassMedia gamename playername = do
+	--TODO
+	return ()
+
+increaseAttack_Metalworking gamename playername = do
+	--TODO
+	return ()
+
+destroyWonderOrUnit_MonarchyTech gamename playername = do
+	--TODO
+	return ()
+
+drawAnotherCultureCardHook_Mysticism gamename playername = do
+	--TODO
+	return ()
+
+forceDiscardCoin_Mysticism gamename playername = do
+	--TODO
+	return ()
+
+armyToShipyardOutskirtsHook_Navy gamename playername = do
+	--TODO
+	return ()
+
+buildUnitFigureBuilding_Plastics gamename playername = do
+	--TODO
+	return ()
+
+splitProduction_Engineering gamename playername = do
+	--TODO
+	return ()
+
+moveFigures_SteamEngine gamename playername = do
+	--TODO
+	return ()
+
+cancelCityAction_Writing gamename playername = do
+	--TODO
+	return ()
+
+build2UnitsHook_Aztecs gamename playername = do
+	--TODO
+	return ()
+
+resurrectOneUnitHook_China killedunits gamename playername = do
+	--TODO
+	return ()
+
+buildCapitalWallsHook_China gamename playername = do
+	--TODO
+	return ()
+
+freeBuilding_Egypt gamename playername = do
+	--TODO
+	return ()
+
+startBuildWonderHook_Egypt gamename playername = do
+	--TODO
+	return ()
+
+extraStartPolicyHook_French gamename playername = do
+	--TODO
+	return ()
+
+getTechHook_Germany gamename playername tech = do
+	--TODO
+	return ()
+
+getTechHook_Greeks gamename playername tech = do
+	--TODO
+	return ()
+
+drawExtraPersonHook_Greeks gamename playername = do
+	--TODO
+	return ()
+
+extraCultureDevote_Indians gamename playername citycoors = do
+	--TODO
+	return $ Culture 0
+
+buildUnlockedBuilding_Spanish gamename playername = do
+	--TODO
+	return ()
+
+valueAbilities :: (Ord a,Show a) => [Value a] -> a
+valueAbilities values = foldl (flip ($)) a modvalues
+	where
+	a = case maximum values of
+		SetValue v -> v
+		x -> error $ "valueAbilities: values=" ++ show values
+	modvalues = map ismod values
+	ismod (ModifyValue f) = f
+	ismod _ = id
+
+getValueAbility1 :: (Ord a,Show a) => (Abilities -> arg -> Value a) -> Player -> arg -> a
+getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg) player
+
+playerNumberOfCoins :: Player -> Coins
+playerNumberOfCoins player@(Player{..}) =
+	_playerCoins +
+	sum (map cardCoins (playerAbilities player))
+	-- TODO: z.B. Add Coins auf dem Battlefield
+
+-- abstrahieren auf ein Argument für ability
+getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
+getValueAbility toability player = valueAbilities $ map toability (playerAbilities player)
+
+playerAbilities player@(Player{..}) =
+	defaultAbilities : civAbilities _playerCiv :
+	map (techAbilities._techCardTechId) _playerTechs
+
+
+------------
 
 getCivState :: Query CivState CivState
-getCivState = ask
+getCivState = Import.ask
 
 type UpdateCivM a = ErrorT String (Update CivState) a
---type CheckPossibilityM = 
-
-{-
-type QueryCivM a = ErrorT String (Query CivState) a
-
-queryCivQ :: Traversal' CivState a -> QueryCivM a
-queryCivQ lens = do
-	civstate <- Control.Monad.Reader.ask
-	return $ preview lens civstate
--}
 
 checkCondition :: String -> Traversal' CivState b -> (b -> Bool) -> UpdateCivM ()
 checkCondition errmsg lens f = do
@@ -72,15 +658,14 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 	createBoard gamename
 
-	Just players <- queryCivLensM $ civPlayersLens gamename
-	updateCivLensM (const $ initialResourceStack (numPlayers players)) $
-		civGameLens gamename . _Just . gameResourceStack
-
-	forM (fromAssocList players) $ \ (playername,player@(Player{..})) -> do
-		forM [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
+	forAllPlayers gamename $ \ (playername,player@(Player{..})) -> do
+		forM_ [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
 		let (starttech,startgov) = civStartTechAndGov _playerCiv
 		addTech gamename playername (Just TechLevelI) starttech
 		setGovernment startgov gamename playername
+		forM_ [Incense,Wheat,Linen,Iron] $ \ res -> do
+			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
+		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> a gamename playername
 
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
 	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
@@ -122,13 +707,201 @@ startGame gamename = runUpdateCivM $ do
 	Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
-{-
-	buildCity gamename (Coors 6 13) $ City pn0 True False False NoWalls False (Just Southward)
-	buildCity gamename (Coors 6 10) $ City pn0 False False False Walls False Nothing
-	buildCity gamename (Coors 2 1) $ City pn1 True False False Walls False (Just Eastward)
-	buildCity gamename (Coors 2 4) $ City pn1 True False False NoWalls False (Just Eastward)
-	buildCity gamename (Coors 5 1) $ City pn1 False False False NoWalls False Nothing
--}
+
+autoPlayGame :: GameName -> StdGen -> Update CivState UpdateResult
+autoPlayGame gamename randgen = do
+	startGame gamename
+	runUpdateCivM $ autoPlayLoop gamename randgen
+	return oK
+
+autoPlayLoop :: GameName -> StdGen -> UpdateCivM ()
+autoPlayLoop gamename randgen = do
+	Just (Game{..}) <- getGame gamename
+	case _gamePhase of
+		Movement -> return ()
+		_ -> do
+			playername <- getPlayerTurn gamename
+			moves <- moveGenM gamename playername
+			randgen' <- case moves of
+				[] -> do
+					finishPlayerPhase gamename
+					return randgen
+				_  -> do
+					let (moveindex,randgen') = randomR (0,length moves - 1) randgen
+					doMove gamename playername (moves!!moveindex)
+					return randgen'
+			autoPlayLoop gamename randgen'
+
+getPlayer gamename playername = do
+	Just player <- queryCivLensM $ civPlayerLens gamename playername
+	return player
+
+getGame gamename = do
+	Just game <- queryCivLensM $ civGameLens gamename
+	return game
+
+getNumPlayers gamename = do
+	Just players <- queryCivLensM $ civPlayersLens gamename
+	return $ numPlayers players
+
+incPlayerIndex :: GameName -> Lens' Game Int -> UpdateCivM ()
+incPlayerIndex gamename playerindex = do
+	numplayers <- getNumPlayers gamename
+	updateCivLensM ((`mod` numplayers) . (+1)) $ civGameLens gamename . _Just . playerindex
+
+getPlayerTurn :: GameName -> UpdateCivM PlayerName
+getPlayerTurn gamename = do
+	Just playerindex <- queryCivLensM $ civGameLens gamename . _Just . gamePlayersTurn
+	Just (playername,_) <- queryCivLensM $ civPlayerIndexLens gamename playerindex
+	return playername
+
+finishPlayerPhase gamename = do
+	incPlayerIndex gamename gamePlayersTurn
+	Just (game@Game{..}) <- queryCivLensM $ civGameLens gamename . _Just
+	when (_gamePlayersTurn == _gameStartPlayer) $ do
+		updateCivLensM nextPhase $ civGameLens gamename . _Just . gamePhase
+		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+		case phase of
+			CityManagement -> do
+				forAllPlayers gamename $ \ (playername,player) -> do
+					forAllCities gamename playername $ \ (coors,_) -> do
+						updateCivLensM (const noIncome) $
+							civCityLens gamename coors . cityIncomeBonus
+				return ()
+
+			Movement -> do
+				forAllPlayers gamename $ \ (playername,player) -> do
+					let range = getValueAbility moveRange player
+					updateCivLensM (Map.map $ \ figure -> figure { _figureRangeLeft = range }) $
+						civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+				return ()
+
+			StartOfTurn -> do
+				updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
+				when (_gameTurn>1) $ do
+					incPlayerIndex gamename gamePlayersTurn
+					incPlayerIndex gamename gameStartPlayer
+
+			_ -> return ()
+
+allowSecondMove secondmove move = case (move,secondmove) of
+	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
+	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
+	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
+	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
+	_ -> True
+
+getCity gamename coors = do
+	Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
+	return city
+
+outskirtsOfCity :: GameName -> Coors -> UpdateCivM [Coors]
+outskirtsOfCity gamename coors = do
+	city <- getCity gamename coors
+	return $ outskirtsOf $ coors : case _cityMetropolisOrientation city of
+		Nothing -> []
+		Just ori -> [addCoorsOri coors ori]
+
+oneMoreFigure :: FigureType -> GameName -> PlayerName -> UpdateCivM ()
+oneMoreFigure figtype gamename playername = do
+	Just figstack <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFigures
+	let nextid = maximum (concat $ tokenStackElems figstack) + 1
+	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figtype nextid
+
+figuresOfPlayerOnSquare playername Square{..} =
+	map fst $ filter ((==playername).fst) _squareFigures
+
+getFigure gamename playername figureid = do
+	Just figure <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid
+	return figure
+
+buildFigure gamename playername figuretype coors = do
+	Just figureid <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figuretype
+	let figure = Figure figuretype coors 0
+	updateCivLensM (Map.insert figureid figure) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	placeFigure gamename playername figureid coors
+
+placeFigure gamename playername figureid coors = do
+	updateCivLensM (\ (Just figure) -> Just $ figure { _figureCoors = coors }) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid
+	updateCivLensM ((playername,figureid):) $ civSquareLens gamename coors . squareFigures
+
+unplaceFigure gamename playername figureid coors = do
+	updateCivLensM (delete (playername,figureid)) $ civSquareLens gamename coors . squareFigures
+
+destroyFigure gamename playername figureid = do
+	Just Figure{..} <- getFigure gamename playername figureid
+	unplaceFigure gamename playername figureid _figureCoors
+	updateCivLensM (Map.delete figureid) $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) _figureType figureid
+
+gameAction :: GameName -> PlayerName -> Move -> Update CivState UpdateResult
+gameAction gamename playername move = runUpdateCivM $ do
+	moves <- moveGenM gamename playername
+	case move `elem` moves of
+		False -> error $ show playername ++ " requested " ++ show move ++ " which is not in 'moves'!"
+		True -> do
+			doMove gamename playername move
+			checkMovesLeft gamename
+	return ()
+
+forAllPlayers :: GameName -> ((PlayerName,Player) -> UpdateCivM a) -> UpdateCivM [a]
+forAllPlayers gamename action = do
+	Just players <- queryCivLensM $ civPlayersLens gamename
+	forM (fromAssocList players) action
+
+forAllCities :: GameName -> PlayerName -> ((Coors,City) -> UpdateCivM a) -> UpdateCivM [a]
+forAllCities gamename playername action = do
+	Just coorss <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
+	forM coorss $ \ coors -> do
+		city <- getCity gamename coors
+		action (coors,city)
+
+forCityOutskirts :: GameName -> PlayerName -> Coors -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
+forCityOutskirts gamename playername coors action = do
+	city <- getCity gamename coors
+	outskirts <- outskirtsOfCity gamename coors
+	forM outskirts $ \ outskirt_coors -> do
+		Just square <- getSquare gamename outskirt_coors
+		action (outskirt_coors,city,square)
+
+forAllOutskirts :: GameName -> PlayerName -> ((Coors,City,Square) -> UpdateCivM a) -> UpdateCivM [a]
+forAllOutskirts gamename playername action = do
+	lss <- forAllCities gamename playername $ \ (coors,_) -> do
+		forCityOutskirts gamename playername coors action
+	return $ concat lss
+
+forAllPlayerFigures :: GameName -> PlayerName -> ((FigureID,Figure) -> UpdateCivM a) -> UpdateCivM [a]
+forAllPlayerFigures gamename playername action = do
+	Just figuremap <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+	forM (Map.assocs figuremap) action
+
+cityIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
+cityIncome gamename playername coors = do
+	outskirt_incomes <- forCityOutskirts gamename playername coors $ \ (outskirt_coors,city,square) -> do
+		squareIncome gamename playername outskirt_coors
+	city <- getCity gamename coors
+	let city_income = generatedIncome city
+	return $ mconcat $ city_income : outskirt_incomes
+
+squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
+squareIncome gamename playername coors = do
+	Just (Square{..}) <- getSquare gamename coors
+	return $ case null $ filter ((/=playername).fst) _squareFigures of
+		False -> noIncome
+		True  -> case _squareTokenMarker of
+			Just (BuildingMarker (Building buildingtype pn)) | pn==playername -> generatedIncome buildingtype
+			Just _ -> noIncome
+			_ ->
+				(if _squareNatWonder then cultureIncome 1 else noIncome) +#
+				(if _squareCoin then oneCoin else noIncome) +#
+				(maybe noIncome (resourceIncome.(:[]).One) _squareResource) +#
+				(generatedIncome (Prelude.head _squareTerrain))
+
+getTrade :: GameName -> PlayerName -> UpdateCivM ()
+getTrade gamename playername = do
+	incomes <- forAllOutskirts gamename playername $ \ (coors,_,_) -> do
+		squareIncome gamename playername coors
+	addTrade (inTrade $ mconcat incomes) gamename playername
 
 addCulture :: Culture -> GameName -> PlayerName -> UpdateCivM ()
 addCulture culture gamename playername = do
@@ -182,13 +955,6 @@ returnUnit gamename playername unit = do
 	updateCivLensM (delete unit) $ civPlayerLens gamename playername . _Just . playerUnits
 	putOnStackM (civGameLens gamename . _Just . gameUnitStack) (unitType unit) unit
 
-getFigure :: Figure ->GameName -> PlayerName ->  UpdateCivM ()
-getFigure figure gamename playername = do
-	mb_figure <- takeFromStackM (civPlayerLens gamename playername . _Just . playerFigures) figure
-	case mb_figure of
-		Nothing -> return ()
-		Just () -> return () -- TODO
-
 getGreatPerson :: GameName -> PlayerName -> UpdateCivM ()
 getGreatPerson gamename playername = do
 	Just greatperson <- takeFromStackM (civGameLens gamename . _Just . gameGreatPersonStack) ()
@@ -202,36 +968,36 @@ getCultureCard gamename playername level = do
 getResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
 getResource gamename playername resource = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameResourceStack) resource
-	updateCivLensM (resource:) $ civPlayerLens gamename playername . _Just . playerItems . _1
+	updateCivLensM (resource:) $ civPlayerLens gamename playername . _Just . playerResources
 
 returnResource :: GameName -> PlayerName -> Resource -> UpdateCivM ()
 returnResource gamename playername resource = do
-	updateCivLensM (delete resource) $ civPlayerLens gamename playername . _Just . playerItems . _1
+	updateCivLensM (delete resource) $ civPlayerLens gamename playername . _Just . playerResources
 	putOnStackM (civGameLens gamename . _Just . gameResourceStack) resource ()
 
 getHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
 getHut gamename playername hut = do
-	updateCivLensM (hut:) $ civPlayerLens gamename playername . _Just . playerItems . _2
+	updateCivLensM (hut:) $ civPlayerLens gamename playername . _Just . playerHuts
 
 returnHut :: GameName -> PlayerName -> Hut -> UpdateCivM ()
 returnHut gamename playername hut = do
-	updateCivLensM (delete hut) $ civPlayerLens gamename playername . _Just . playerItems . _2
+	updateCivLensM (delete hut) $ civPlayerLens gamename playername . _Just . playerHuts
 
 getVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
 getVillage gamename playername village = do
-	updateCivLensM (village:) $ civPlayerLens gamename playername . _Just . playerItems . _3
+	updateCivLensM (village:) $ civPlayerLens gamename playername . _Just . playerVillages
 
 returnVillage :: GameName -> PlayerName -> Village -> UpdateCivM ()
 returnVillage gamename playername village = do
-	updateCivLensM (delete village) $ civPlayerLens gamename playername . _Just . playerItems . _3
+	updateCivLensM (delete village) $ civPlayerLens gamename playername . _Just . playerVillages
 
 getArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
 getArtifact gamename playername artifact = do
-	updateCivLensM (artifact:) $ civPlayerLens gamename playername . _Just . playerItems . _4
+	updateCivLensM (artifact:) $ civPlayerLens gamename playername . _Just . playerArtifacts
 
 returnArtifact :: GameName -> PlayerName -> Artifact -> UpdateCivM ()
 returnArtifact gamename playername artifact = do
-	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerItems . _4
+	updateCivLensM (delete artifact) $ civPlayerLens gamename playername . _Just . playerArtifacts
 
 addCoins :: Coins -> GameName -> PlayerName -> UpdateCivM ()
 addCoins coins gamename playername = do
@@ -340,7 +1106,8 @@ revealTile gamename coors orientation = do
 	updateBoard gamename coorssquares
 
 getSquare :: GameName -> Coors -> UpdateCivM (Maybe Square)
-getSquare gamename coors = queryCivLensM $ civSquareLens gamename coors
+getSquare gamename coors = do
+	queryCivLensM $ civSquareLens gamename coors
 
 type UpdateResult = Either String ()
 
@@ -350,7 +1117,7 @@ eRR errmsg = Left errmsg
 runUpdateCivM :: UpdateCivM () -> Update CivState UpdateResult
 runUpdateCivM = runErrorT
 
-updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM () 
+updateCivLensM :: (val -> val) -> Traversal' CivState val -> UpdateCivM ()
 updateCivLensM fval lens = modify $ over lens fval
 
 queryCivLensM :: (MonadState CivState m) => Traversal' CivState a -> m (Maybe a)
@@ -358,54 +1125,310 @@ queryCivLensM lens = do
 	civstate <- Control.Monad.State.get
 	return $ preview lens civstate
 
-{-
-data Square =
-	OutOfBounds |
-	UnrevealedSquare TileID Coors |
-	Square {
-		_squareTileIDOri   :: Maybe (TileID,Orientation),
-		_squareTerrain     :: [Terrain],
-		_squareCoin        :: Bool,
-		_squareResource    :: Maybe Resource,
-		_squareNatWonder   :: Bool,
-		_squareTokenMarker :: Maybe TokenMarker,
-		_squareBuilding    :: Maybe Building,
-		_squareFigures     :: [(Figure,PlayerName)]
-		}
--}
+playernamesOnSquare square = case square of
+	Square _ _ _ _ _ _ sqfigures -> nub $ map fst sqfigures
+	_ -> []
 
-{-
-buildCityPossible :: GameName -> Coors -> City -> QueryCivM ()
-buildCityPossible gamename coors city@(City{..}) = do
-	let coorss = case _cityMetropolisOrientation of
-		Nothing  -> [ coors ]
-		Just ori -> [ coors, addCoorsOri coors ori ]
-	let outskirts = outskirtsOf coorss
--}
+canBuildCityHere :: GameName -> PlayerName -> Coors -> UpdateCivM Bool
+canBuildCityHere gamename playername coors = do
+	let cityarea = coors : surroundingSquares 1 coors
+	Just player <- getPlayer gamename playername
+	let citynexttohuts = getValueAbility buildCityNextToHuts player
+	empties <- forM cityarea $ \ cs -> do
+		mb_square <- getSquare gamename cs
+		return $ case mb_square of
+			Nothing -> False
+			Just square -> case square of
+				Square _ (terrain:_) _ _ _ mbtokmark _ ->
+					((citynexttohuts && isHut mbtokmark) || isNothing mbtokmark) &&
+					terrain `elem` (allOfThem \\ [Water]) &&
+					null (playernamesOnSquare square \\ [playername])
+				_ -> False
+	return $ all (==True) empties
 
 buildCity :: GameName -> Coors -> City -> UpdateCivM ()
 buildCity gamename coors city@(City{..}) = do
 	Just () <- takeFromStackM (civPlayerLens gamename _cityOwner . _Just . playerCityStack) ()
 	updateCivLensM (const $ Just $ CityMarker city) $ civSquareLens gamename coors . squareTokenMarker
+	updateCivLensM (++[coors]) $ civPlayerLens gamename _cityOwner . _Just . playerCityCoors
 	case _cityMetropolisOrientation of
 		Nothing  -> return ()
-		Just ori -> updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
-			civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
+		Just ori -> do
+			updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
+				civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
 
 buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
 buildBuilding gamename playername coors buildingtype = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) (buildingTypeToMarker buildingtype)
-	updateCivLensM (const $ Just $ BuildingMarker $ Building buildingtype playername) $
-		civSquareLens gamename coors . squareTokenMarker
+	setTokenMarker gamename (BuildingMarker $ Building buildingtype playername) coors
 
 victory victorytype gamename playername = error "Not implemented yet"
+
+modifyRange :: GameName -> PlayerName -> FigureID -> (Coor -> Coor) -> UpdateCivM ()
+modifyRange gamename playername figureid rangef = do
+	updateCivLensM rangef $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid . _Just . figureRangeLeft
+
+setTokenMarker gamename tokenmarker coors = do
+	updateCivLensM (const $ Just tokenmarker) $ civSquareLens gamename coors . squareTokenMarker
+
+clearTokenMarker gamename coors = do
+	updateCivLensM (const Nothing) $ civSquareLens gamename coors . squareTokenMarker
+
+moveFigure :: GameName -> PlayerName -> FigureID -> Coors -> UpdateCivM ()
+moveFigure gamename playername figureid targetcoors = do
+	Just Figure{..} <- getFigure gamename playername figureid
+	unplaceFigure gamename playername figureid _figureCoors
+	let distance = coorDistance _figureCoors targetcoors
+	modifyRange gamename playername figureid (+(-distance))
+	placeFigure gamename playername figureid targetcoors
+
+	Just Square{..} <- getSquare gamename targetcoors
+	case _squareTokenMarker of
+		Just (ArtifactMarker artifact) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getArtifact gamename playername artifact
+		Just (HutMarker hut) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getHut gamename playername hut
+		Just (VillageMarker village) -> do
+			modifyRange gamename playername figureid (const 0)
+			clearTokenMarker gamename targetcoors
+			getVillage gamename playername village
+		_ -> return ()
+
+-- Nur definiert für revealed squares!
+canStayMoveOn :: (MovementType -> [Terrain]) -> GameName -> PlayerName -> FigureType -> Coors -> UpdateCivM Bool
+canStayMoveOn mtterrains gamename playername figuretype coors = do
+	Just (square@(Square{..})) <- getSquare gamename coors
+	Just (player@(Player{..})) <- getPlayer gamename playername
+	let stacklimit = getValueAbility unitStackLimit player
+	let terrains = mtterrains $ getValueAbility movementType player
+	return $ 
+		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
+		(head _squareTerrain) `elem` terrains &&
+		(not (isVillage _squareTokenMarker) || figuretype==Flag) &&
+		(not (isHut _squareTokenMarker) || figuretype==Flag)
+
+canStayOn gamename playername figuretype coors = do
+	canstayonterrain <- canStayMoveOn movementTypeEndTerrains gamename playername figuretype coors
+	Just (square@(Square{..})) <- getSquare gamename coors
+	let iscity = case _squareTokenMarker of
+		Just (CityMarker _) -> True
+		_                   -> False
+	return $ canstayonterrain && not iscity
+
+canCross = canStayMoveOn movementTypeCrossTerrains
+
+buildFigureCoors gamename playername figuretype citycoors = do
+	outskirts <- outskirtsOfCity gamename citycoors
+	filterM (canStayOn gamename playername figuretype) outskirts
+
+doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
+doMove gamename playername move@(Move source target) = do
+	Just (Game{..}) <- getGame gamename
+	case (source,target) of
+		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
+			buildCity gamename coors $ newCity playername True Nothing
+		(AutomaticMove (),GetTradeTarget pn) | pn==playername -> do
+			getTrade gamename playername
+		(FigureSource pn figure,SquareTarget coors) | pn==playername -> do
+			buildFigure gamename playername figure coors
+		(FigureOnBoardSource figureid pn coors,BuildCityTarget ()) | pn==playername -> do
+			destroyFigure gamename playername figureid
+			buildCity gamename coors $ newCity playername False Nothing
+		(CityProductionSource _ (ProduceFigure figure),SquareTarget coors) -> do
+			buildFigure gamename playername figure coors
+		(CityProductionSource _ (ProduceBuilding building),SquareTarget coors) -> do
+			buildBuilding gamename playername coors building
+		(CityProductionSource _ (ProduceUnit unittype),NoTarget ()) -> do
+			drawUnit gamename playername unittype
+			return ()
+		(CityProductionSource _ (HarvestResource res),NoTarget ()) -> do
+			getResource gamename playername res
+		(CityProductionSource _ (DevoteToArts culture),NoTarget ()) -> do
+			addCulture culture gamename playername
+		(FigureOnBoardSource figureid pn _,SquareTarget targetcoors) | pn==playername -> do
+			moveFigure gamename playername figureid targetcoors
+		(FigureOnBoardSource figureid pn _,RevealTileTarget ori tileorigin) | pn==playername -> do
+			modifyRange gamename playername figureid (+(-1))
+			revealTile gamename tileorigin ori
+		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
+		_ -> error $ show move ++ " not implemented yet"
+	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
+	return ()
+	where
+	addmove turn phase =
+		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
+
+moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
+moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
+
+moveGen :: GameName -> PlayerName -> Update CivState [Move]
+moveGen gamename my_playername = do
+	res <- runErrorT $ do
+		playername <- getPlayerTurn gamename
+		Just (Game{..}) <- getGame gamename
+		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
+		moves <- case my_playername == playername of
+			False -> return []
+			True -> do
+				case _gamePhase of
+					StartOfGame -> return []
+					BuildingFirstCity -> return $
+						[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
+					PlaceFirstFigures -> do
+						possible_squares <- buildFigureCoors gamename playername Wagon (head _playerCityCoors)
+						let possible_figures = [Wagon,Flag]
+						return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
+					GettingFirstTrade ->
+						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+					StartOfTurn -> do
+						buildcitymovess <- case tokenStackAvailableKeys _playerCityStack of
+							[] -> return []
+							_ -> do
+								forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+									canbuildcityhere <- canBuildCityHere gamename playername _figureCoors
+									return $ case canbuildcityhere && (_figureType==Wagon) of
+										False -> []
+										True -> [ Move (FigureOnBoardSource figureid playername _figureCoors) (BuildCityTarget ()) ] 
+						return $ concat buildcitymovess
+
+					Trading ->
+						return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+					CityManagement -> do
+						movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
+							income <- cityIncome gamename my_playername citycoors
+
+							possible_fig_coors <- buildFigureCoors gamename playername Wagon citycoors
+							let
+								possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
+								prodfiguremoves = [ Move (CityProductionSource citycoors (ProduceFigure figty)) (SquareTarget squarecoors) |
+									figty <- filter ((<=income).consumedIncome) possible_figures,
+									squarecoors <- possible_fig_coors ]
+
+							let
+								player_buildings = concatMap enabledBuildings $ playerAbilities player
+								buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
+								all_avail_buildings = buildings_left `intersect` player_buildings
+								avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
+								avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
+								affordable_buildings = filter ((<=income).consumedIncome) avail_buildings
+							prodbuildingmovess <- forCityOutskirts gamename playername citycoors $ \ (coors,city,square) -> do
+								let buildings = (terrainBuildings $ head (_squareTerrain square)) `intersect` affordable_buildings
+								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
+									building <- buildings ]									
+
+							produnitmovess <- forM (allOfThem::[UnitType]) $ \ unittype -> do
+								let mb_unitlevel = getValueAbility1 unitLevel player unittype
+								return $ case mb_unitlevel of
+									Nothing -> []
+									Just unitlevel -> case consumedIncome (unittype,unitlevel) <= income of
+										False -> []
+										True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
+
+							let
+								producible_res = case AnyResource `elem` inResource income of
+									True -> [ Linen,Iron,Incense,Wheat ]
+									False -> nub $ map oneResource $ inResource income
+								avail_res = tokenStackAvailableKeys _gameResourceStack
+								harvestmoves = map (\ res -> Move (CityProductionSource citycoors (HarvestResource res)) (NoTarget ())) $
+									producible_res `intersect` avail_res
+
+							let
+								culture = inCulture income
+								devotemove = 
+									Move (CityProductionSource citycoors (DevoteToArts culture)) (NoTarget ())
+
+							return $
+								prodfiguremoves ++
+								(concat prodbuildingmovess) ++
+								(concat produnitmovess) ++
+								harvestmoves ++
+								[ devotemove ]
+
+						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
+
+					Movement -> do
+						let
+							range = getValueAbility moveRange player
+							movementtype = getValueAbility movementType player
+							board = _gameBoard
+
+						cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+							canstay <- canStayOn gamename playername _figureType _figureCoors
+							case _figureRangeLeft of
+								0 -> case canstay of
+									True  -> return []
+									False -> do
+										destroyFigure gamename playername figureid
+										return []
+								_ -> do
+									targetmustss <- forM (neighbourSquares _figureCoors) $ \ targetcoors -> do
+										mb_square <- getSquare gamename targetcoors
+										case mb_square of
+											Nothing -> return []
+											Just OutOfBounds -> return []
+											Just (UnrevealedSquare tileid tileorigin) -> do
+												let ori = coorDiffOri _figureCoors targetcoors
+												return [ (RevealTileTarget ori tileorigin,False) ]
+											Just _ -> do
+												cancross_target <- canCross gamename playername _figureType targetcoors
+												canstay_target <- canStayOn gamename playername _figureType targetcoors
+												case (cancross_target,canstay_target) of
+													(False,False) -> return []
+													(True,False) | _figureRangeLeft <=1 -> return []
+													(True,False) -> return [(SquareTarget targetcoors,True)]
+													(_,True) -> return [(SquareTarget targetcoors,False)]
+									return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
+										(target,mustmove) <- concat targetmustss ]
+						
+						let
+							cmoves = concat cmovess
+							finishmoves = case all not (map snd cmoves) of 
+								True -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
+								False -> []
+
+						return $ finishmoves ++ map fst cmoves
+
+					Research ->
+						return [ Move (AutomaticMove ()) (FinishPhaseTarget ())  ]
+
+		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
+		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
+		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
+	case res of
+		Right moves -> return moves
+		Left msg -> error msg
+
+setDbgMessage :: String -> UpdateCivM ()
+setDbgMessage msg = updateCivLensM (const msg) civDebugMsg
+
+checkMovesLeft :: GameName -> UpdateCivM ()
+checkMovesLeft gamename = do
+	playername <- getPlayerTurn gamename
+	moves_left <- moveGenM gamename playername
+	case moves_left of
+		[] -> do
+			finishPlayerPhase gamename
+			checkMovesLeft gamename
+		[move@(Move (AutomaticMove ()) _)] -> do
+			doMove gamename playername move
+			checkMovesLeft gamename
+		_ -> return ()
 
 $(makeAcidic ''CivState [
 	'getCivState,
 	'setShuffledPlayers,
 	'startGame,
+	'autoPlayGame,
 	'joinGame,
 	'deleteGame,
-	'createNewGame
+	'createNewGame,
+	'gameAction,
+	'moveGen
 	])
+
+$(deriveSafeCopy modelVersion 'base ''StdGen)
 

@@ -21,7 +21,9 @@ import Handler.DisplayGame
 
 import Polls
 import Handler.HandlerPolling
-import Actions
+import Acidic
+import AssocList
+
 
 ---- Helpers ------
 
@@ -122,7 +124,7 @@ postHomeR = pollHandler >> getHomeR
 postWaitingR gn = do
 	action <- pollHandler
 	case action of
-		StartGameA (GameName gn_action) | gn_action == gn -> do
+		StartGameA (GameName gn_action) _ | gn_action == gn -> do
 			setMessage $ toHtml $ "Game " ++ show gn ++ " has started!"
 			redirect $ GameR gn
 		DeleteGameA (GameName gn_action) -> do
@@ -133,10 +135,11 @@ postWaitingR gn = do
 getWaitingR :: Text -> Handler Html
 getWaitingR gn = do
 	(userid,user,_,game,mb_playername) <- maybeVisitor
-	let gamename = GameName gn
+	let
+		gamename = GameName gn
 	defaultLayout $ do
 		setTitle $ toHtml $ "Civ - " ++ show gn
-		Just game <- getGame gamename
+		Just game <- getGameH gamename
 		sendJSONJulius
 		longPollingJulius (WaitingR gn) (GameGame gamename)
 		[whamlet|
@@ -155,7 +158,8 @@ getWaitingR gn = do
     <td>^{enumToSelect "civ" Russia}
     <td><button type=button onclick="joinGame(#{show gn},'#{userEmail user}')">Join The Game
 $if userEmail user == _gameCreator game
-  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA $ GameName gn},'@{GameR gn}')">Start Game
+  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA (GameName gn) False},'@{GameR gn}')">Start Game
+  <button type=button onclick="sendAndRedirect(#{toJSONString $ StartGameA (GameName gn) True},'@{GameR gn}')">Autoplay Game
 |]
 
 		toWidget [julius|

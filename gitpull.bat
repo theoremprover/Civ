@@ -5,7 +5,7 @@ where plink.exe > tmpFile
 set /p GIT_SSH= < tmpFile
 del tmpFile
 
-git pull origin master
+git pull origin robert
 if errorlevel 1 goto :err
 exit 0
 

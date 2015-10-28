@@ -1,6 +1,7 @@
 module Polls where
 
 import Data.Aeson.TH
+import Data.Data
 
 import Control.Concurrent.MVar
 import Prelude
@@ -11,10 +12,10 @@ data ActionA =
 	CreateGameA GameName |
 	DeleteGameA GameName |
 	JoinGameA GameName PlayerName PlayerEmail Colour Civ |
-	StartGameA GameName |
+	StartGameA GameName Bool |
 	SetSessionGameA GameName |
 	SetSessionGamePlayerA GameName PlayerName |
-	GameActionA ActionSource Action
+	GameActionA Move
 	deriving Show
 
 data Affected = GameAdmin | GameGame GameName
@@ -22,23 +23,10 @@ data Affected = GameAdmin | GameGame GameName
 
 type Polls = MVar [(Affected,MVar ActionA)]
 
-
-data Action =
-	BuildFirstCity GameName PlayerName Coors |
-	GetFirstTrade GameName PlayerName
-	deriving (Show,Eq,Ord)
-
-coors2action :: Coors -> Action -> Bool
-coors2action coors action@(BuildFirstCity _ _ cs) | coors==cs = True
+coors2action :: Coors -> Move -> Bool
+coors2action coors (Move _ (BuildFirstCityTarget _ cs)) | coors==cs = True
+coors2action coors (Move _ (SquareTarget cs)) | coors==cs = True
 coors2action _ _ = False
 
-data ActionSource =
-	CitySource | MetropolisSource |
-	FlagSource | WagonSource |
-	ResourceSource
-	deriving (Show,Eq,Ord)
-
-deriveJSON defaultOptions ''ActionSource
 deriveJSON defaultOptions ''ActionA
 deriveJSON defaultOptions ''Affected
-deriveJSON defaultOptions ''Action

@@ -5,6 +5,9 @@ import qualified Data.Map as Map
 
 type TokenStack tokenty token = Map.Map tokenty [token]
 
+emptyTokenStack :: (Ord key) => TokenStack key val
+emptyTokenStack = tokenStackFromList []
+
 tokenStackFromList :: (Ord key) => [(key,val)] -> Map.Map key val
 tokenStackFromList l = Map.fromList l
 
@@ -29,3 +32,7 @@ tokenStackHeights stack = map countvals $ Map.assocs stack where
 tokenStackToList = Map.assocs
 
 tokenStackLookup = Map.lookup
+
+tokenStackAvailableKeys tokenstack = map fst $ filter ((>0).snd) $ tokenStackHeights tokenstack
+
+tokenStackElems = Map.elems
