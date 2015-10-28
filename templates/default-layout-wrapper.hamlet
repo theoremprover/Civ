@@ -19,6 +19,7 @@ $newline never
     <link rel="stylesheet" href="@{StaticR js_jquery_ui_1_11_4_jquery_ui_css}">
     <script src="@{StaticR js_jquery_1_11_3_js}">
     <script src="@{StaticR js_jquery_ui_1_11_4_jquery_ui_js}">
+    <script src="@{StaticR js_civ_js}">
 
     \<!--[if lt IE 9]>
     \<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
