@@ -1215,6 +1215,7 @@ buildFigureCoors gamename playername figuretype citycoors = do
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
 	Just (Game{..}) <- getGame gamename
+	Just player <- getPlayer gamename playername
 	case (source,target) of
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
@@ -1241,6 +1242,9 @@ doMove gamename playername move@(Move source target) = do
 		(FigureOnBoardSource figureid pn _,RevealTileTarget ori tileorigin) | pn==playername -> do
 			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
+		(TechSource tech,TechTreeTarget pn) | playername==pn -> do
+			addTrade gamename playername (-(consumedIncome (levelOfTech tech) - getValueAbility researchCostBonus player))
+			addTech gamename playername (Just $ levelOfTech tech) tech
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 		(_,DebugTarget msg) -> return ()
 		_ -> error $ show move ++ " not implemented yet"
@@ -1391,9 +1395,16 @@ moveGen gamename my_playername = do
 
 					Research -> do
 						let
-							level_techs = map (\ level -> (level,length $ filter (._techCardTechId) _playerTechCards)) $
-								(allOfThem::TechLevel)
-						return [ Move (AutomaticMove ()) (FinishPhaseTarget ())  ]
+							tradeincome = tradeIncome $ _playerTrade + getValueAbility researchCostBonus player
+							level_techs = map (\ level -> (level,maybe [] id (Map.lookup level _playerTechs))) allOfThem
+							ptechs [_] = techsOfLevel TechLevelI
+							ptechs ((_,t1):(l2,t2):ns) = ptechs ((l2,t2):ns) ++ case length t1 > length t2 + 1 of
+								False -> []
+								True -> case consumedIncome l2 >= tradeincome of
+									False -> []
+									True  -> techsOfLevel l2 \\ (map _techCardTechId $ Map.elems _playerTechs)
+						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) :
+							[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase

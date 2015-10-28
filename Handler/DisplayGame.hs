@@ -393,7 +393,7 @@ techTree di@(DisplayInfo{..}) (playername,player@(Player{..})) = do
 		techss :: [(Int,[TechCard])]
 		techss = map projecttechlevel
 			[(4,TechLevelV),(3,TechLevelIV),(2,TechLevelIII),(1,TechLevelII),(0,TechLevelI)]
-		projecttechlevel (i,level) = ( i, filter ((==level)._techCardLevel) _playerTechs )
+		projecttechlevel (i,level) = ( i, maybe [] id (Map.lookup level _playerTechs) )
 		columns = fromJust $ lookup 0 techss
 		canbuildmetropolis = getValueAbility canBuildMetropolis player
 	Just mb_capitalmetropolis <- case _playerCityCoors of

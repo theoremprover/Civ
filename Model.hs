@@ -194,6 +194,14 @@ oneCoin               = noIncome { inCoins = Coins 1 }
 militaryBonusIncome x = noIncome { inMilBonus = MilitaryBonus x }
 resourceIncome      x = noIncome { inResource = x }
 
+instance ConsumesIncome TechLevel where
+	consumedIncome techlevel = tradeIncome $ case techlevel of
+		TechLevelI   -> 6
+		TechLevelII  -> 11
+		TechLevelIII -> 16
+		TechLevelIV  -> 21
+		TechLevelV   -> 26
+
 data Terrain = Grassland | Desert | Mountains | Forest | Water
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord)
 $(deriveSafeCopy modelVersion 'base ''Terrain)
@@ -697,6 +705,7 @@ data ActionSource =
 	CitySource PlayerName | MetropolisSource PlayerName |
 	CityProductionSource Coors Production |
 	SquareSource Coors |
+	TechSource Tech |
 	DialCoinSource PlayerName | DialCultureSource PlayerName |
 	HutSource PlayerName Hut | VillageSource PlayerName Village |
 	TechCoinSource PlayerName Tech |
@@ -711,6 +720,7 @@ data ActionTarget =
 	BuildFirstCityTarget PlayerName Coors |
 	BuildCityTarget () |
 	TechTarget PlayerName Tech |
+	TechTreeTarget PlayerName |
 	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
 	RevealTileTarget Orientation Coors |
@@ -731,6 +741,7 @@ instance Show Move where
 		(FigureOnBoardSource figureid _ sourcecoors,RevealTileTarget ori coors) -> "Reveal Tile at " ++ show coors ++ " with " ++ show figureid
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
+		(TechSource tech,TechTreeTarget _) -> "Research " ++ show tech
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
