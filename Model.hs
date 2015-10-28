@@ -485,7 +485,6 @@ initialBoardTileStack = tokenStackFromList [((),
 
 data TechCard = TechCard {
 	_techCardTechId :: Tech,
-	_techCardLevel  :: TechLevel,
 	_techCardCoins  :: Coins
 	}
 	deriving (Data,Typeable,Show)
@@ -746,7 +745,7 @@ data Player = Player {
 	_playerTrade            :: Trade,
 	_playerCulture          :: Culture,
 	_playerCoins            :: Coins,
-	_playerTechs            :: [TechCard],
+	_playerTechs            :: Map.Map TechLevel [TechCard],
 	_playerInvestments      :: TokenStack Investment (),
 	_playerResources        :: [Resource],
 	_playerHuts             :: [Hut],
@@ -770,7 +769,7 @@ makeLenses ''Player
 
 makePlayer useremail colour civ = Player
 	useremail colour civ (allPolicyCards,[]) Despotism
-	(Trade 0) (Culture 0) (Coins 0) []
+	(Trade 0) (Culture 0) (Coins 0) Map.empty
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
 	[] [] initialFigureStack Map.empty [] Northward initialCityStack

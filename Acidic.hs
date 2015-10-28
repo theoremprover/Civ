@@ -401,7 +401,9 @@ techAbilities tech = case tech of
 			resourceAbility [CityManagement] "Atomic Theory: Additional City Actions" [One Atom] additionalCityActions_AtomicTheory $
 			resourceAbility [Movement] "Atomic Theory: Nuke City" [One Atom] nukeCity_AtomicTheory $ const [] }
 	SpaceFlight          -> unchangedAbilities {
-		getThisHook        = victory TechVictory }
+		getThisHook        = \ gamename playername -> do
+			updateCivLensM (const True) $ civGameLens gamename . _Just . gameSpaceFlightTaken
+			victory TechVictory gamename playername }
 
 	where
 
@@ -999,19 +1001,16 @@ addTech gamename playername mb_level tech = do
 	let techlevel = case mb_level of
 		Nothing -> levelOfTech tech
 		Just level -> level
-	updateCivLensM ((TechCard tech techlevel (Coins 0)):) $
-		civPlayerLens gamename playername . _Just . playerTechs
-	when (tech==SpaceFlight) $ updateCivLensM (const True) $
-		civGameLens gamename . _Just . gameSpaceFlightTaken
+	updateCivLensM (++[TechCard tech (Coins 0)]) $
+		civPlayerLens gamename playername . _Just . playerTechs. at techlevel
 
 addCoinToTech :: Tech -> GameName -> PlayerName -> UpdateCivM ()
 addCoinToTech tech gamename playername = do
-	updateCivLensM addcoin $ civPlayerLens gamename playername . _Just . playerTechs
+	updateCivLensM addcoinif $ civPlayerLens gamename playername . _Just . playerTechs
 	where
-	addcoin [] = error $ "addCoinToTech: Couldn't find " ++ show tech
-	addcoin (techcard:ts) | _techCardTechId techcard == tech =
-		techcard { _techCardCoins = _techCardCoins techcard + 1 } : ts 
-	addcoin (t:ts) = t : addcoin ts
+	addcoinif techcard = case _techCardTechId techcard == tech of
+		False -> techcard
+		True -> techcard { _techCardCoins = _techCardCoins techcard + Coins 1 }
 
 setGovernment :: Government -> GameName -> PlayerName -> UpdateCivM ()
 setGovernment government gamename playername = do
@@ -1390,7 +1389,10 @@ moveGen gamename my_playername = do
 
 						return $ finishmoves ++ map fst cmoves
 
-					Research ->
+					Research -> do
+						let
+							level_techs = map (\ level -> (level,length $ filter (._techCardTechId) _playerTechCards)) $
+								(allOfThem::TechLevel)
 						return [ Move (AutomaticMove ()) (FinishPhaseTarget ())  ]
 
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
