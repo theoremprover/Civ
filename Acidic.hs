@@ -74,7 +74,6 @@ data Abilities = Abilities {
 	movementType        :: Value MovementType,
 	cardCoins           :: Coins,
 	threeTradeHammers   :: Value Int,
-	maxCities           :: Value Int,
 	productionBonus     :: Player -> Value Int,
 	buildWonderHook     :: HookM (),
 	drawCultureHook     :: HookM (),
@@ -121,7 +120,6 @@ defaultAbilities = Abilities {
 	movementType    = SetValue Land,
 	cardCoins       = Coins 0,
 	threeTradeHammers = SetValue 1,
-	maxCities       = SetValue 2,
 	productionBonus = const $ SetValue 0,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
@@ -166,7 +164,6 @@ unchangedAbilities = Abilities {
 	movementType    = Unchanged,
 	cardCoins       = Coins 0,
 	threeTradeHammers = Unchanged,
-	maxCities       = Unchanged,
 	productionBonus = const Unchanged,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
@@ -334,7 +331,7 @@ techAbilities tech = case tech of
 		enabledBuildings   = [Aquaeduct],
  		cardAbilities      = cardAbility [CityManagement] "Engineering: Split Production" splitProduction_Engineering $ const [] }
 	Irrigation           -> unchangedAbilities {
-		maxCities          = SetValue 3 }
+		getThisHook        = pushThirdCity }
 	Bureaucracy          -> unchangedAbilities {
 		cardCoins          = Coins 1,
 		cardAbilities      = cardAbility [Research] "Bureaucracy: Switch Policy" switchPolicy_Bureaucracy $ const [] }
@@ -417,7 +414,7 @@ techAbilities tech = case tech of
 cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
 cardAbility _ _ _ f phase = f phase
 
-modifyValuePerNCoins n player = ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
+modifyValuePerNCoins n player = Unchanged -- TODO: ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
 
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
@@ -437,6 +434,9 @@ healDamage damage gamename playername = do
 healAllDamage gamename playername = do
 	--TODO
 	return ()
+
+pushThirdCity gamename playername = do
+	putOnStackM (civPlayerLens gamename playername . _Just . playerCityStack) () ()
 
 plusHammers hammers gamename playername = do
 	--TODO
@@ -602,12 +602,6 @@ valueAbilities values = foldl (flip ($)) a modvalues
 
 getValueAbility1 :: (Ord a,Show a) => (Abilities -> arg -> Value a) -> Player -> arg -> a
 getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg) player
-
-playerNumberOfCoins :: Player -> Coins
-playerNumberOfCoins player@(Player{..}) =
-	_playerCoins +
-	sum (map cardCoins (playerAbilities player))
-	-- TODO: z.B. Add Coins auf dem Battlefield
 
 -- abstrahieren auf ein Argument für ability
 getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
@@ -807,9 +801,6 @@ oneMoreFigure figtype gamename playername = do
 	Just figstack <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFigures
 	let nextid = maximum (concat $ tokenStackElems figstack) + 1
 	putOnStackM (civPlayerLens gamename playername . _Just . playerFigures) figtype nextid
-
-figuresOfPlayerOnSquare playername Square{..} =
-	map fst $ filter ((==playername).fst) _squareFigures
 
 getFigure gamename playername figureid = do
 	Just figure <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerFiguresOnBoard . at figureid
@@ -1206,18 +1197,15 @@ canStayMoveOn mtterrains gamename playername figuretype coors = do
 	let stacklimit = getValueAbility unitStackLimit player
 	let terrains = mtterrains $ getValueAbility movementType player
 	return $ 
-		stacklimit > length (figuresOfPlayerOnSquare playername square) &&
+		stacklimit > length (filter ((==playername).fst) _squareFigures) &&
 		(head _squareTerrain) `elem` terrains &&
 		(not (isVillage _squareTokenMarker) || figuretype==Flag) &&
 		(not (isHut _squareTokenMarker) || figuretype==Flag)
 
 canStayOn gamename playername figuretype coors = do
 	canstayonterrain <- canStayMoveOn movementTypeEndTerrains gamename playername figuretype coors
-	Just (square@(Square{..})) <- getSquare gamename coors
-	let iscity = case _squareTokenMarker of
-		Just (CityMarker _) -> True
-		_                   -> False
-	return $ canstayonterrain && not iscity
+	Just Square{..} <- getSquare gamename coors
+	return $ canstayonterrain && not (isCity _squareTokenMarker)
 
 canCross = canStayMoveOn movementTypeCrossTerrains
 
@@ -1255,12 +1243,26 @@ doMove gamename playername move@(Move source target) = do
 			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
+		(_,DebugTarget msg) -> return ()
 		_ -> error $ show move ++ " not implemented yet"
 	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
 	return ()
 	where
 	addmove turn phase =
 		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
+
+playerNumCoins :: GameName -> PlayerName -> Update CivState Coins
+playerNumCoins gamename playername = do
+	res <- runErrorT $ do
+		incomess <- forAllCities gamename playername $ \ (coors,_) -> cityIncome gamename playername coors
+		Just player@(Player{..}) <- getPlayer gamename playername
+		return $
+			inCoins (mconcat incomess) +
+			_playerCoins +
+			sum (map cardCoins (playerAbilities player))
+	case res of
+		Right coins -> return coins
+		Left msg -> error msg
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename my_playername = Import.lift $ moveGen gamename my_playername
@@ -1337,9 +1339,8 @@ moveGen gamename my_playername = do
 									producible_res `intersect` avail_res
 
 							let
-								culture = inCulture income
 								devotemove = 
-									Move (CityProductionSource citycoors (DevoteToArts culture)) (NoTarget ())
+									Move (CityProductionSource citycoors (DevoteToArts (inCulture income))) (NoTarget ())
 
 							return $
 								prodfiguremoves ++
@@ -1351,11 +1352,6 @@ moveGen gamename my_playername = do
 						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
 
 					Movement -> do
-						let
-							range = getValueAbility moveRange player
-							movementtype = getValueAbility movementType player
-							board = _gameBoard
-
 						cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
 							canstay <- canStayOn gamename playername _figureType _figureCoors
 							case _figureRangeLeft of
@@ -1375,19 +1371,21 @@ moveGen gamename my_playername = do
 												return [ (RevealTileTarget ori tileorigin,False) ]
 											Just _ -> do
 												cancross_target <- canCross gamename playername _figureType targetcoors
-												canstay_target <- canStayOn gamename playername _figureType targetcoors
-												case (cancross_target,canstay_target) of
-													(False,False) -> return []
-													(True,False) | _figureRangeLeft <=1 -> return []
-													(True,False) -> return [(SquareTarget targetcoors,True)]
-													(_,True) -> return [(SquareTarget targetcoors,False)]
+												case cancross_target of
+													False -> return []
+													True -> do
+														canstay_target <- canStayOn gamename playername _figureType targetcoors
+														case canstay_target of
+															False | _figureRangeLeft <=1 -> return []
+															_ -> do
+																return [(SquareTarget targetcoors,not canstay)]
 									return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
 										(target,mustmove) <- concat targetmustss ]
 						
 						let
 							cmoves = concat cmovess
-							finishmoves = case all not (map snd cmoves) of 
-								True -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
+							finishmoves = case all (not.snd) cmoves of
+								True  -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
 								False -> []
 
 						return $ finishmoves ++ map fst cmoves
@@ -1427,7 +1425,8 @@ $(makeAcidic ''CivState [
 	'deleteGame,
 	'createNewGame,
 	'gameAction,
-	'moveGen
+	'moveGen,
+	'playerNumCoins
 	])
 
 $(deriveSafeCopy modelVersion 'base ''StdGen)

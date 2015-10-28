@@ -244,7 +244,7 @@ initialVillageStack = tokenStackFromList $ replicateToken [
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
 
 initialCityStack :: TokenStack () ()
-initialCityStack = tokenStackFromList $ replicateUnit [ ((),3) ]
+initialCityStack = tokenStackFromList $ replicateUnit [ ((),2) ]
 
 data Walls = NoWalls | Walls
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
@@ -376,6 +376,9 @@ isHut _ = False
 
 isVillage (Just (VillageMarker _)) = True
 isVillage _ = False
+
+isCity (Just (CityMarker _)) = True
+isCity _ = False
 
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
@@ -704,6 +707,7 @@ $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
 data ActionTarget =
 	NoTarget () |
+	DebugTarget String |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	BuildCityTarget () |
@@ -729,6 +733,7 @@ instance Show Move where
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(HaltSource (),_) -> "HALTED"
+		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
 
