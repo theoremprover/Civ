@@ -175,16 +175,13 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		allowedMovesJulius moves
 
 		[whamlet|
-<table>
-  <tr>
-    <td><div style="overflow:auto">^{arena}
-    <td valign=bottom>
-      <table>
-        <tr><td>^{playerlist}
-        <tr><td>^{actionarea}
+<div .GameArea>
+  <div>^{arena}
+  <div .DragArea>
 
 <div .Sidebar>
   <table>
+    <tr><td>Zoom <input type="text" id="Zoom" readonly style="border:0;" /><div id="ZoomSlider" />
     <tr><td>^{playerlist}
     <tr><td>^{actionarea}
     <tr><td><a href="#" class="Action-OpenDebug">Show Debug
@@ -197,7 +194,6 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     Click <a href=@{HomeR}>here</a> to switch to the next player
   <p>
 
-<div .DragArea>
 <div .DebugArea>
   Debug<br />
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
@@ -467,14 +463,17 @@ boardArea di@(DisplayInfo{..}) moves = do
 
 	return [whamlet|
 <div .Parent>
-  <div .Child style="z-index: 1;">
-    <table .NoSpacing border=1>
+  <div .Child .Map-Layer1>
+    <table .NoSpacing>
+      <tr>
+        $forall x <- xs
+          <td .Map-Col>
       $forall y <- ys
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
               $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer .Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer.Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -489,21 +488,24 @@ boardArea di@(DisplayInfo{..}) moves = do
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of CityMarker (city@(City{..}))
                              <div class="#{sizeclass}">
-                               <div .Center class="#{show (cityori city)}Square">
+                               <div .Center class="PlateContainer City #{show (cityori city)}Square">
                                  <img src=@{cityRoute (playercolour _cityOwner) city}>
                           $of CityMarker (SecondCitySquare _)
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
                       ^{figuresSquare di (_squareFigures square)}
 
-  <div style="z-index: 2;">
+  <div .Map-Layer2>
     <table .NoSpacing>
+      <tr>
+        $forall x <- xs
+          <td .Map-Col>
       $forall y <- ys
-        <tr>
+        <tr .Map-Row>
           $forall x <- xs
             $case arrlookup (Coors x y)
               $of OutOfBounds
-                <td .TileContainer><img .Center src=@{transparentSquareRoute}> 
+                <td .TileContainer-OutOfBounds><img .Center src=@{transparentSquareRoute}> 
               $of UnrevealedSquare tileid coors
                 $if (==) coors (Coors x y)
                   <td .TileContainer colspan=4 rowspan=4><img .Center class=#{show Northward} src=@{boardTileRoute tileid False}>
@@ -530,7 +532,7 @@ figuresSquare :: DisplayInfo -> SquareFigures -> Widget
 figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 <div>
   $forall ((x,y),(playername,figureid,figure@(Figure{..}))) <- zip this_poss figures
-    <img src=@{figureRoute _figureType (_playerColour $ playernameToPlayerDI playername)} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername _figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername _figureCoors} alt="alt" title="#{show figure}">
+    <img .PlayerAction src=@{figureRoute _figureType (_playerColour $ playernameToPlayerDI playername)} style="left:#{showcoor x}px; top:#{showcoor y}px; transform: translate(-50%,-50%); position:absolute" data-source=#{data2markup $ FigureOnBoardSource figureid playername _figureCoors} data-target=#{data2markup $ FigureOnBoardTarget figureid playername _figureCoors} alt="alt" title="#{show figure}">
 |]
 	where
 	this_poss = pos!!n

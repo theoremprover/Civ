@@ -60,12 +60,25 @@ img
     width : 376px
     height: 376px
 
+.TileContainer img
+    width: 376px
+    height: 376px
+
+.TileContainer-Row
+    height: 94px
+
+.TileContainer-OutOfBounds
+    width: 94px
+    height: 94px
+
 .SquareContainer
     width : 94px
     height: 94px
+
 .HorDoubleSquareContainer
     width : 188px
     height: 94px
+
 .VertDoubleSquareContainer
     width : 94px
     height: 188px
@@ -97,8 +110,6 @@ img
 
 .PlayerArea-CityItem
     z-index: 2
-.Map-SquareContainer
-    z-index: 1
 .PlayerArea
     // border: 1px solid black
 .PlayerArea-Cards,.PlayerArea-Cards-Culture,.PlayerArea-Cards-GreatPersons,.PlayerArea-Techtree,.PlayerArea-Items,.PlayerArea-Policies,.PlayerArea-Dial,.PlayerArea-Units,.PlayerArea-Wagons,.PlayerArea-Flags,.PlayerArea-TechArea
@@ -145,3 +156,30 @@ img
     padding: 10px
     z-index: 11
     display: none
+
+.Dialog-Test
+    display: none
+
+.Map-Col
+    width: 94px
+    height: 0px
+.Map-Row
+    height: 94px
+.Map-Layer1
+    z-index: 1
+    border: 1px solid black
+.Map-Layer2
+    z-index: 2
+
+.PlateContainer
+    #border: 2px solid red
+    height: 90%
+    width: 90%
+    margin: auto
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+
+.PlateContainer img
+    height: 100%
+    width: 100%
