@@ -121,6 +121,7 @@ warpSettings foundation =
             (toLogStr $ "Exception from Warp: " ++ show e))
       defaultSettings
 
+-- TODO: Warum wird der Handler nicht aufgerufen?
 warpShutdownHandler :: App -> IO () -> IO ()
 warpShutdownHandler app shutdownaction = do
 --	forM [sigINT,sigTERM] $ \ sig -> installHandler sig (Catch shutdownaction) Nothing
