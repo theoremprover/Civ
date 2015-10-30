@@ -66,15 +66,14 @@ data Abilities = Abilities {
 	battleStrengthBonus      :: Value Strength,
 	battleHandSize           :: Player -> Value Int,
 	cultureCardLimit         :: Player -> Value Int,
-	cultureTrackTradeBonus   :: Player -> Value Int,
-	cultureTrackCultureBonus :: Player -> Value Int,
-	researchCostBonus   :: Value Trade,
+	cultureTrackBonus        :: Player -> Value Income,
+	researchCostBonus   :: Value Income,
 	unitStackLimit      :: Value Int,
 	moveRange           :: Value Coor,
 	movementType        :: Value MovementType,
 	cardCoins           :: Coins,
 	threeTradeHammers   :: Value Int,
-	productionBonus     :: Player -> Value Int,
+	productionBonus     :: Player -> Value Income,
 	buildWonderHook     :: HookM (),
 	drawCultureHook     :: HookM (),
 	buildArmyHook       :: HookM (),
@@ -112,15 +111,14 @@ defaultAbilities = Abilities {
 	battleStrengthBonus = SetValue 0,
 	battleHandSize  = const $ SetValue 3,
 	cultureCardLimit = const $ SetValue 2,
-	cultureTrackTradeBonus = const $ SetValue 0,
-	cultureTrackCultureBonus = const $ SetValue 0,
-	researchCostBonus = SetValue (Trade 0),
+	cultureTrackBonus = const $ SetValue noIncome,
+	researchCostBonus = SetValue noIncome,
 	unitStackLimit  = SetValue 2,
 	moveRange       = SetValue 2,
 	movementType    = SetValue Land,
 	cardCoins       = Coins 0,
 	threeTradeHammers = SetValue 1,
-	productionBonus = const $ SetValue 0,
+	productionBonus = const $ SetValue noIncome,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
 	buildArmyHook   = noopHookM,
@@ -156,8 +154,7 @@ unchangedAbilities = Abilities {
 	battleStrengthBonus = Unchanged,
 	battleHandSize  = const Unchanged,
 	cultureCardLimit = const Unchanged,
-	cultureTrackTradeBonus = const Unchanged,
-	cultureTrackCultureBonus = const Unchanged,
+	cultureTrackBonus = const Unchanged,
 	researchCostBonus = Unchanged,
 	unitStackLimit  = Unchanged,
 	moveRange       = Unchanged,
@@ -231,7 +228,7 @@ civAbilities civ = case civ of
 		indianResourceSpending = SetValue True,
 		devoteToArtsBonusHook  = extraCultureDevote_Indians }
 	Japanese -> defaultAbilities {
-		researchCostBonus = SetValue (Trade 3),
+		researchCostBonus = SetValue (tradeIncome 3),
 		unitAttackBonus = \case
 			Infantry -> 1
 			_        -> 0 }
@@ -353,7 +350,7 @@ techAbilities tech = case tech of
 		unitLevel          = setUnitLevel [Artillery] UnitLevelIII,
 		resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 7 Culture" [One Incense] (addCulture 7) $ const [] }
 	Ecology              -> unchangedAbilities {
-		cultureTrackTradeBonus = modifyValuePerNCoins 3,
+		cultureTrackBonus  = modifyValuePerNCoins 3,
 		resourceAbilities  = resourceAbility [StartOfTurn] "Ecology: Change Terrain" [One Wheat] (changeTerrain_Ecology) $ const [] }
 	Biology              -> unchangedAbilities {
 		unitStackLimit     = SetValue 5,
@@ -611,7 +608,7 @@ getValueAbility toability player = valueAbilities $ map toability (playerAbiliti
 
 playerAbilities player@(Player{..}) =
 	defaultAbilities : civAbilities _playerCiv :
-	map (techAbilities._techCardTechId) _playerTechs
+	map (techAbilities._techCardTechId) (concat $ Map.elems _playerTechs)
 
 
 ------------
@@ -785,6 +782,7 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
 	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
+	(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
 	_ -> True
 
 getCity gamename coors = do
@@ -904,6 +902,10 @@ addTrade :: Trade -> GameName -> PlayerName -> UpdateCivM ()
 addTrade trade gamename playername = do
 	updateCivLensM (addTradeDial trade) $ civPlayerLens gamename playername . _Just . playerTrade
 
+setTrade :: Trade -> GameName -> PlayerName -> UpdateCivM ()
+setTrade trade gamename playername = do
+	updateCivLensM (const $ addTradeDial trade 0) $ civPlayerLens gamename playername . _Just . playerTrade
+
 drawPolicy :: GameName -> PlayerName -> Policy -> UpdateCivM ()
 drawPolicy gamename playername policy = do
 	updateCivLensM (\ (cs,ps) -> (delete (policy2Card policy) cs,policy:ps)) $
@@ -1001,12 +1003,13 @@ addTech gamename playername mb_level tech = do
 	let techlevel = case mb_level of
 		Nothing -> levelOfTech tech
 		Just level -> level
-	updateCivLensM (++[TechCard tech (Coins 0)]) $
-		civPlayerLens gamename playername . _Just . playerTechs. at techlevel
+	let techcards = [TechCard tech (Coins 0)]
+	updateCivLensM (Just . maybe techcards (++techcards)) $
+		civPlayerLens gamename playername . _Just . playerTechs . at techlevel
 
 addCoinToTech :: Tech -> GameName -> PlayerName -> UpdateCivM ()
 addCoinToTech tech gamename playername = do
-	updateCivLensM addcoinif $ civPlayerLens gamename playername . _Just . playerTechs
+	updateCivLensM (Map.map (map addcoinif)) $ civPlayerLens gamename playername . _Just . playerTechs
 	where
 	addcoinif techcard = case _techCardTechId techcard == tech of
 		False -> techcard
@@ -1212,10 +1215,12 @@ buildFigureCoors gamename playername figuretype citycoors = do
 	outskirts <- outskirtsOfCity gamename citycoors
 	filterM (canStayOn gamename playername figuretype) outskirts
 
+techCosts player techlevel = consumedIncome techlevel -# getValueAbility researchCostBonus player
+
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
 	Just (Game{..}) <- getGame gamename
-	Just player <- getPlayer gamename playername
+	Just player@Player{..} <- getPlayer gamename playername
 	case (source,target) of
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename coors $ newCity playername True Nothing
@@ -1243,8 +1248,9 @@ doMove gamename playername move@(Move source target) = do
 			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
 		(TechSource tech,TechTreeTarget pn) | playername==pn -> do
-			addTrade gamename playername (-(consumedIncome (levelOfTech tech) - getValueAbility researchCostBonus player))
-			addTech gamename playername (Just $ levelOfTech tech) tech
+			setTrade (min (inTrade $ techCosts player (levelOfTech tech)) _playerTrade )
+				gamename playername
+			addTech gamename playername Nothing tech
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 		(_,DebugTarget msg) -> return ()
 		_ -> error $ show move ++ " not implemented yet"
@@ -1395,14 +1401,13 @@ moveGen gamename my_playername = do
 
 					Research -> do
 						let
-							tradeincome = tradeIncome $ _playerTrade + getValueAbility researchCostBonus player
-							level_techs = map (\ level -> (level,maybe [] id (Map.lookup level _playerTechs))) allOfThem
-							ptechs [_] = techsOfLevel TechLevelI
-							ptechs ((_,t1):(l2,t2):ns) = ptechs ((l2,t2):ns) ++ case length t1 > length t2 + 1 of
+							level_techs = (TechLevelI,[]) : map (\ level -> (level,maybe [] id (Map.lookup level _playerTechs))) allOfThem
+							ptechs [_] = []
+							ptechs ((_,t1):(l2,t2):ns) = ptechs ((l2,t2):ns) ++ case (length t1 > length t2 + 1) || l2==TechLevelI of
 								False -> []
-								True -> case consumedIncome l2 >= tradeincome of
+								True -> case (inTrade $ techCosts player l2) <= _playerTrade of
 									False -> []
-									True  -> techsOfLevel l2 \\ (map _techCardTechId $ Map.elems _playerTechs)
+									True  -> techsOfLevel l2 \\ (map _techCardTechId $ concat $ Map.elems _playerTechs)
 						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) :
 							[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 

@@ -117,7 +117,7 @@ $(deriveSafeCopy modelVersion 'base ''Tech)
 
 data TechLevel =
 	TechLevelI | TechLevelII | TechLevelIII | TechLevelIV | TechLevelV
-	deriving (Show,Eq,Ord,Enum,Data,Typeable)
+	deriving (Show,Eq,Ord,Enum,Data,Ix,Bounded,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TechLevel)
 
 techLevelMap :: Map.Map TechLevel [Tech]
@@ -172,6 +172,9 @@ noIncome = Income (Trade 0) (Hammers 0) (Culture 0) (Coins 0) (MilitaryBonus 0) 
 
 infixl 6 +#
 (Income t1 h1 c1 co1 m1 r1) +# (Income t2 h2 c2 co2 m2 r2) = Income (t1+t2) (h1+h2) (c1+c2) (co1+co2) (m1+m2) (r1++r2)
+
+infixl 6 -#
+(Income t1 h1 c1 co1 m1 r1) -# (Income t2 h2 c2 co2 m2 r2) = Income (t1-t2) (h1-h2) (c1-c2) (co1-co2) (m1-m2) (r1\\r2)
 
 instance Ord Income where
 	(Income t1 h1 c1 co1 m1 r1) <= (Income t2 h2 c2 co2 m2 r2) =

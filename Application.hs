@@ -123,14 +123,13 @@ warpSettings foundation =
 
 warpShutdownHandler :: App -> IO () -> IO ()
 warpShutdownHandler app shutdownaction = do
-	forM [sigINT,sigTERM] $ \ sig -> installHandler sig (Catch shutdownaction) Nothing
+--	forM [sigINT,sigTERM] $ \ sig -> installHandler sig (Catch shutdownaction) Nothing
+	forM [sigINT,sigTERM] $ \ sig -> installHandler sig (Catch $ checkpoint_handler (show sig)) Nothing
 	return ()
-{-
 	where
 	checkpoint_handler sigstr = do
 		warpShutdownAction sigstr app
 		shutdownaction
--}
 
 warpShutdownAction sigstr app = do
 	putStrLn $ "warpShutdownAction: " ++ fromString sigstr ++ ", creating checkpoint..."
