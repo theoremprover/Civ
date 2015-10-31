@@ -154,9 +154,9 @@ instance Ord ResourcePattern where
 	_           <= AnyResource = True
 	AnyResource <= _           = True
 
-initialResourceStack :: Int -> TokenStack Resource ()
-initialResourceStack numplayers = tokenStackFromList $ replicateUnit [
-	(Wheat,numplayers),(Incense,numplayers),(Linen,numplayers),(Iron,numplayers) ]
+initialResourceStack :: TokenStack Resource ()
+initialResourceStack = tokenStackFromList [
+	(Wheat,[]),(Incense,[]),(Linen,[]),(Iron,[]) ]
 
 data Income = Income {
 	inTrade    :: Trade,
@@ -243,6 +243,10 @@ initialHutStack = tokenStackFromList $ replicateToken [
 	(CityStateHut,2),(Teacher,1),(ThreeCulture,1),
 	(FriendlyBarbarians,2) ]
 
+hut2resource hut = case hut of
+	ResourceHut res -> [res]
+	_ -> []
+
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
 	deriving (Show,Data,Typeable,Ord,Eq)
@@ -253,6 +257,10 @@ initialVillageStack = tokenStackFromList $ replicateToken [
 	(ResourceVillage Spy,4),(ResourceVillage Atom,4),(ResourceVillage Iron,3),
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
+
+village2resource village = case village of
+	ResourceVillage res -> [res]
+	_ -> []
 
 initialCityStack :: TokenStack () ()
 initialCityStack = tokenStackFromList $ replicateUnit [ ((),2) ]

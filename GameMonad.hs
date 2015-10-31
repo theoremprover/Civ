@@ -142,7 +142,7 @@ executeAction action = do
 				emptyBoard
 				tilestack hutstack villagestack
 				initialBuildingStack personstack unitstack culturestack
-				(initialResourceStack 0) False
+				initialResourceStack False
 
 			updateCivH $ JoinGame gamename (PlayerName "Red") (userEmail user) Red Russia
 			updateCivH $ JoinGame gamename (PlayerName "Green") (userEmail user) Green Arabs

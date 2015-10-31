@@ -64,16 +64,16 @@ data Abilities = Abilities {
 	unitAttackBonus          :: UnitType -> Strength,
 	lootBonus                :: Value Int,
 	battleStrengthBonus      :: Value Strength,
-	battleHandSize           :: Player -> Value Int,
-	cultureCardLimit         :: Player -> Value Int,
-	cultureTrackBonus        :: Player -> Value Income,
+	battleHandSize           :: HookM (Value Int),
+	cultureCardLimit         :: HookM (Value Int),
+	cultureTrackBonus        :: HookM (Value Income),
 	researchCostBonus   :: Value Income,
 	unitStackLimit      :: Value Int,
 	moveRange           :: Value Coor,
 	movementType        :: Value MovementType,
 	cardCoins           :: Coins,
 	threeTradeHammers   :: Value Int,
-	productionBonus     :: Player -> Value Income,
+	productionBonus     :: HookM (Value Income),
 	buildWonderHook     :: HookM (),
 	drawCultureHook     :: HookM (),
 	buildArmyHook       :: HookM (),
@@ -109,16 +109,16 @@ defaultAbilities = Abilities {
 	unitAttackBonus = const 0,
 	lootBonus       = SetValue 0,
 	battleStrengthBonus = SetValue 0,
-	battleHandSize  = const $ SetValue 3,
-	cultureCardLimit = const $ SetValue 2,
-	cultureTrackBonus = const $ SetValue noIncome,
+	battleHandSize  = constHookM $ SetValue 3,
+	cultureCardLimit = constHookM $ SetValue 2,
+	cultureTrackBonus = constHookM $ SetValue noIncome,
 	researchCostBonus = SetValue noIncome,
 	unitStackLimit  = SetValue 2,
 	moveRange       = SetValue 2,
 	movementType    = SetValue Land,
 	cardCoins       = Coins 0,
 	threeTradeHammers = SetValue 1,
-	productionBonus = const $ SetValue noIncome,
+	productionBonus = constHookM $ SetValue noIncome,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
 	buildArmyHook   = noopHookM,
@@ -152,16 +152,16 @@ unchangedAbilities = Abilities {
 	unitAttackBonus = const 0,
 	lootBonus       = Unchanged,
 	battleStrengthBonus = Unchanged,
-	battleHandSize  = const Unchanged,
-	cultureCardLimit = const Unchanged,
-	cultureTrackBonus = const Unchanged,
+	battleHandSize  = constHookM Unchanged,
+	cultureCardLimit = constHookM Unchanged,
+	cultureTrackBonus = constHookM Unchanged,
 	researchCostBonus = Unchanged,
 	unitStackLimit  = Unchanged,
 	moveRange       = Unchanged,
 	movementType    = Unchanged,
 	cardCoins       = Coins 0,
 	threeTradeHammers = Unchanged,
-	productionBonus = const Unchanged,
+	productionBonus = constHookM Unchanged,
 	buildWonderHook = noopHookM,
 	drawCultureHook = noopHookM,
 	buildArmyHook   = noopHookM,
@@ -257,7 +257,7 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 	techability = case _techCardTechId of
 		Pottery              -> unchangedAbilities {
 			enabledBuildings   = [Granary],
-			cultureCardLimit   = const $ ModifyValue (+1),
+			cultureCardLimit   = constHookM $ ModifyValue (+1),
 			resourceAbilities  = resourceAbility [CityManagement] "Pottery: Gain Coin" [AnyResource,AnyResource] (addCoinToTech Pottery) $ const [] }
 		Writing              -> unchangedAbilities {
 			enabledBuildings   = [Library],
@@ -295,7 +295,7 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 			buildArmyHook      = armyToShipyardOutskirtsHook_Navy }
 		PublicAdministration -> unchangedAbilities {
 			cardCoins          = Coins 1,
-			cultureCardLimit   = const $ ModifyValue (+1),
+			cultureCardLimit   = constHookM $ ModifyValue (+1),
 			resourceAbilities  = resourceAbility allPhases "Public Administration: Cancel Culture Event" [One Spy] cancelCultureEvent $ const [] }
 		Mysticism            -> unchangedAbilities {
 			drawCultureHook    = drawAnotherCultureCardHook_Mysticism,
@@ -337,7 +337,7 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 		Theology             -> unchangedAbilities {
 			enabledGovernments = [Fundamentalism],
 			enabledBuildings   = [Cathedral],
-			cultureCardLimit   = const $ ModifyValue (+1) }
+			cultureCardLimit   = constHookM $ ModifyValue (+1) }
 		CommunismTech        -> unchangedAbilities {
 			enabledGovernments = [Communism],
 			cardAbilities      = cardAbility [Movement] "Communism: Lock Square" lockSquare_CommunismTech $ const [] }
@@ -352,7 +352,7 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 			unitLevel          = setUnitLevel [Artillery] UnitLevelIII,
 			resourceAbilities  = resourceAbility [CityManagement] "Metal Casting: Gain 7 Culture" [One Incense] (addCulture 7) $ const [] }
 		Ecology              -> unchangedAbilities {
-			cultureTrackBonus  = modifyValuePerNCoins 3,
+			cultureTrackBonus  = modifyValuePerNCoins 3 ((+#).tradeIncome),
 			resourceAbilities  = resourceAbility [StartOfTurn] "Ecology: Change Terrain" [One Wheat] (changeTerrain_Ecology) $ const [] }
 		Biology              -> unchangedAbilities {
 			unitStackLimit     = SetValue 5,
@@ -366,14 +366,14 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 			enabledBuildings   = [Bank] }
 		MilitaryScience      -> unchangedAbilities {
 			enabledBuildings   = [Academy],
-			productionBonus    = modifyValuePerNCoins 3 }
+			productionBonus    = modifyValuePerNCoins 3 ((+#).hammerIncome) }
 		Education            -> unchangedAbilities {
 			buildWonderHook    = addCoinToCard Education,
 			resourceAbilities  = resourceAbility [CityManagement] "Education: Learn Tech" [One Wheat,One Incense,One Iron,One Linen] learnTech_Education $ const [] }
 		Computers            -> unchangedAbilities {
 			cardCoins          = Coins 1,
-			battleHandSize     = modifyValuePerNCoins 5,
-			cultureCardLimit   = modifyValuePerNCoins 5 }
+			battleHandSize     = modifyValuePerNCoins 5 (+),
+			cultureCardLimit   = modifyValuePerNCoins 5 (+) }
 		MassMedia            -> unchangedAbilities {
 			cardAbilities      = cardAbility allPhases "Mass Media: Immune Culture Events" cancelCultureEventCancel_MassMedia $ const [],
 			resourceAbilities  = resourceAbility allPhases "Mass Media: Cancel Resource Ability" [One Spy] cancelResourceAbility_MassMedia $ const [] }
@@ -413,7 +413,10 @@ techAbilities TechCard{..} = techability { cardCoins = _techCardCoins + cardCoin
 cardAbility phases name action f phase | phase `elem` phases = [(name,action)]
 cardAbility _ _ _ f phase = f phase
 
-modifyValuePerNCoins n player = Unchanged -- TODO: ModifyValue (+(mod (coinsCoins $ playerNumberOfCoins player) n))
+modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
+modifyValuePerNCoins n int2af gamename playername = do
+	Coins coins <- playerNumCoinsM gamename playername
+	return $ ModifyValue $ int2af (mod coins n)
 
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
@@ -605,6 +608,13 @@ getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg)
 -- abstrahieren auf ein Argument für ability
 getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
 getValueAbility toability player = valueAbilities $ map toability (playerAbilities player)
+
+getHookValueAbilityM :: (Ord a,Show a) => GameName -> PlayerName -> (Abilities -> HookM (Value a)) -> UpdateCivM a
+getHookValueAbilityM gamename playername ability2hook = do
+	Just player <- getPlayer gamename playername
+	vals <- forM (playerAbilities player) $ \ ability -> do
+		(ability2hook ability) gamename playername
+	return $ valueAbilities vals
 
 playerAbilities player@(Player{..}) =
 	defaultAbilities : civAbilities _playerCiv :
@@ -1288,7 +1298,7 @@ moveGen gamename my_playername = do
 		moves <- case my_playername == playername of
 			False -> return []
 			True -> do
-				case _gamePhase of
+				phasemoves <- case _gamePhase of
 					StartOfGame -> return []
 					BuildingFirstCity -> return $
 						[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
@@ -1413,6 +1423,22 @@ moveGen gamename my_playername = do
 									True  -> techsOfLevel l2 \\ (map _techCardTechId $ concat $ Map.elems _playerTechs)
 						return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) :
 							[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
+
+{-
+	cardAbilities       :: Phase -> [(String,HookM ())],
+	resourceAbilities   :: Phase -> [(String,[ResourcePattern],HookM ())] }
+-}
+				let players_resources = map One $
+					_playerResources ++
+					concatMap hut2resource _playerHuts ++
+					concatMap village2resource _playerVillages
+
+				abilitymovess <- forM (playerAbilities player) $ \ ability -> do
+					resourcemovess <- forM (resourceAbilities ability _gamePhase) $ \ (movename,resourcepats,hook) -> do
+						return [] -- TODO: Continue Here
+					return $ concat resourcemovess
+
+				return $ phasemoves ++ concat abilitymovess
 
 		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
 		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
