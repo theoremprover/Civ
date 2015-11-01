@@ -1286,11 +1286,11 @@ playerNumCoinsM gamename playername = do
 		_playerCoins +
 		sum (map cardCoins (playerAbilities player))
 
-
+{-
 canAfford :: [ResourcePattern] -> [ResourcePattern] -> Maybe [ResourcePattern]
 canAfford _ [] = Just []
 canAfford availableress (rs:requiredress) = case rs of
-	
+-}
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename playername = Import.lift $ moveGen gamename playername
