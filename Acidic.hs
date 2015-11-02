@@ -670,44 +670,45 @@ startGame gamename = runUpdateCivM $ do
 			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
 		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> a gamename playername
 
-	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
-	Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
+	when debugMode $ do
+		Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
+		Just (pn1,p1) <- queryCivLensM $ civPlayerIndexLens gamename 1
 
-	forM_ [HorsebackRiding,Agriculture,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
-	addCoinToTech DemocracyTech gamename pn0
-	addCoinToTech DemocracyTech gamename pn0
-	forM_ [Pottery,Currency,CodeOfLaws,MonarchyTech,Mathematics,Banking] $ addTech gamename pn1 Nothing
-	addCoinToTech CodeOfLaws gamename pn1
+		forM_ [HorsebackRiding,Agriculture,Metalworking,DemocracyTech] $ addTech gamename pn0 Nothing
+		addCoinToTech DemocracyTech gamename pn0
+		addCoinToTech DemocracyTech gamename pn0
+		forM_ [Pottery,Currency,CodeOfLaws,MonarchyTech,Mathematics,Banking] $ addTech gamename pn1 Nothing
+		addCoinToTech CodeOfLaws gamename pn1
 
-	addCulture 20 gamename pn0
-	addTrade 21 gamename pn0
-	addCulture 31 gamename pn1
-	addTrade 11 gamename pn1
+		addCulture 20 gamename pn0
+		addTrade 21 gamename pn0
+		addCulture 31 gamename pn1
+		addTrade 11 gamename pn1
 
-	getResource gamename pn0 Linen
-	getResource gamename pn0 Iron
-	getHut gamename pn0 $ ResourceHut Wheat
-	getHut gamename pn0 $ ThreeCulture
-	getVillage gamename pn0 $ ResourceVillage Incense
-	getVillage gamename pn0 FourHammers
-	getArtifact gamename pn0 AttilaVillage
+		getResource gamename pn0 Linen
+		getResource gamename pn0 Iron
+		getHut gamename pn0 $ ResourceHut Wheat
+		getHut gamename pn0 $ ThreeCulture
+		getVillage gamename pn0 $ ResourceVillage Incense
+		getVillage gamename pn0 FourHammers
+		getArtifact gamename pn0 AttilaVillage
 
-	getResource gamename pn1 Wheat
-	getHut gamename pn1 $ ResourceHut Iron
-	getVillage gamename pn1 $ ResourceVillage Incense
-	getVillage gamename pn1 SixCulture
+		getResource gamename pn1 Wheat
+		getHut gamename pn1 $ ResourceHut Iron
+		getVillage gamename pn1 $ ResourceVillage Incense
+		getVillage gamename pn1 SixCulture
 
-	addCoins (Coins 1) gamename pn0
-	addCoins (Coins 3) gamename pn1
+		addCoins (Coins 1) gamename pn0
+		addCoins (Coins 3) gamename pn1
 
-	drawPolicy gamename pn0 MilitaryTradition
-	drawPolicy gamename pn0 Rationalism
-	drawPolicy gamename pn1 NaturalReligion
-	drawPolicy gamename pn1 UrbanDevelopment
-	drawPolicy gamename pn1 MilitaryTradition
+		drawPolicy gamename pn0 MilitaryTradition
+		drawPolicy gamename pn0 Rationalism
+		drawPolicy gamename pn1 NaturalReligion
+		drawPolicy gamename pn1 UrbanDevelopment
+		drawPolicy gamename pn1 MilitaryTradition
 
-	Prelude.sequence_ $ replicate 3 $ drawCultureCard gamename pn0
-	Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
+		Prelude.sequence_ $ replicate 3 $ drawCultureCard gamename pn0
+		Prelude.sequence_ $ replicate 4 $ drawCultureCard gamename pn1
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
 
@@ -1286,11 +1287,9 @@ playerNumCoinsM gamename playername = do
 		_playerCoins +
 		sum (map cardCoins (playerAbilities player))
 
-{-
 canAfford :: [ResourcePattern] -> [ResourcePattern] -> Maybe [ResourcePattern]
-canAfford _ [] = Just []
-canAfford availableress (rs:requiredress) = case rs of
--}
+canAfford availableress requiredress = 
+
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename playername = Import.lift $ moveGen gamename playername

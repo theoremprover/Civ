@@ -27,6 +27,9 @@ import AssocList
 
 import qualified Data.Ix as Ix
 
+
+debugMode = True
+
 allOfThem :: (Ix t,Bounded t) => [t]
 allOfThem = range (minBound,maxBound)
 

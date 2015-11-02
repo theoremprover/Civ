@@ -144,12 +144,13 @@ executeAction action = do
 				initialBuildingStack personstack unitstack culturestack
 				initialResourceStack False
 
-			updateCivH $ JoinGame gamename (PlayerName "Red") (userEmail user) Red Russia
-			updateCivH $ JoinGame gamename (PlayerName "Green") (userEmail user) Green Arabs
-			updateCivH $ JoinGame gamename (PlayerName "Blue") (userEmail user) Blue America
-			updateCivH $ JoinGame gamename (PlayerName "Yellow") (userEmail user) Yellow China
-			setSession "game" gn
-			setSession "player" "Red"
+			when debugMode $ do
+				updateCivH $ JoinGame gamename (PlayerName "Red") (userEmail user) Red Russia
+				updateCivH $ JoinGame gamename (PlayerName "Green") (userEmail user) Green Arabs
+				updateCivH $ JoinGame gamename (PlayerName "Blue") (userEmail user) Blue America
+				updateCivH $ JoinGame gamename (PlayerName "Yellow") (userEmail user) Yellow China
+				setSession "game" gn
+				setSession "player" "Red"
 
 			notifyLongPoll action [GameAdmin]
 			return res
