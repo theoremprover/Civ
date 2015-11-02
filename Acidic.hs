@@ -1288,7 +1288,7 @@ playerNumCoinsM gamename playername = do
 		sum (map cardCoins (playerAbilities player))
 
 canAfford :: [ResourcePattern] -> [ResourcePattern] -> Maybe [ResourcePattern]
-canAfford availableress requiredress = 
+canAfford availableress requiredress = error "Not implemented yet"
 
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
@@ -1441,7 +1441,9 @@ moveGen gamename my_playername = do
 				abilitymovess <- forM (playerAbilities player) $ \ ability -> do
 					resourcemovess <- forM (resourceAbilities ability _gamePhase) $ \ (movename,resourcepats,hook) -> do
 						return [] -- TODO: Continue Here
-					return $ concat resourcemovess
+					cardmovess <- forM (cardAbilities ability _gamePhase) $ \ (movename,hook) -> do
+						return [] -- TODO: Continue Here
+					return $ concat $ resourcemovess ++ cardmovess
 
 				return $ phasemoves ++ concat abilitymovess
 
