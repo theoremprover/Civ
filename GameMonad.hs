@@ -141,7 +141,7 @@ executeAction action = do
 				now (userEmail user) Waiting emptyPlayers 0 StartOfGame 0 0
 				emptyBoard
 				tilestack hutstack villagestack
-				initialBuildingStack personstack unitstack culturestack
+				initialBuildingStack personstack unitstack culturestack emptyTokenStack
 				initialResourceStack False
 
 			when debugMode $ do

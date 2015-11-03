@@ -161,14 +161,6 @@ initialResourceStack :: TokenStack Resource ()
 initialResourceStack = tokenStackFromList [
 	(Wheat,[]),(Incense,[]),(Linen,[]),(Iron,[]) ]
 
-data ResourcePayment =
-	ResourcePayment Resource |
-	CultureCardPayment CultureEvent |
-	VillagePayment Village |
-	HutPayment Hut
-	deriving (Show,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''ResourcePayment)
-
 data Income = Income {
 	inTrade    :: Trade,
 	inHammers  :: Hammers,
@@ -254,10 +246,6 @@ initialHutStack = tokenStackFromList $ replicateToken [
 	(CityStateHut,2),(Teacher,1),(ThreeCulture,1),
 	(FriendlyBarbarians,2) ]
 
-hut2resource hut = case hut of
-	ResourceHut res -> [res]
-	_ -> []
-
 data Village = ResourceVillage Resource | FourHammers | SixCulture | CityStateVillage |
 	CoinVillage | GreatPersonVillage
 	deriving (Show,Data,Typeable,Ord,Eq)
@@ -268,10 +256,6 @@ initialVillageStack = tokenStackFromList $ replicateToken [
 	(ResourceVillage Spy,4),(ResourceVillage Atom,4),(ResourceVillage Iron,3),
 	(CityStateVillage,3),(SixCulture,1),
 	(FourHammers,1),(CoinVillage,2),(GreatPersonVillage,2) ]
-
-village2resource village = case village of
-	ResourceVillage res -> [res]
-	_ -> []
 
 initialCityStack :: TokenStack () ()
 initialCityStack = tokenStackFromList $ replicateUnit [ ((),2) ]
@@ -601,7 +585,7 @@ data CultureEvent =
 	KnightTournament | LongLiveTheQueen | MassDefection | Migrants | Displaced |
 	Nationalism | Disoriented | Patriotism | PrimeTime | PrincelyGift | RevoltI | RevoltII |
 	RoamingHoarde | Sabotage | SharedKnowledge | SupplyDrop
-	deriving (Show,Data,Typeable,Eq)
+	deriving (Show,Data,Typeable,Eq,Ord)
 $(deriveSafeCopy modelVersion 'base ''CultureEvent)
 
 data CultureLevel = CultureLevelI | CultureLevelII | CultureLevelIII
@@ -651,12 +635,6 @@ cultureEventsOfLevel CultureLevelIII = [
 	MassDefection,
 	Ideas,Ideas ]
 
-paymentCultureEvent culturecard = case _cultureCardEvent culturecard of
-	PrincelyGift  -> Just [Atom,Spy,Linen,Wheat,Iron]
-	GiftFromAfar  -> Just [Iron,Wheat,Spy,Linen]
-	GenerouseGift -> Just [Iron,Wheat,Spy,Linen]
-	_ -> Nothing
-
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelI) = CultureLevelI
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelII) = CultureLevelII
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelIII) = CultureLevelIII
@@ -702,9 +680,37 @@ data CultureCard = CultureCard {
 	_cultureCardEvent    :: CultureEvent,
 	_cultureCardCoins    :: Coins
 	}
-	deriving (Data,Typeable,Show)
+	deriving (Eq,Data,Typeable,Show,Ord)
 $(deriveSafeCopy modelVersion 'base ''CultureCard)
 makeLenses ''CultureCard
+
+---------- Payments
+
+data ResourcePayment =
+	ResourcePayment Resource |
+	CultureCardPayment CultureCard |
+	VillagePayment Village |
+	HutPayment Hut
+	deriving (Show,Data,Typeable,Eq,Ord)
+$(deriveSafeCopy modelVersion 'base ''ResourcePayment)
+
+paymentResource res = Just ([res],ResourcePayment res)
+
+paymentHut hut = case hut of
+	ResourceHut res -> Just ([res],HutPayment hut)
+	_ -> Nothing
+
+paymentVillage village = case village of
+	ResourceVillage res -> Just ([res],VillagePayment village)
+	_ -> Nothing
+
+paymentCultureCard culturecard = case _cultureCardEvent culturecard of
+	PrincelyGift -> Just ([Atom,Spy,Linen,Wheat,Iron],CultureCardPayment culturecard)
+	GiftFromAfar -> Just ([Iron,Wheat,Spy,Linen],CultureCardPayment culturecard)
+	GenerousGift -> Just ([Iron,Wheat,Spy,Linen],CultureCardPayment culturecard)
+	_ -> Nothing
+
+--------------------
 
 data Production =
 	ProduceFigure FigureType |
@@ -737,7 +743,8 @@ data ActionSource =
 	DialCoinSource PlayerName | DialCultureSource PlayerName |
 	HutSource PlayerName Hut | VillageSource PlayerName Village |
 	TechCoinSource PlayerName Tech |
-	ArtifactSource PlayerName Artifact
+	ArtifactSource PlayerName Artifact |
+	ResourcesSource String [ResourcePayment]
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
@@ -770,6 +777,7 @@ instance Show Move where
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(TechSource tech,TechTreeTarget _) -> "Research " ++ show tech
+		(ResourcesSource name payments,TechTarget _ tech) -> show tech ++ ": " ++ name ++ " (" ++ show payments ++ ")"
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
@@ -854,6 +862,7 @@ data Game = Game {
 	_gameGreatPersonStack :: TokenStack () GreatPerson,
 	_gameUnitStack        :: TokenStack UnitType UnitCard,
 	_gameCultureStack     :: TokenStack CultureLevel CultureEvent,
+	_gameReturnedCultureCards :: TokenStack CultureLevel CultureEvent,
 	_gameResourceStack    :: TokenStack Resource (),
 	_gameSpaceFlightTaken :: Bool
 	}
@@ -1204,6 +1213,7 @@ deriveJSON defaultOptions ''Orientation
 deriveJSON defaultOptions ''GameName
 deriveJSON defaultOptions ''PlayerName
 deriveJSON defaultOptions ''Culture
+deriveJSON defaultOptions ''CultureEvent
 deriveJSON defaultOptions ''Civ
 deriveJSON defaultOptions ''Colour
 deriveJSON defaultOptions ''BuildingType
@@ -1219,5 +1229,7 @@ deriveJSON defaultOptions ''FigureType
 deriveJSON defaultOptions ''Figure
 deriveJSON defaultOptions ''Resource
 deriveJSON defaultOptions ''ResourcePayment
+deriveJSON defaultOptions ''CultureCard
+deriveJSON defaultOptions ''Coins
 deriveJSON defaultOptions ''Hut
 deriveJSON defaultOptions ''Village
