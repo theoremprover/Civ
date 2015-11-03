@@ -161,6 +161,10 @@ initialResourceStack :: TokenStack Resource ()
 initialResourceStack = tokenStackFromList [
 	(Wheat,[]),(Incense,[]),(Linen,[]),(Iron,[]) ]
 
+data ResourcePayment = ResourcePayment Resource | CultureCardPayment CultureEvent
+	deriving (Show,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''ResourcePayment)
+
 data Income = Income {
 	inTrade    :: Trade,
 	inHammers  :: Hammers,
@@ -1204,5 +1208,6 @@ deriveJSON defaultOptions ''Artifact
 deriveJSON defaultOptions ''FigureType
 deriveJSON defaultOptions ''Figure
 deriveJSON defaultOptions ''Resource
+deriveJSON defaultOptions ''ResourcePayment
 deriveJSON defaultOptions ''Hut
 deriveJSON defaultOptions ''Village

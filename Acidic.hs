@@ -12,6 +12,7 @@ import Data.Acid.Advanced
 import Control.Monad.Error (throwError,runErrorT,ErrorT)
 import Data.Maybe
 import Data.List
+import Data.Set
 import Control.Monad
 import Control.Lens hiding (Action)
 import qualified Data.Map as Map
@@ -1287,8 +1288,12 @@ playerNumCoinsM gamename playername = do
 		_playerCoins +
 		sum (map cardCoins (playerAbilities player))
 
-canAfford :: [ResourcePattern] -> [ResourcePattern] -> Maybe [ResourcePattern]
-canAfford availableress requiredress = error "Not implemented yet"
+possiblePayments :: [Resource] -> [CultureEvent] -> [ResourcePattern] -> Set (Set ResourcePayment)
+possiblePayments availableress availcards requiredress = poss_pays availpays requiredpats
+	where
+	availpays = map ResourcePayment availableress ++ map CultureCardPayment (filter (`elem` ) availcards)
+	poss_pays _ [] = Set.empty
+	poss_pays availrs (One res : reqrs) = 
 
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
