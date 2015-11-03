@@ -161,7 +161,11 @@ initialResourceStack :: TokenStack Resource ()
 initialResourceStack = tokenStackFromList [
 	(Wheat,[]),(Incense,[]),(Linen,[]),(Iron,[]) ]
 
-data ResourcePayment = ResourcePayment Resource | CultureCardPayment CultureEvent
+data ResourcePayment =
+	ResourcePayment Resource |
+	CultureCardPayment CultureEvent |
+	VillagePayment Village |
+	HutPayment Hut
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''ResourcePayment)
 
@@ -646,6 +650,12 @@ cultureEventsOfLevel CultureLevelIII = [
 	DayOfThePresident,
 	MassDefection,
 	Ideas,Ideas ]
+
+paymentCultureEvent culturecard = case _cultureCardEvent culturecard of
+	PrincelyGift  -> Just [Atom,Spy,Linen,Wheat,Iron]
+	GiftFromAfar  -> Just [Iron,Wheat,Spy,Linen]
+	GenerouseGift -> Just [Iron,Wheat,Spy,Linen]
+	_ -> Nothing
 
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelI) = CultureLevelI
 cultureEventLevel ev | ev `elem` (cultureEventsOfLevel CultureLevelII) = CultureLevelII

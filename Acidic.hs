@@ -1288,10 +1288,12 @@ playerNumCoinsM gamename playername = do
 		_playerCoins +
 		sum (map cardCoins (playerAbilities player))
 
-possiblePayments :: [Resource] -> [CultureEvent] -> [ResourcePattern] -> Set (Set ResourcePayment)
-possiblePayments availableress availcards requiredress = poss_pays availpays requiredpats
+possiblePayments :: Player -> [ResourcePattern] -> Set (Set ResourcePayment)
+possiblePayments gamename Player{..} requiredress = poss_pays availpays requiredpats
 	where
-	availpays = map ResourcePayment availableress ++ map CultureCardPayment (filter (`elem` ) availcards)
+	availpays =
+		map ResourcePayment _playerResources ++
+		map CultureCardPayment (filter (isJust . paymentCultureCard) _playerCultureCards)
 	poss_pays _ [] = Set.empty
 	poss_pays availrs (One res : reqrs) = 
 
