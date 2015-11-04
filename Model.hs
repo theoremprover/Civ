@@ -733,6 +733,7 @@ instance Show Production where
 data ActionSource =
 	AutomaticMove () |
 	HaltSource () |
+	NoSource () |
 	FigureSource PlayerName FigureType |
 	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
@@ -748,13 +749,18 @@ data ActionSource =
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
+data CardAbilityTarget = TechCardAbility Tech | CivAbility Civ
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''CardAbilityTarget)
+
 data ActionTarget =
 	NoTarget () |
 	DebugTarget String |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	BuildCityTarget () |
-	TechTarget PlayerName Tech |
+	TechResourceAbilityTarget String Tech |
+	CardAbilityTarget String CardAbilityTarget |
 	TechTreeTarget PlayerName |
 	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
@@ -777,7 +783,9 @@ instance Show Move where
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(TechSource tech,TechTreeTarget _) -> "Research " ++ show tech
-		(ResourcesSource name payments,TechTarget _ tech) -> show tech ++ ": " ++ name ++ " (" ++ show payments ++ ")"
+		(ResourcesSource name payments,TechTarget tech) -> show tech ++ ": " ++ name ++ " (" ++ show payments ++ ")"
+		(NoSource (),CardAbilityTarget name (TechCardAbility tech)) -> show tech ++ ": " ++ name
+		(NoSource (),CardAbilityTarget name (CivAbility civ)) -> show civ ++ ": " ++ name
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
@@ -1221,6 +1229,7 @@ deriveJSON defaultOptions ''Wonder
 deriveJSON defaultOptions ''UnitType
 deriveJSON defaultOptions ''Production
 deriveJSON defaultOptions ''ActionSource
+deriveJSON defaultOptions ''CardAbilityTarget
 deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Move
 deriveJSON defaultOptions ''Tech
