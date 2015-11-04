@@ -783,7 +783,7 @@ instance Show Move where
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(TechSource tech,TechTreeTarget _) -> "Research " ++ show tech
-		(ResourcesSource name payments,TechTarget tech) -> show tech ++ ": " ++ name ++ " (" ++ show payments ++ ")"
+		(ResourcesSource _ payments,TechResourceAbilityTarget name tech) -> show tech ++ ": " ++ name ++ " (" ++ show payments ++ ")"
 		(NoSource (),CardAbilityTarget name (TechCardAbility tech)) -> show tech ++ ": " ++ name
 		(NoSource (),CardAbilityTarget name (CivAbility civ)) -> show civ ++ ": " ++ name
 		(HaltSource (),_) -> "HALTED"
