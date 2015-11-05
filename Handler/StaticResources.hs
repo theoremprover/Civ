@@ -84,3 +84,5 @@ startPlayerRoute = StaticR _Table_StartPlayer_gif
 
 $(makeMultiRoutes [''Colour] "wagonRoute" ["_Figures_Wagon_","_gif"])
 $(makeMultiRoutes [''Colour] "flagRoute" ["_Figures_Flag_","_gif"])
+
+overviewRoute = StaticR _Table_Overview_jpg

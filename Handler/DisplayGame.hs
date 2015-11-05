@@ -76,6 +76,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
 	debugarea <- partialDebugArea di
+	overviewboard <- overviewBoard di
 	arena <- case fromAssocList (_gamePlayers game) of
 		[p0,p1] -> do
 			playerarea0 <- playerArea di p0 Southward
@@ -199,6 +200,9 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
+
+<div name="overviewboard">
+  ^{overviewarea}
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -552,3 +556,8 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
 		-- TODO: Expand
+
+overviewBoard di@(DisplayInfo{..}) = do
+	return [whamlet|
+<img src=@{overviewRoute}>
+|]

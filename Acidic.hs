@@ -252,7 +252,7 @@ civAbilities civ = case civ of
 		exploreHutWithoutBattle = SetValue True,
 		buildCityNextToHuts     = SetValue True }
 
-techAbilities TechCard{..} = techIdAbility { cardCoins = _techCardCoins + cardCoins techability }
+techAbilities TechCard{..} = techIdAbility { cardCoins = _techCardCoins + cardCoins techIdAbility }
 
 techIdAbility = case _techCardTechId of
 	Pottery              -> unchangedAbilities {
@@ -796,7 +796,7 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
 	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
 	(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
-	(Move (ResourcesSource name1 _) (TechTarget _ tech1),Move (ResourcesSource name2 _) (TechTarget _ tech2)) | name1==name2 && tech1==tech2 -> False
+	(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 	_ -> True
 
 getCity gamename coors = do
@@ -1482,9 +1482,9 @@ moveGen gamename my_playername = do
 
 				abilitymovess <- forM (playerAbilities player) $ \ ability -> do
 					resourcemovess <- forM (resourceAbilities ability _gamePhase) $ \ (tech,movename,resourcepats,hook) -> do
-						return [ Move (ResourcesSource movename payment) (TechTarget tech) | payment <- possiblePayments player resourcepats ]
+						return [ Move (ResourcesSource playername payment) (TechResourceAbilityTarget movename tech) | payment <- possiblePayments player resourcepats ]
 					cardmovess <- forM (cardAbilities ability _gamePhase) $ \ (target,movename,hook) -> do
-						return [ Move () target ] -- TODO: Continue Here
+						return [ Move (NoSource()) target ] -- TODO: Continue Here
 					return $ concat $ resourcemovess ++ cardmovess
 
 				return $ phasemoves ++ concat abilitymovess
