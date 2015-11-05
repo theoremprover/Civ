@@ -201,7 +201,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
 
-^{overviewarea}
+^{overviewboard}
 |]
 
 allowedMovesJulius :: [Move] -> Widget

@@ -749,9 +749,9 @@ data ActionSource =
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
-data CardAbilityTarget = TechCardAbility Tech | CivAbility Civ
+data CardAbilityTargetType = TechCardAbility Tech | CivAbility Civ
 	deriving (Show,Eq,Ord,Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''CardAbilityTarget)
+$(deriveSafeCopy modelVersion 'base ''CardAbilityTargetType)
 
 data ActionTarget =
 	NoTarget () |
@@ -760,7 +760,8 @@ data ActionTarget =
 	BuildFirstCityTarget PlayerName Coors |
 	BuildCityTarget () |
 	TechResourceAbilityTarget String Tech |
-	CardAbilityTarget String CardAbilityTarget |
+	CardAbilityTarget String CardAbilityTargetType |
+	TechTarget PlayerName Tech |
 	TechTreeTarget PlayerName |
 	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
@@ -1229,7 +1230,7 @@ deriveJSON defaultOptions ''Wonder
 deriveJSON defaultOptions ''UnitType
 deriveJSON defaultOptions ''Production
 deriveJSON defaultOptions ''ActionSource
-deriveJSON defaultOptions ''CardAbilityTarget
+deriveJSON defaultOptions ''CardAbilityTargetType
 deriveJSON defaultOptions ''ActionTarget
 deriveJSON defaultOptions ''Move
 deriveJSON defaultOptions ''Tech
