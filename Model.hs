@@ -745,7 +745,7 @@ data ActionSource =
 	HutSource PlayerName Hut | VillageSource PlayerName Village |
 	TechCoinSource PlayerName Tech |
 	ArtifactSource PlayerName Artifact |
-	ResourcesSource String [ResourcePayment]
+	ResourcesSource PlayerName [ResourcePayment]
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
