@@ -252,6 +252,11 @@ civAbilities civ = case civ of
 		exploreHutWithoutBattle = SetValue True,
 		buildCityNextToHuts     = SetValue True }
 
+<<<<<<< HEAD
+=======
+techAbilities TechCard{..} = techIdAbility { cardCoins = _techCardCoins + cardCoins techIdAbility }
+
+>>>>>>> 41bc73bfc15048798466f54a6d40e22537d500c9
 techIdAbility = case _techCardTechId of
 	Pottery              -> unchangedAbilities {
 		enabledBuildings   = [Granary],

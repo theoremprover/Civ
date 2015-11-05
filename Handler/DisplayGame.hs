@@ -76,6 +76,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
 	debugarea <- partialDebugArea di
+	overviewboard <- overviewBoard di
 	arena <- case fromAssocList (_gamePlayers game) of
 		[p0,p1] -> do
 			playerarea0 <- playerArea di p0 Southward
@@ -199,6 +200,8 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
+
+^{overviewarea}
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -552,3 +555,19 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
 		-- TODO: Expand
+
+stackOfRoute route source target n = let
+	relpos o = "top:" ++ show (o*10) ++ "px; left:" ++ show (o*10) ++ "px;"
+	positions = "position:static" : map (\ o -> "position:absolute; " ++ relpos o) [1..n]
+	in [whamlet|
+<div .Parent>
+  $forall style <- positions
+    <img .Child src=@{route} style=#{show style}>
+|]
+
+overviewBoard di@(DisplayInfo{..}) = do
+	return [whamlet|
+<div .Parent name="overviewboard">
+  <img .Child src=@{overviewRoute}>
+
+|]
