@@ -201,8 +201,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
 
-<div name="overviewboard">
-  ^{overviewarea}
+^{overviewarea}
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -557,7 +556,18 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
 		-- TODO: Expand
 
+stackOfRoute route source target n = let
+	relpos o = "top:" ++ show (o*10) ++ "px; left:" ++ show (o*10) ++ "px;"
+	positions = "position:static" : map (\ o -> "position:absolute; " ++ relpos o) [1..n]
+	in [whamlet|
+<div .Parent>
+  $forall style <- positions
+    <img .Child src=@{route} style=#{show style}>
+|]
+
 overviewBoard di@(DisplayInfo{..}) = do
 	return [whamlet|
-<img src=@{overviewRoute}>
+<div .Parent name="overviewboard">
+  <img .Child src=@{overviewRoute}>
+
 |]
