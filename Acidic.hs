@@ -58,6 +58,7 @@ type HookM a = GameName -> PlayerName -> UpdateCivM a
 
 noopHookM = constHookM ()
 constHookM a _ _ = return a
+noPrerequisite = constHook True
 
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
@@ -99,7 +100,7 @@ data Abilities = Abilities {
 	exploreHutWithoutBattle :: Value Bool,
 	buildCityNextToHuts :: Value Bool,
 	canBuildMetropolis  :: Value Bool,
-	cardAbilities       :: Phase -> [(ActionTarget,HookM ())],
+	cardAbilities       :: Phase -> [(ActionTarget,HookM Bool,XXX,HookM ())],
 	resourceAbilities   :: Phase -> [(ActionTarget,[ResourcePattern],HookM ())] }
 
 defaultAbilities = Abilities {
@@ -338,7 +339,7 @@ techIdAbility tech = case tech of
 		cultureCardLimit   = constHookM $ ModifyValue (+1) }
 	CommunismTech        -> unchangedAbilities {
 		enabledGovernments = [Communism],
-		cardAbilities      = cardAbility (TechCardAbility CommunismTech) [Movement] "Lock Square" lockSquare_CommunismTech $ const [] }
+		resourceAbility    = resourceAbility CommunismTech [Movement] "Lock Square" lockSquare_CommunismTech $ const [] }
 	Gunpowder            -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Infantry] UnitLevelIII,
 		resourceAbilities  = resourceAbility Gunpowder [CityManagement] "Destroy Wonder/Buliding" [AnyResource,AnyResource] destroyWonderBuilding_Gunpowder $ const [] }
@@ -414,7 +415,7 @@ techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ab
 	where
 	ability = techIdAbility _techCardTechId
 
-cardAbility target phases name action f phase | phase `elem` phases = [(CardAbilityTarget name target,action)]
+cardAbility target phases name prerequisite action f phase | phase `elem` phases = [(CardAbilityTarget name target,prerequisite,action)]
 cardAbility _ _ _ _ f phase = f phase
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
@@ -798,7 +799,10 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
 	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
 	(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
-	(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+	(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),
+		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+	(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
+		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 	_ -> True
 
 getCity gamename coors = do
