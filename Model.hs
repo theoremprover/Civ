@@ -791,13 +791,13 @@ instance Show Move where
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
 		(source,target) -> show (source,target)
-	where
-	showpayments payments = concat $ intersperse "," $ map showpayment payments
-	showpayment p = case p of
-		ResourcePayment res -> show res
-		CultureCardPayment CultureCard{..} -> show _cultureCardEvent
-		VillagePayment village -> show village
-		HutPayment hut -> show hut
+		where
+		showpayments payments = concat $ intersperse "," $ map showpayment payments
+		showpayment p = case p of
+			ResourcePayment res -> show res
+			CultureCardPayment CultureCard{..} -> show _cultureCardEvent
+			VillagePayment village -> show village
+			HutPayment hut -> show hut
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
