@@ -99,7 +99,7 @@ data Abilities = Abilities {
 	exploreHutWithoutBattle :: Value Bool,
 	buildCityNextToHuts :: Value Bool,
 	canBuildMetropolis  :: Value Bool,
-	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move]))],
+	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move],HookM ()))],
 	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))] }
 
 defaultAbilities = Abilities {
@@ -145,7 +145,7 @@ defaultAbilities = Abilities {
 	buildCityNextToHuts = SetValue False,
 	canBuildMetropolis  = SetValue False,
 	cardAbilities       = [],
-	resourceAbilities   = const [] }
+	resourceAbilities   = [] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
@@ -191,226 +191,342 @@ unchangedAbilities = Abilities {
 	resourceAbilities   = [] }
 
 civAbilities civ = case civ of
+
 	America  -> defaultAbilities {
 		startOfGameHook   = getGreatPerson,
 		threeTradeHammers = SetValue 2 }
+
 	Arabs    -> defaultAbilities {
 		startOfGameHook   = \ gn pn -> forM_ [Iron,Linen,Incense,Wheat] (getResource gn pn),
 		spendResourceHook = addCulture 1,
 		investCoinHook    = drawCultureCard }
+
 	Aztecs   -> defaultAbilities {
 		afterBattleHook = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
 		getGreatPersonHook = build2UnitsHook_Aztecs,
 		wonBattleHook      = addTrade 3 }
+
 	China    -> defaultAbilities {
 		startOfGameHook = buildCapitalWallsHook_China,
 		discoverHutHook = addCulture 3,
 		discoverVillageHook = addCulture 3,
 		afterBattleHook = \ ownunitskilled enemyunitskilled -> resurrectOneUnitHook_China ownunitskilled }
+
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
 		startOfGameHook = startBuildWonderHook_Egypt,
-		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
 		armiesAsScouts = SetValue True }
+
 	French   -> defaultAbilities {
 		battleStrengthBonus = ModifyValue (+2),
 		startOfGameHook     = extraStartPolicyHook_French }
+
 	Germany  -> defaultAbilities {
 		startOfGameHook = \ gn pn -> forM_ [Infantry,Infantry] $ drawUnit gn pn,
 		getTechHook     = getTechHook_Germany }
+
 	Greeks   -> defaultAbilities {
 		getTechHook        = getTechHook_Greeks,
 		getGreatPersonHook = drawExtraPersonHook_Greeks }
+
 	Indians  -> defaultAbilities {
 		indianResourceSpending = SetValue True,
 		devoteToArtsBonusHook  = extraCultureDevote_Indians }
+
 	Japanese -> defaultAbilities {
 		researchCostBonus = SetValue (tradeIncome 3),
 		unitAttackBonus = \case
 			Infantry -> 1
 			_        -> 0 }
+
 	Mongols  -> defaultAbilities {
 		startOfGameHook = \ gn pn -> forM_ [Cavalry,Cavalry] $ drawUnit gn pn,
 		lootBonus       = ModifyValue (+1) }
+
 	Rome     -> defaultAbilities {
 		buildWonderHook     = drawCultureCard,
 		discoverVillageHook = drawCultureCard,
 		conquerCityHook     = drawCultureCard }
+
 	Russia   -> defaultAbilities {
 		startOfGameHook  = oneMoreFigure Flag,
 		unitStackLimit   = ModifyValue (+1),
 		sacrificeForTech = SetValue True }
+
 	Spanish  -> defaultAbilities {
 		startOfGameHook = oneMoreFigure Wagon,
 		moveRange       = ModifyValue (+1),
 		exploreTileHook = buildUnlockedBuilding_Spanish }
+
 	Zulu     -> defaultAbilities {
 		startOfGameHook         = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
 		exploreHutWithoutBattle = SetValue True,
 		buildCityNextToHuts     = SetValue True }
 
 techIdAbility tech = case tech of
+
 	Pottery              -> unchangedAbilities {
 		enabledBuildings   = [Granary],
 		cultureCardLimit   = constHookM $ ModifyValue (+1),
-		resourceAbilities  = resourceAbility Pottery [CityManagement] "Gain Coin" [AnyResource,AnyResource] (addCoinToTech Pottery) $ const [] }
+		resourceAbilities  = [ resourceAbility Pottery [CityManagement] "Gain Coin" [AnyResource,AnyResource]
+			(addCoinToTech Pottery) ] }
+
 	Writing              -> unchangedAbilities {
 		enabledBuildings   = [Library],
-		resourceAbilities  = resourceAbility Writing [CityManagement] "Cancel City Action" [One Spy] cancelCityAction_Writing $ const [] }
+		resourceAbilities  = [ resourceAbility Writing [CityManagement] "Cancel City Action" [One Spy]
+			(\ gamename playername -> do
+				return [] )
+		}
+
 	CodeOfLaws           -> unchangedAbilities {
 		enabledGovernments = [Republic],
 		enabledBuildings   = [TradePost],
-		cardAbilities      = [ cardAbility (TechCardAbility CodeOfLaws) [Research] "Add Coin" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility CodeOfLaws) [Research] "Add Coin"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Currency             -> unchangedAbilities {
 		enabledBuildings   = [Market],
 		resourceAbilities  = resourceAbility Currency [CityManagement] "Gain 3 Culture" [One Incense] (addCulture 3) $ const [] }
+
 	Metalworking         -> unchangedAbilities {
 		enabledBuildings   = [Barracks],
 		resourceAbilities  = resourceAbility Metalworking [Battle] "Increase Attack" [One Iron] increaseAttack_Metalworking $ const [] }
+
 	Masonry              -> unchangedAbilities {
 		unitStackLimit     = SetValue 3,
-		cardAbilities      = [ cardAbility (TechCardAbility Masonry) [CityManagement] "Build City Walls" $ \ gamename playername -> do
-			return [] ] }	
+		cardAbilities      = [ cardAbility (TechCardAbility Masonry) [CityManagement] "Build City Walls"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Agriculture          -> unchangedAbilities {
 		getThisHook        = growIntoMetropolisHook_Agriculture,
 		canBuildMetropolis = SetValue True }
+
 	HorsebackRiding      -> unchangedAbilities {
 		moveRange          = SetValue 3,
 		resourceAbilities  = resourceAbility HorsebackRiding [Trading] "Get Trade" [One Linen] getTrade_HoresebackRiding $ const [] }
+
 	AnimalHusbandry      -> unchangedAbilities {
-		cardAbilities      = [ cardAbility (TechCardAbility AnimalHusbandry) [Battle] "Heal 3 Damage" $ \ gamename playername -> do
-			--(healDamage 3)
-			return [] ],
+		cardAbilities      = [ cardAbility (TechCardAbility AnimalHusbandry) [Battle] "Heal 3 Damage"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			],
 		resourceAbilities  = resourceAbility AnimalHusbandry [CityManagement] "+3 Hammers" [One Wheat] (plusHammers 3) $ const [] }
+
 	Philosophy           -> unchangedAbilities {
 		enabledBuildings   = [Temple],
 		resourceAbilities  = resourceAbility Philosophy [CityManagement] "Get Great Person" [AnyResource,AnyResource,AnyResource] getGreatPerson $ const [] }
+
 	Navigation           -> unchangedAbilities {
 		enabledBuildings   = [Harbour],
 		movementType       = SetValue CrossWater }
+
 	Navy                 -> unchangedAbilities {
 		enabledBuildings   = [Shipyard],
 		buildArmyHook      = armyToShipyardOutskirtsHook_Navy }
+
 	PublicAdministration -> unchangedAbilities {
 		cardCoins          = Coins 1,
 		cultureCardLimit   = constHookM $ ModifyValue (+1),
 		resourceAbilities  = resourceAbility PublicAdministration allPhases "Cancel Culture Event" [One Spy] cancelCultureEvent $ const [] }
+
 	Mysticism            -> unchangedAbilities {
 		drawCultureHook    = drawAnotherCultureCardHook_Mysticism,
 		resourceAbilities  = resourceAbility Mysticism [CityManagement] "Force Discard Coin" [One Spy] forceDiscardCoin_Mysticism $ const [] }
+
 	MonarchyTech         -> unchangedAbilities {
 		enabledGovernments = [Monarchy],
 		resourceAbilities  = resourceAbility MonarchyTech [CityManagement] "Destroy Wonder/Unit" [One Linen] destroyWonderOrUnit_MonarchyTech $ const [] }
+
 	DemocracyTech        -> unchangedAbilities {
 		unitLevel = setUnitLevel [Infantry] UnitLevelII,
 		enabledGovernments = [Democracy],
-		cardAbilities      = [ cardAbility (TechCardAbility DemocracyTech) [CityManagement] "Add Coin" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility DemocracyTech) [CityManagement] "Add Coin"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Chivalry             -> unchangedAbilities {
 		unitLevel = setUnitLevel [Cavalry] UnitLevelII,
 		enabledGovernments = [Feudalism],
 		resourceAbilities  = resourceAbility Chivalry [CityManagement] "Gain 5 Culture" [One Incense] (addCulture 5) $ const [] }
+
 	Mathematics          -> unchangedAbilities {
 		unitLevel = setUnitLevel [Artillery] UnitLevelII,
 		resourceAbilities  = resourceAbility Mathematics [Battle] "Deal 3 Damage" [One Iron] (dealDamage 3) $ const [] }
+
 	Logistics            -> unchangedAbilities {
 		unitLevel = setUnitLevel [Infantry,Cavalry,Artillery] UnitLevelII }
+
 	PrintingPress        -> unchangedAbilities {
 		unitStackLimit     = SetValue 4,
 		enabledBuildings   = [University],
-		cardAbilities      = [ cardAbility (TechCardAbility PrintingPress) [CityManagement] "Add Coin" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility PrintingPress) [CityManagement] "Add Coin"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Sailing              -> unchangedAbilities {
 		moveRange          = SetValue 4,
 		movementType       = SetValue StayInWater }
+
 	Construction         -> unchangedAbilities {
 		enabledBuildings   = [Forge],
 		resourceAbilities  = resourceAbility Construction [CityManagement] "+5 Hammers" [One Wheat] (plusHammers 5) $ const [] }
+
 	Engineering          -> unchangedAbilities {
 		enabledBuildings   = [Aquaeduct],
-		cardAbilities      = [ cardAbility (TechCardAbility Engineering) [CityManagement] "Split Production" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility Engineering) [CityManagement] "Split Production"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Irrigation           -> unchangedAbilities {
 		getThisHook        = pushThirdCity }
+
 	Bureaucracy          -> unchangedAbilities {
 		cardCoins          = Coins 1,
-		cardAbilities      = [ cardAbility (TechCardAbility Bureaucracy) [Research] "Switch Policy" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility Bureaucracy) [Research] "Switch Policy"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	Theology             -> unchangedAbilities {
 		enabledGovernments = [Fundamentalism],
 		enabledBuildings   = [Cathedral],
 		cultureCardLimit   = constHookM $ ModifyValue (+1) }
+
 	CommunismTech        -> unchangedAbilities {
 		enabledGovernments = [Communism],
-		resourceAbility    = resourceAbility CommunismTech [Movement] "Lock Square" lockSquare_CommunismTech $ const [] }
+		resourceAbilities  = resourceAbility CommunismTech [Movement] "Lock Square" lockSquare_CommunismTech $ const [] }
+
 	Gunpowder            -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Infantry] UnitLevelIII,
 		resourceAbilities  = resourceAbility Gunpowder [CityManagement] "Destroy Wonder/Buliding" [AnyResource,AnyResource] destroyWonderBuilding_Gunpowder $ const [] }
+
 	Railroad             -> unchangedAbilities {
 		enabledBuildings   = [IronMine],
 		cardCoins          = Coins 1,
 		unitLevel          = setUnitLevel [Cavalry] UnitLevelIII }
+
 	MetalCasting         -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Artillery] UnitLevelIII,
 		resourceAbilities  = resourceAbility MetalCasting [CityManagement] "Gain 7 Culture" [One Incense] (addCulture 7) $ const [] }
+
 	Ecology              -> unchangedAbilities {
 		cultureTrackBonus  = modifyValuePerNCoins 3 ((+#).tradeIncome),
 		resourceAbilities  = resourceAbility Ecology [StartOfTurn] "Change Terrain" [One Wheat] (changeTerrain_Ecology) $ const [] }
+
 	Biology              -> unchangedAbilities {
 		unitStackLimit     = SetValue 5,
-		cardAbilities      = [ cardAbility (TechCardAbility Biology) [Battle] "Heal All Damage" $ \ gamename playername -> do
-			return [] ] }
+		cardAbilities      = [ cardAbility (TechCardAbility Biology) [Battle] "Heal All Damage"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			] }
+
 	SteamEngine          -> unchangedAbilities {
 		moveRange          = SetValue 5,
 		movementType       = SetValue StayInWater,
 		resourceAbilities  = resourceAbility SteamEngine [CityManagement] "Move Figures" [One Linen] moveFigures_SteamEngine $ const [] }
+
 	Banking              -> unchangedAbilities {
 		resourceAbilities  = resourceAbility Banking [CityManagement] "+7 Hammers" [One Wheat] (plusHammers 7) $ const [],
 		enabledBuildings   = [Bank] }
+
 	MilitaryScience      -> unchangedAbilities {
 		enabledBuildings   = [Academy],
 		productionBonus    = modifyValuePerNCoins 3 ((+#).hammerIncome) }
+
 	Education            -> unchangedAbilities {
 		buildWonderHook    = addCoinToCard Education,
 		resourceAbilities  = resourceAbility Education [CityManagement] "Learn Tech" [One Wheat,One Incense,One Iron,One Linen] learnTech_Education $ const [] }
+
 	Computers            -> unchangedAbilities {
 		cardCoins          = Coins 1,
 		battleHandSize     = modifyValuePerNCoins 5 (+),
 		cultureCardLimit   = modifyValuePerNCoins 5 (+) }
+
 	MassMedia            -> unchangedAbilities {
-		cardAbilities      = [ cardAbility (TechCardAbility MassMedia) allPhases "Immune Culture Events" $ \ gamename playername -> do
-			return [] ],
+		cardAbilities      = [ cardAbility (TechCardAbility MassMedia) allPhases "Immune Culture Events"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			],
 		resourceAbilities  = resourceAbility MassMedia allPhases "Cancel Resource Ability" [One Spy] cancelResourceAbility_MassMedia $ const [] }
+
 	Ballistics           -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Artillery] UnitLevelStar,
 		resourceAbilities  = resourceAbility Ballistics [Battle] "Deal 6 Damage" [One Iron] (dealDamage 6) $ const [] }
+
 	ReplacementParts     -> unchangedAbilities {
 		unitStackLimit     = SetValue 6,
 		unitLevel          = setUnitLevel [Infantry] UnitLevelStar }
+
 	Flight               -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Aircraft] UnitLevelStar,
 		moveRange          = SetValue 6,
 		movementType       = SetValue Air }
+
 	Plastics             -> unchangedAbilities {
-		cardAbilities      = [ cardAbility (TechCardAbility Plastics) [StartOfTurn] "Build Unit/Figure/Building" $ \ gamename playername -> do
-			return [] ],
-		resourceAbilities  = resourceAbility Plastics [CityManagement] "+10 Hammers" [One Wheat] (plusHammers 10) $ const [] }
+		cardAbilities      = [ cardAbility (TechCardAbility Plastics) [StartOfTurn] "Build Unit/Figure/Building"
+			(\ gamename playername -> do
+				return [] ),
+			(\ gamename playername -> do
+				return [] )
+			],
+		resourceAbilities  = resourceAbility Plastics [CityManagement] "+10 Hammers" [One Wheat]
+			(plusHammers 10) }
+
 	CombustionEngine     -> unchangedAbilities {
 		unitLevel          = setUnitLevel [Cavalry] UnitLevelStar,
 		cardAbilities      = [
-			cardAbility (TechCardAbility CombustionEngine) [Movement] "Destroy Building" $ \ gamename playername -> do
-				return [],
-			cardAbility (TechCardAbility CombustionEngine) [Battle] "Destroy Walls" $ \ gamename playername -> do
-				return [] ] }
+			cardAbility (TechCardAbility CombustionEngine) [Movement] "Destroy Building"
+				(\ gamename playername -> do
+					return [] ),
+				(\ gamename playername -> do
+					return [] ),
+			cardAbility (TechCardAbility CombustionEngine) [Battle] "Destroy Walls"
+				(\ gamename playername -> do
+					return [] ),
+				(\ gamename playername -> do
+					return [] )
+			] }
+
 	AtomicTheory         -> unchangedAbilities {
 		resourceAbilities  =
 			resourceAbility AtomicTheory [CityManagement] "Additional City Actions" [One Atom] additionalCityActions_AtomicTheory $
 			resourceAbility AtomicTheory [Movement] "Nuke City" [One Atom] nukeCity_AtomicTheory $ const [] }
+
 	SpaceFlight          -> unchangedAbilities {
 		getThisHook        = \ gamename playername -> do
 			updateCivLensM (const True) $ civGameLens gamename . _Just . gameSpaceFlightTaken
@@ -421,20 +537,20 @@ techIdAbility tech = case tech of
 	setUnitLevel unittypes unitlevel ut | ut `elem` unittypes = SetValue (Just unitlevel)
 	setUnitLevel _ _ _ = Unchanged
 
-	resourceAbility tech phases name respats action f phase | phase `elem` phases = [(TechResourceAbilityTarget name tech,respats,action)]
-	resourceAbility _ _ _ _ _ f phase = f phase
+	resourceAbility tech phases name respats action = [(TechResourceAbilityTarget name tech,respats,action)]
 
 techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ability }
 	where
 	ability = techIdAbility _techCardTechId
 
-cardAbility target phases name possible_moves = [(phases,(CardAbilityTarget name target,possible_moves))]
+cardAbility target phases name possible_moves action = [(phases,(CardAbilityTarget name target,possible_moves,action))]
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
 modifyValuePerNCoins n int2af gamename playername = do
 	Coins coins <- playerNumCoinsM gamename playername
 	return $ ModifyValue $ int2af (mod coins n)
 
+--
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
 	return ()
@@ -608,6 +724,7 @@ extraCultureDevote_Indians gamename playername citycoors = do
 buildUnlockedBuilding_Spanish gamename playername = do
 	--TODO
 	return ()
+--}
 
 valueAbilities :: (Ord a,Show a) => [Value a] -> a
 valueAbilities values = foldl (flip ($)) a modvalues
@@ -813,8 +930,10 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
 	(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+{-
 	(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+-}
 	_ -> True
 
 getCity gamename coors = do
