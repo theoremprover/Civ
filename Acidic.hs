@@ -99,6 +99,7 @@ data Abilities = Abilities {
 	exploreHutWithoutBattle :: Value Bool,
 	buildCityNextToHuts :: Value Bool,
 	canBuildMetropolis  :: Value Bool,
+	cultureEventImmunity :: Value Bool,
 	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move],HookM ()))],
 	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))] }
 
@@ -144,6 +145,7 @@ defaultAbilities = Abilities {
 	exploreHutWithoutBattle = SetValue False,
 	buildCityNextToHuts = SetValue False,
 	canBuildMetropolis  = SetValue False,
+	cultureEventImmunity = SetValue False,
 	cardAbilities       = [],
 	resourceAbilities   = [] }
 
@@ -476,12 +478,7 @@ techIdAbility tech = case tech of
 		cultureCardLimit   = modifyValuePerNCoins 5 (+) }
 
 	MassMedia            -> unchangedAbilities {
-		cardAbilities      = [ cardAbility (TechCardAbility MassMedia) allPhases "Immune Culture Events"
-			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
-				return [] )
-			],
+		cultureEventImmunity = SetValue True,
 		resourceAbilities  = resourceAbility MassMedia allPhases "Cancel Resource Ability" [One Spy] cancelResourceAbility_MassMedia $ const [] }
 
 	Ballistics           -> unchangedAbilities {
