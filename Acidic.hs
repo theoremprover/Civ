@@ -100,7 +100,7 @@ data Abilities = Abilities {
 	buildCityNextToHuts :: Value Bool,
 	canBuildMetropolis  :: Value Bool,
 	cultureEventImmunity :: Value Bool,
-	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move],HookM ()))],
+	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move]))],
 	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))] }
 
 defaultAbilities = Abilities {
@@ -204,7 +204,7 @@ civAbilities civ = case civ of
 		investCoinHook    = drawCultureCard }
 
 	Aztecs   -> defaultAbilities {
-		afterBattleHook = \ ownunitskilled enemyunitskilled ->
+		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
 		getGreatPersonHook = build2UnitsHook_Aztecs,
 		wonBattleHook      = addTrade 3 }
@@ -220,10 +220,7 @@ civAbilities civ = case civ of
 		startOfGameHook = startBuildWonderHook_Egypt,
 		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
-				return [] )
-			] }
+				return [] ) ] }
 
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
@@ -287,8 +284,7 @@ techIdAbility tech = case tech of
 		enabledBuildings   = [Library],
 		resourceAbilities  = [ resourceAbility Writing [CityManagement] "Cancel City Action" [One Spy]
 			(\ gamename playername -> do
-				return [] )
-		}
+				return [] ) ] }
 
 	CodeOfLaws           -> unchangedAbilities {
 		enabledGovernments = [Republic],
@@ -312,10 +308,7 @@ techIdAbility tech = case tech of
 		unitStackLimit     = SetValue 3,
 		cardAbilities      = [ cardAbility (TechCardAbility Masonry) [CityManagement] "Build City Walls"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
-				return [] )
-			] }
+				return [] ) ] }
 
 	Agriculture          -> unchangedAbilities {
 		getThisHook        = growIntoMetropolisHook_Agriculture,
