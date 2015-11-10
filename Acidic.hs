@@ -101,6 +101,7 @@ data Abilities = Abilities {
 	canBuildMetropolis  :: Value Bool,
 	cultureEventImmunity :: Value Bool,
 	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move]))],
+--	moveAbilities       :: [([Phase],HookM [Move])],
 	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))] }
 
 defaultAbilities = Abilities {
