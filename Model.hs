@@ -95,8 +95,7 @@ data Phase = StartOfGame |
 	Trading |
 	CityManagement |
 	Movement |
-	Research |
-	Battle
+	Research
 	deriving (Show,Eq,Ord,Enum,Bounded,Ix,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
@@ -105,6 +104,8 @@ allPhases = allOfThem
 
 nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
+
+data SubPhase = 
 
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry | Agriculture |
@@ -824,7 +825,8 @@ data Player = Player {
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
 	_playerCityCoors        :: [Coors],
-	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move])
+	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move]),
+	_playerSubPhase         :: Maybe SubPhase
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)

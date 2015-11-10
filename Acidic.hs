@@ -207,7 +207,12 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
-		getGreatPersonHook = build2UnitsHook_Aztecs,
+		getGreatPersonHook = switchToSubPhases Aztecs 0
+		subPhases          = [ [
+			("Build First Unit", \ gn pn -> do
+				return ()),
+			("Build Second Unit, \ gn pn -> do
+				return ()) ] ],
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
