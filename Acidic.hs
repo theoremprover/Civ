@@ -209,9 +209,9 @@ civAbilities civ = case civ of
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
 		getGreatPersonHook = switchToSubPhases Aztecs 0
 		subPhases          = [ [
-			("Build First Unit", \ gn pn -> do
+			("Got Great Person: Build First Free Unit", \ gn pn -> do
 				return ()),
-			("Build Second Unit, \ gn pn -> do
+			("Got Great Person: Build Second Free Unit", \ gn pn -> do
 				return ()) ] ],
 		wonBattleHook      = addTrade 3 }
 
