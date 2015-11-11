@@ -209,10 +209,16 @@ civAbilities civ = case civ of
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
 		getGreatPersonHook = switchToSubPhases Aztecs 0
 		subPhases          = [ [
-			("Got Great Person: Build First Free Unit", \ gn pn -> do
-				return ()),
-			("Got Great Person: Build Second Free Unit", \ gn pn -> do
-				return ()) ] ],
+			("Got Great Person: Build First Free Unit",  buildfreeunit),
+			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ] where
+			buildfreeunit gn pn = do
+				Just player <- getPlayer gn pn
+				movess <- forM (allOfThem::[UnitType]) $ \ unittype -> do
+					let mb_unitlevel = getValueAbility1 unitLevel player unittype
+					return $ case mb_unitlevel of
+						Nothing        -> []
+						Just unitlevel -> [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
+				return $ concat movess,
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
@@ -1395,6 +1401,10 @@ doMove gamename playername move@(Move source target) = do
 			buildBuilding gamename playername coors building
 
 		(CityProductionSource _ (ProduceUnit unittype),NoTarget ()) -> do
+			drawUnit gamename playername unittype
+			return ()
+
+		(ProductionSource (ProduceUnit unittype),NoTarget ()) -> do
 			drawUnit gamename playername unittype
 			return ()
 

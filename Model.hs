@@ -739,6 +739,7 @@ data ActionSource =
 	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
 	CitySource PlayerName | MetropolisSource PlayerName |
+	ProductionSource Production |
 	CityProductionSource Coors Production |
 	SquareSource Coors |
 	TechSource Tech |
