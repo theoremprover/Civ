@@ -101,8 +101,8 @@ data Abilities = Abilities {
 	canBuildMetropolis  :: Value Bool,
 	cultureEventImmunity :: Value Bool,
 	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move]))],
---	moveAbilities       :: [([Phase],HookM [Move])],
-	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))] }
+	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))],
+	subPhases           :: [[(Int,HookM [Move])]] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
@@ -148,7 +148,8 @@ defaultAbilities = Abilities {
 	canBuildMetropolis  = SetValue False,
 	cultureEventImmunity = SetValue False,
 	cardAbilities       = [],
-	resourceAbilities   = [] }
+	resourceAbilities   = [],
+	subPhases           = [] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
@@ -191,7 +192,8 @@ unchangedAbilities = Abilities {
 	buildCityNextToHuts = Unchanged,
 	canBuildMetropolis  = Unchanged,
 	cardAbilities       = [],
-	resourceAbilities   = [] }
+	resourceAbilities   = [],
+	subPhases           = [] }
 
 civAbilities civ = case civ of
 
@@ -207,18 +209,13 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
-		getGreatPersonHook = switchToSubPhases Aztecs 0
-		subPhases          = [ [
+		getGreatPersonHook = switchToSubPhases (civAbilities Aztecs) 0 0
+		subPhases          = map (zip [0..]) [ [
 			("Got Great Person: Build First Free Unit",  buildfreeunit),
 			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ] where
-			buildfreeunit gn pn = do
-				Just player <- getPlayer gn pn
-				movess <- forM (allOfThem::[UnitType]) $ \ unittype -> do
-					let mb_unitlevel = getValueAbility1 unitLevel player unittype
-					return $ case mb_unitlevel of
-						Nothing        -> []
-						Just unitlevel -> [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
-				return $ concat movess,
+			buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
+				return [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
+			,
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
@@ -303,8 +300,6 @@ techIdAbility tech = case tech of
 		enabledBuildings   = [TradePost],
 		cardAbilities      = [ cardAbility (TechCardAbility CodeOfLaws) [Research] "Add Coin"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
 				return [] )
 			] }
 
@@ -332,8 +327,6 @@ techIdAbility tech = case tech of
 
 	AnimalHusbandry      -> unchangedAbilities {
 		cardAbilities      = [ cardAbility (TechCardAbility AnimalHusbandry) [Battle] "Heal 3 Damage"
-			(\ gamename playername -> do
-				return [] ),
 			(\ gamename playername -> do
 				return [] )
 			],
@@ -369,8 +362,6 @@ techIdAbility tech = case tech of
 		enabledGovernments = [Democracy],
 		cardAbilities      = [ cardAbility (TechCardAbility DemocracyTech) [CityManagement] "Add Coin"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
 				return [] )
 			] }
 
@@ -391,8 +382,6 @@ techIdAbility tech = case tech of
 		enabledBuildings   = [University],
 		cardAbilities      = [ cardAbility (TechCardAbility PrintingPress) [CityManagement] "Add Coin"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
 				return [] )
 			] }
 
@@ -408,8 +397,6 @@ techIdAbility tech = case tech of
 		enabledBuildings   = [Aquaeduct],
 		cardAbilities      = [ cardAbility (TechCardAbility Engineering) [CityManagement] "Split Production"
 			(\ gamename playername -> do
-				return [] ),
-			(\ gamename playername -> do
 				return [] )
 			] }
 
@@ -419,8 +406,6 @@ techIdAbility tech = case tech of
 	Bureaucracy          -> unchangedAbilities {
 		cardCoins          = Coins 1,
 		cardAbilities      = [ cardAbility (TechCardAbility Bureaucracy) [Research] "Switch Policy"
-			(\ gamename playername -> do
-				return [] ),
 			(\ gamename playername -> do
 				return [] )
 			] }
@@ -454,8 +439,6 @@ techIdAbility tech = case tech of
 	Biology              -> unchangedAbilities {
 		unitStackLimit     = SetValue 5,
 		cardAbilities      = [ cardAbility (TechCardAbility Biology) [Battle] "Heal All Damage"
-			(\ gamename playername -> do
-				return [] ),
 			(\ gamename playername -> do
 				return [] )
 			] }
@@ -515,11 +498,7 @@ techIdAbility tech = case tech of
 			cardAbility (TechCardAbility CombustionEngine) [Movement] "Destroy Building"
 				(\ gamename playername -> do
 					return [] ),
-				(\ gamename playername -> do
-					return [] ),
 			cardAbility (TechCardAbility CombustionEngine) [Battle] "Destroy Walls"
-				(\ gamename playername -> do
-					return [] ),
 				(\ gamename playername -> do
 					return [] )
 			] }
@@ -545,7 +524,11 @@ techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ab
 	where
 	ability = techIdAbility _techCardTechId
 
-cardAbility target phases name possible_moves action = [(phases,(CardAbilityTarget name target,possible_moves,action))]
+cardAbility target phases name action = [(phases,(CardAbilityTarget name target,action))]
+
+switchToSubPhases :: Abilities -> Int -> HookM ()
+switchToSubPhases abilities abilityindex gamename playername = do
+	updateCivLensM () $ civPlayerLens gamename playername . _Just . 
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
 modifyValuePerNCoins n int2af gamename playername = do
@@ -987,6 +970,15 @@ gameAction gamename playername move = runUpdateCivM $ do
 			doMove gamename playername move
 			checkMovesLeft gamename
 	return ()
+
+forEnabledUnitTypes :: GameName -> PlayerName -> (UnitType -> UnitLevel -> [a]) -> UpdateCivM [a]
+forEnabledUnitTypes gamename playername action = do
+	Just player <- getPlayer gamename playername
+	ass <- forM allOfThem $ \ unittype -> do
+		case getValueAbility1 unitLevel player unittype of
+			Nothing -> return []
+			Just unitlevel -> action unittype unitlevel
+	return $ concat ass
 
 forAllPlayers :: GameName -> ((PlayerName,Player) -> UpdateCivM a) -> UpdateCivM [a]
 forAllPlayers gamename action = do
@@ -1543,13 +1535,11 @@ moveGen gamename my_playername = do
 								return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
 									building <- buildings ]									
 
-							produnitmovess <- forM (allOfThem::[UnitType]) $ \ unittype -> do
-								let mb_unitlevel = getValueAbility1 unitLevel player unittype
-								return $ case mb_unitlevel of
-									Nothing -> []
-									Just unitlevel -> case consumedIncome (unittype,unitlevel) <= income of
-										False -> []
-										True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
+							
+							produnitmoves <- forEnabledUnitTypes $ \ unittype _ -> do
+								case consumedIncome (unittype,unitlevel) <= income of
+									False -> []
+									True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
 
 							let
 								producible_res = case AnyResource `elem` inResource income of
@@ -1566,7 +1556,7 @@ moveGen gamename my_playername = do
 							return $
 								prodfiguremoves ++
 								(concat prodbuildingmovess) ++
-								(concat produnitmovess) ++
+								produnitmoves ++
 								harvestmoves ++
 								[ devotemove ]
 

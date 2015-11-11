@@ -827,7 +827,7 @@ data Player = Player {
 	_playerFirstCityCoors   :: [Coors],
 	_playerCityCoors        :: [Coors],
 	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move]),
-	_playerSubPhase         :: Maybe SubPhase
+	_playerSubPhase         :: Maybe ()
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
