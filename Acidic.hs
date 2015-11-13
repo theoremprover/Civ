@@ -209,12 +209,13 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
-		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0 0
-		subPhases          = map (zip [0..]) [ [
-			("Got Great Person: Build First Free Unit",  buildfreeunit),
-			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ] where
+		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0,
+		subPhases          = let
 			buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
 				return [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
+			in map (zip [0..]) [ [
+			("Got Great Person: Build First Free Unit",  buildfreeunit),
+			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ]
 			,
 		wonBattleHook      = addTrade 3 }
 
@@ -536,7 +537,7 @@ data SubPhase = SubPhase {
 getAbility :: CardAbilityTargetType -> Abilities
 getAbility targettype = case targettype of
 	TechCardAbility tech -> techIdAbility tech
-	CivAbility civ       -> civAbility civ
+	CivAbility civ       -> civAbilities civ
 
 switchToSubPhases :: CardAbilityTargetType -> Int -> HookM ()
 switchToSubPhases targettype abilityindex gamename playername = do
@@ -544,16 +545,14 @@ switchToSubPhases targettype abilityindex gamename playername = do
 
 nextSubPhase :: GameName -> PlayerName -> UpdateCivM ()
 nextSubPhase gamename playername = do
-{-	Just (Just (SubPhase{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerSubPhase
-	let
-		subphases = (getAbility _subPhaseTargetType) !! _subPhaseAbilityIndex
-		nextsubphase = case length subphases >= 
--}
 	updateCivLensM nextsubphase $ civPlayerLens gamename playername . _Just . playerSubPhase
 	where
-	nextsubphase subphase@(SubPhase{..}) =
+	nextsubphase subphase@(SubPhase{..}) = case _subPhaseSubPhaseIndex + 1 of
+			subphaseindex' | subphaseindex' < length subphases ->
+				Just $ subphase { _subPhaseSubPhaseIndex = subphaseindex' }
+			_ -> Nothing
 		where
-		subphases = getAbility _subPhaseTargetType
+		subphases = getAbility _subPhaseTargetType !! _subPhaseAbilityIndex
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
 modifyValuePerNCoins n int2af gamename playername = do
@@ -1453,9 +1452,7 @@ doMove gamename playername move@(Move source target) = do
 			hook gamename playername
 
 		(NoSource (),target@(CardAbilityTarget _ cardtarget)) -> do
-			let [(_,hook)] = filter (\ (tg,_) -> tg==target) $ case cardtarget of
-				TechCardAbility tech -> cardAbilities (techIdAbility tech) _gamePhase
-				CivAbility civ       -> cardAbilities (civAbilities civ) _gamePhase
+			let [(_,hook)] = filter (\ (tg,_) -> tg==target) $ cardAbilities (getAbility cardtarget)
 			hook gamename playername
 
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
@@ -1561,7 +1558,7 @@ moveGen gamename my_playername = do
 									building <- buildings ]									
 
 							
-							produnitmoves <- forEnabledUnitTypes $ \ unittype _ -> do
+							produnitmoves <- forEnabledUnitTypes gamename playername $ \ unittype unitlevel -> do
 								case consumedIncome (unittype,unitlevel) <= income of
 									False -> []
 									True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
@@ -1639,10 +1636,10 @@ moveGen gamename my_playername = do
 							[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 
 				abilitymovess <- forM (playerAbilities player) $ \ ability -> do
-					resourcemovess <- forM (resourceAbilities ability _gamePhase) $ \ (target,resourcepats,hook) -> do
+					resourcemovess <- forM (filter ((elem _gamePhase).fst) $ resourceAbilities ability) $ \ (_,(target,resourcepats,hook)) -> do
 						return [ Move (ResourcesSource playername payment) target |
 							payment <- possiblePayments player resourcepats ]
-					cardmovess <- forM (cardAbilities ability _gamePhase) $ \ (target,hook) -> do
+					cardmovess <- forM (filter ((elem _gamePhase).fst) $ cardAbilities ability) $ \ (_,(target,hook)) -> do
 						return [ Move (NoSource ()) target ]
 					return $ concat $ resourcemovess ++ cardmovess
 

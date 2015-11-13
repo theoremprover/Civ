@@ -95,7 +95,8 @@ data Phase = StartOfGame |
 	Trading |
 	CityManagement |
 	Movement |
-	Research
+	Research |
+	Battle
 	deriving (Show,Eq,Ord,Enum,Bounded,Ix,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
@@ -104,13 +105,6 @@ allPhases = allOfThem
 
 nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
-
-data SubPhase = SubPhase {
-	_subPhaseTargetType :: CardAbilityTargetType,
-	_subPhaseAbilityIndex :: Int,
-	_subPhaseSubPhaseIndex :: Int }
-	deriving (Show,Eq,Ord,Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''Phase)
 
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry | Agriculture |
@@ -805,6 +799,13 @@ instance Show Move where
 			CultureCardPayment CultureCard{..} -> show _cultureCardEvent
 			VillagePayment village -> show village
 			HutPayment hut -> show hut
+
+data SubPhase = SubPhase {
+	_subPhaseTargetType :: CardAbilityTargetType,
+	_subPhaseAbilityIndex :: Int,
+	_subPhaseSubPhaseIndex :: Int }
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''SubPhase)
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
