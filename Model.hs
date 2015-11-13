@@ -105,7 +105,12 @@ allPhases = allOfThem
 nextPhase Research = StartOfTurn
 nextPhase phase    = succ phase
 
-data SubPhase = 
+data SubPhase = SubPhase {
+	_subPhaseTargetType :: CardAbilityTargetType,
+	_subPhaseAbilityIndex :: Int,
+	_subPhaseSubPhaseIndex :: Int }
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''Phase)
 
 data Tech =
 	Pottery | Writing | CodeOfLaws | Currency | Metalworking | Masonry | Agriculture |
@@ -827,7 +832,7 @@ data Player = Player {
 	_playerFirstCityCoors   :: [Coors],
 	_playerCityCoors        :: [Coors],
 	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move]),
-	_playerSubPhase         :: Maybe ()
+	_playerSubPhase         :: Maybe SubPhase
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -1253,3 +1258,4 @@ deriveJSON defaultOptions ''CultureCard
 deriveJSON defaultOptions ''Coins
 deriveJSON defaultOptions ''Hut
 deriveJSON defaultOptions ''Village
+deriveJSON defaultOptions ''SubPhase

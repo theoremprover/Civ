@@ -209,7 +209,7 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
-		getGreatPersonHook = switchToSubPhases (civAbilities Aztecs) 0 0
+		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0 0
 		subPhases          = map (zip [0..]) [ [
 			("Got Great Person: Build First Free Unit",  buildfreeunit),
 			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ] where
@@ -526,9 +526,34 @@ techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ab
 
 cardAbility target phases name action = [(phases,(CardAbilityTarget name target,action))]
 
-switchToSubPhases :: Abilities -> Int -> HookM ()
-switchToSubPhases abilities abilityindex gamename playername = do
-	updateCivLensM () $ civPlayerLens gamename playername . _Just . 
+{-data CardAbilityTargetType = TechCardAbility Tech | CivAbility Civ
+	deriving (Show,Eq,Ord,Data,Typeable)
+data SubPhase = SubPhase {
+	subPhaseTargetType :: CardAbilityTargetType,
+	subPhaseAbilityIndex :: Int,
+	subPhaseSubPhaseIndex :: Int }
+-}
+getAbility :: CardAbilityTargetType -> Abilities
+getAbility targettype = case targettype of
+	TechCardAbility tech -> techIdAbility tech
+	CivAbility civ       -> civAbility civ
+
+switchToSubPhases :: CardAbilityTargetType -> Int -> HookM ()
+switchToSubPhases targettype abilityindex gamename playername = do
+	updateCivLensM (const $ SubPhase targettype abilityindex 0) $ civPlayerLens gamename playername . _Just . playerSubPhase
+
+nextSubPhase :: GameName -> PlayerName -> UpdateCivM ()
+nextSubPhase gamename playername = do
+{-	Just (Just (SubPhase{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerSubPhase
+	let
+		subphases = (getAbility _subPhaseTargetType) !! _subPhaseAbilityIndex
+		nextsubphase = case length subphases >= 
+-}
+	updateCivLensM nextsubphase $ civPlayerLens gamename playername . _Just . playerSubPhase
+	where
+	nextsubphase subphase@(SubPhase{..}) =
+		where
+		subphases = getAbility _subPhaseTargetType
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
 modifyValuePerNCoins n int2af gamename playername = do
