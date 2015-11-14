@@ -58,6 +58,7 @@ type HookM a = GameName -> PlayerName -> UpdateCivM a
 
 noopHookM = constHookM ()
 constHookM a _ _ = return a
+noMoves = constHookM []
 
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
@@ -88,21 +89,20 @@ data Abilities = Abilities {
 	discoverHutHook     :: HookM (),
 	discoverVillageHook :: HookM (),
 	conquerCityHook     :: HookM (),
-	devoteToArtsBonusHook :: Coors -> HookM Culture,
-	exploreTileHook     :: HookM (),
-	indianResourceSpending :: Value Bool,
-	enabledGovernments  :: [Government],
-	enabledBuildings    :: [BuildingType],
-	armiesAsScouts      :: Value Bool,
-	wondersNonobsoletable :: Value Bool,
-	sacrificeForTech    :: Value Bool,
+	devoteToArtsBonusHook   :: Coors -> HookM Culture,
+	exploreTileHook         :: HookM (),
+	indianResourceSpending  :: Value Bool,
+	enabledGovernments      :: [Government],
+	enabledBuildings        :: [BuildingType],
+	armiesAsScouts          :: Value Bool,
+	wondersNonobsoletable   :: Value Bool,
+	sacrificeForTech        :: Value Bool,
 	exploreHutWithoutBattle :: Value Bool,
-	buildCityNextToHuts :: Value Bool,
-	canBuildMetropolis  :: Value Bool,
-	cultureEventImmunity :: Value Bool,
-	cardAbilities       :: [([Phase],(ActionTarget,HookM [Move]))],
-	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))],
-	subPhases           :: [[(String,HookM [Move])]] }
+	buildCityNextToHuts     :: Value Bool,
+	canBuildMetropolis      :: Value Bool,
+	cultureEventImmunity    :: Value Bool,
+	cardAbilities           :: [([Phase],(ActionTarget,[ResourcePattern],HookM [Move],HookM ()))],
+	subPhases               :: [[(String,HookM [Move])]] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
@@ -148,7 +148,6 @@ defaultAbilities = Abilities {
 	canBuildMetropolis  = SetValue False,
 	cultureEventImmunity = SetValue False,
 	cardAbilities       = [],
-	resourceAbilities   = [],
 	subPhases           = [] }
 
 unchangedAbilities = Abilities {
@@ -192,7 +191,6 @@ unchangedAbilities = Abilities {
 	buildCityNextToHuts = Unchanged,
 	canBuildMetropolis  = Unchanged,
 	cardAbilities       = [],
-	resourceAbilities   = [],
 	subPhases           = [] }
 
 civAbilities civ = case civ of
@@ -220,15 +218,18 @@ civAbilities civ = case civ of
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
-		startOfGameHook = buildCapitalWallsHook_China,
+		startOfGameHook = \ gamename playername -> do
+			Just (capitalcoors:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
+			buildCityWalls gamename playername capitalcoors
+			return (),
 		discoverHutHook = addCulture 3,
 		discoverVillageHook = addCulture 3,
-		afterBattleHook = \ ownunitskilled enemyunitskilled -> resurrectOneUnitHook_China ownunitskilled }
+		afterBattleHook = \ ownunitskilled enemyunitskilled -> switchToSubPhases (CivAbility Aztecs) 0 }
 
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
 		startOfGameHook = startBuildWonderHook_Egypt,
-		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building"
+		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building" []
 			(\ gamename playername -> do
 				return [] ) ] }
 
@@ -515,13 +516,10 @@ techIdAbility tech = case tech of
 	setUnitLevel unittypes unitlevel ut | ut `elem` unittypes = SetValue (Just unitlevel)
 	setUnitLevel _ _ _ = Unchanged
 
-	resourceAbility tech phases name respats action = (phases,(TechResourceAbilityTarget name tech,respats,action))
+techAbilities TechCard{..} = (techIdAbility _techCardTechId) { cardCoins = _techCardCoins + cardCoins ability }
 
-techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ability }
-	where
-	ability = techIdAbility _techCardTechId
-
-cardAbility target phases name action = (phases,(CardAbilityTarget name target,action))
+--	cardAbilities       :: [([Phase],(ActionTarget,[ResourcePattern],HookM [Move],HookM ()))],
+cardAbility target phases name action = (phases,(CardAbilityTarget name target,respats,moves,action))
 
 getAbility :: CardAbilityTargetType -> Abilities
 getAbility targettype = case targettype of
@@ -1177,6 +1175,9 @@ addCoinToTech tech gamename playername = do
 	addcoinif techcard = case _techCardTechId techcard == tech of
 		False -> techcard
 		True -> techcard { _techCardCoins = _techCardCoins techcard + Coins 1 }
+
+buildCityWalls gamename playername capitalcoors = do
+	updateCivLensM (const Walls) $ civCityLens gamename capitalcoors . cityWalls
 
 setGovernment :: Government -> GameName -> PlayerName -> UpdateCivM ()
 setGovernment government gamename playername = do

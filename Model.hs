@@ -831,7 +831,7 @@ data Player = Player {
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
-	_playerCityCoors        :: [Coors],
+	_playerCityCoors        :: [Coors],  -- The first one is the capital
 	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move]),
 	_playerSubPhase         :: Maybe SubPhase
 	}
