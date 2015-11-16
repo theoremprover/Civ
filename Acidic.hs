@@ -3,7 +3,6 @@
 module Acidic where
 
 import Import (ask,lift,App,getYesod,Handler,MonadHandler,appCivAcid,HandlerSite)
---hiding (Update,Query,array,delete,head,(++),map,zip,unlines,concatMap,filter)
 
 import Prelude
 
