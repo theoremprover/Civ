@@ -897,7 +897,7 @@ makeLenses ''Game
 instance Eq Game where
 	g1 == g2 =
 		_gameCreationDate g1 == _gameCreationDate g2 &&
-		_gameCreator g1 == _gameCreator g2
+		_gameCreator g1      == _gameCreator g2
 
 instance Ord Game where
 	compare = comparing _gameCreationDate
