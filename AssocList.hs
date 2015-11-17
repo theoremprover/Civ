@@ -20,7 +20,7 @@ nthAssocList :: (Eq key) => Int -> AssocList key val -> (key,val)
 nthAssocList i assoclist = (fromAssocList assoclist)!!i
 
 addAssoc :: (key,val) -> AssocList key val -> AssocList key val
-addAssoc assoc assoclist = assoclist { fromAssocList = assoc:(fromAssocList assoclist) }
+addAssoc assoc assoclist = assoclist { fromAssocList = fromAssocList assoclist ++ [assoc] }
 
 deleteAssoc :: (Eq key,Eq val) => (key,val) -> AssocList key val -> AssocList key val
 deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAssocList assoclist) }

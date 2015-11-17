@@ -831,9 +831,7 @@ data Player = Player {
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
-	_playerCityCoors        :: [Coors],  -- The first one is the capital
-	_playerMoves            :: Map.Map Turn (Map.Map Phase [Move]),
-	_playerSubPhase         :: Maybe SubPhase
+	_playerCityCoors        :: [Coors]  -- The first one is the capital
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -845,7 +843,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
 	[] [] initialFigureStack Map.empty [] Northward initialCityStack
-	0 [] [] Map.empty Nothing
+	0 [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -889,7 +887,8 @@ data Game = Game {
 	_gameCultureStack     :: TokenStack CultureLevel CultureEvent,
 	_gameReturnedCultureCards :: TokenStack CultureLevel CultureEvent,
 	_gameResourceStack    :: TokenStack Resource (),
-	_gameSpaceFlightTaken :: Bool
+	_gameSpaceFlightTaken :: Bool,
+	_gameMoves            :: AssocList Turn (AssocList )
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)
