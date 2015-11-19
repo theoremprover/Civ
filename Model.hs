@@ -89,6 +89,8 @@ data TileID =
 	deriving (Eq,Show,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
+data SubPhase = SubPhase 
+
 data Phase = StartOfGame |
 	BuildingFirstCity | PlaceFirstFigures | GettingFirstTrade |
 	StartOfTurn |
@@ -800,12 +802,14 @@ instance Show Move where
 			VillagePayment village -> show village
 			HutPayment hut -> show hut
 
+{-
 data SubPhase = SubPhase {
 	_subPhaseTargetType :: CardAbilityTargetType,
 	_subPhaseAbilityIndex :: Int,
 	_subPhaseSubPhaseIndex :: Int }
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
+-}
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
