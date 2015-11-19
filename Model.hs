@@ -811,6 +811,8 @@ data SubPhase = SubPhase {
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
 -}
 
+type SubPhaseMoves = AssocList String [Either Move SubPhaseMoves]
+
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
 	_playerColour           :: Colour,
@@ -892,7 +894,7 @@ data Game = Game {
 	_gameReturnedCultureCards :: TokenStack CultureLevel CultureEvent,
 	_gameResourceStack    :: TokenStack Resource (),
 	_gameSpaceFlightTaken :: Bool,
-	_gameMoves            :: AssocList Turn (AssocList )
+	_gameMoves            :: AssocList Turn (AssocList Phase [Either Move SubPhaseMoves])
 	}
 	deriving (Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Game)
