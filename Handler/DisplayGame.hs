@@ -568,6 +568,6 @@ stackOfRoute route source target n = let
 overviewBoard di@(DisplayInfo{..}) = do
 	return [whamlet|
 <div .Parent name="overviewboard">
-  <img .Child src=@{overviewRoute}>
+  <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
 
 |]

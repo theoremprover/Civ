@@ -13,6 +13,11 @@ data AssocList key val = AssocList { fromAssocList :: [(key,val)] }
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''AssocList)
 
+emptyAssocList = AssocList []
+
+singletonAssocList :: (Eq key) => (key,val) -> AssocList key val
+singletonAssocList keyval = addAssoc keyval emptyAssocList
+
 lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
 lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
 
@@ -30,3 +35,11 @@ mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList ass
 	mf (k,v) = case k==key of
 		False -> (k,v)
 		True  -> (k,f v)
+
+addModifyAssoc :: (Eq key) => key -> val -> (val -> val -> val) -> AssocList key val -> AssocList key val
+addModifyAssoc k v f assoclist = case lookupAssocList k assoclist of
+	Nothing  -> addAssoc (k,v) assoclist
+	Just val -> mapAssoc k (f val) assoclist
+
+concatAssocLists :: (Eq key) => AssocList key val -> AssocList key val -> AssocList key val
+concatAssocLists al1 al2 = AssocList (fromAssocList al1 ++ fromAssocList al2)

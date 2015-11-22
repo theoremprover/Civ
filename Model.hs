@@ -89,16 +89,13 @@ data TileID =
 	deriving (Eq,Show,Data,Ord,Typeable)
 $(deriveSafeCopy modelVersion 'base ''TileID)
 
-data SubPhase = SubPhase 
-
 data Phase = StartOfGame |
 	BuildingFirstCity | PlaceFirstFigures | GettingFirstTrade |
 	StartOfTurn |
 	Trading |
 	CityManagement |
 	Movement |
-	Research |
-	Battle
+	Research
 	deriving (Show,Eq,Ord,Enum,Bounded,Ix,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''Phase)
 
@@ -756,14 +753,21 @@ data CardAbilityTargetType = TechCardAbility Tech | CivAbility Civ
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''CardAbilityTargetType)
 
+type CardAbilityID = (CardAbilityTargetType,Int)
+
+data SubPhase = SubPhase {
+	_cardAbilityID :: CardAbilityID,
+	_subPhaseIndex :: Int }
+	deriving (Show,Eq,Ord,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''SubPhase)
+
 data ActionTarget =
 	NoTarget () |
 	DebugTarget String |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
 	BuildCityTarget () |
-	TechResourceAbilityTarget String Tech |
-	CardAbilityTarget String CardAbilityTargetType |
+	CardAbilityTarget String CardAbilityID |
 	TechTarget PlayerName Tech |
 	TechTreeTarget PlayerName |
 	FigureOnBoardTarget FigureID PlayerName Coors |
@@ -787,9 +791,9 @@ instance Show Move where
 		(CityProductionSource _ prod,SquareTarget coors) -> show prod ++ " on " ++ show coors
 		(CityProductionSource citycoors prod,NoTarget ()) -> show prod ++ " in " ++ show citycoors
 		(TechSource tech,TechTreeTarget _) -> "Research " ++ show tech
-		(ResourcesSource _ payments,TechResourceAbilityTarget name tech) -> show tech ++ ": " ++ name ++ " (" ++ showpayments payments ++ ")"
-		(NoSource (),CardAbilityTarget name (TechCardAbility tech)) -> show tech ++ ": " ++ name
-		(NoSource (),CardAbilityTarget name (CivAbility civ)) -> show civ ++ ": " ++ name
+		(ResourcesSource _ payments,CardAbilityTarget name (TechCardAbility tech,_)) -> show tech ++ ": " ++ name ++ " (" ++ showpayments payments ++ ")"
+		(NoSource (),CardAbilityTarget name (TechCardAbility tech,_)) -> show tech ++ ": " ++ name
+		(NoSource (),CardAbilityTarget name (CivAbility civ,_)) -> show civ ++ ": " ++ name
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
@@ -802,16 +806,22 @@ instance Show Move where
 			VillagePayment village -> show village
 			HutPayment hut -> show hut
 
-{-
-data SubPhase = SubPhase {
-	_subPhaseTargetType :: CardAbilityTargetType,
-	_subPhaseAbilityIndex :: Int,
-	_subPhaseSubPhaseIndex :: Int }
-	deriving (Show,Eq,Ord,Data,Typeable)
-$(deriveSafeCopy modelVersion 'base ''SubPhase)
--}
+type MoveNodes = [MoveNode]
 
-type SubPhaseMoves = AssocList String [Either Move SubPhaseMoves]
+data MoveNode =
+	NormalMove PlayerName Move |
+	SubPhaseMoves SubPhase MoveNodes
+	deriving (Data,Typeable,Show)
+$(deriveSafeCopy modelVersion 'base ''MoveNode)
+makeLenses ''MoveNode
+
+
+collectMoves :: PlayerName -> MoveNodes -> [Move]
+collectMoves playername movenodes = concatMap collectmoves movenodes where
+	collectmoves (NormalMove pn move) | pn==playername = [move]
+	collectmoves (NormalMove _ _) = []
+	collectmoves (SubPhaseMoves _ movenodes) = collectMoves playername movenodes
+
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
@@ -837,7 +847,8 @@ data Player = Player {
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
-	_playerCityCoors        :: [Coors]  -- The first one is the capital
+	_playerCityCoors        :: [Coors],  -- The first one is the capital
+	_playerSubPhases        :: [SubPhase] -- Outermost subphase first
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -849,7 +860,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
 	[] [] initialFigureStack Map.empty [] Northward initialCityStack
-	0 [] []
+	0 [] [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
@@ -875,30 +886,40 @@ emptyBoard :: Board
 emptyBoard = listArray (Coors 1 1,Coors 0 0) []
 
 data Game = Game {
-	_gameCreationDate     :: UTCTime,
-	_gameCreator          :: UserName,
-	_gameState            :: GameState,
-	_gamePlayers          :: Players,
-	_gameTurn             :: Turn,
-	_gamePhase            :: Phase,
-	_gameStartPlayer      :: Int,
-	_gamePlayersTurn      :: Int,
-	_gameBoard            :: Board,
-	_gameTileStack        :: TokenStack () TileID,
-	_gameHutStack         :: TokenStack () Hut,
-	_gameVillageStack     :: TokenStack () Village,
-	_gameBuildingStack    :: TokenStack BuildingMarker (),
-	_gameGreatPersonStack :: TokenStack () GreatPerson,
-	_gameUnitStack        :: TokenStack UnitType UnitCard,
-	_gameCultureStack     :: TokenStack CultureLevel CultureEvent,
+	_gameCreationDate         :: UTCTime,
+	_gameCreator              :: UserName,
+	_gameState                :: GameState,
+	_gamePlayers              :: Players,
+	_gameTurn                 :: Turn,
+	_gamePhase                :: Phase,
+	_gameStartPlayer          :: Int,
+	_gamePlayersTurn          :: Int,
+	_gameBoard                :: Board,
+	_gameTileStack            :: TokenStack () TileID,
+	_gameHutStack             :: TokenStack () Hut,
+	_gameVillageStack         :: TokenStack () Village,
+	_gameBuildingStack        :: TokenStack BuildingMarker (),
+	_gameGreatPersonStack     :: TokenStack () GreatPerson,
+	_gameUnitStack            :: TokenStack UnitType UnitCard,
+	_gameCultureStack         :: TokenStack CultureLevel CultureEvent,
 	_gameReturnedCultureCards :: TokenStack CultureLevel CultureEvent,
-	_gameResourceStack    :: TokenStack Resource (),
-	_gameSpaceFlightTaken :: Bool,
-	_gameMoves            :: AssocList Turn (AssocList Phase [Either Move SubPhaseMoves])
+	_gameResourceStack        :: TokenStack Resource (),
+	_gameSpaceFlightTaken     :: Bool,
+	_gameMoves                :: AssocList Turn (AssocList Phase MoveNodes)
 	}
-	deriving (Data,Typeable)
+	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Game)
 makeLenses ''Game
+
+defaultNewGame creationtime = Game
+	creationtime "" Waiting emptyPlayers 0 StartOfGame 0 0
+	emptyBoard
+	emptyTokenStack emptyTokenStack emptyTokenStack
+	initialBuildingStack
+	emptyTokenStack emptyTokenStack emptyTokenStack emptyTokenStack
+	initialResourceStack
+	False
+	emptyAssocList
 
 instance Eq Game where
 	g1 == g2 =

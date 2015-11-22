@@ -59,6 +59,9 @@ noopHookM = constHookM ()
 constHookM a _ _ = return a
 noMoves = constHookM []
 
+type CardAbility = ([Phase],(ActionTarget,HookM [Move],HookM ()))
+type ResourceAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM ()))
+
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
 	unitAttackBonus          :: UnitType -> Strength,
@@ -100,7 +103,7 @@ data Abilities = Abilities {
 	buildCityNextToHuts     :: Value Bool,
 	canBuildMetropolis      :: Value Bool,
 	cultureEventImmunity    :: Value Bool,
-	cardAbilities           :: [([Phase],(ActionTarget,[ResourcePattern],HookM [Move],HookM ()))],
+	cardAbilities           :: [CardAbility],
 	subPhases               :: [[(String,HookM [Move])]] }
 
 defaultAbilities = Abilities {
@@ -206,6 +209,7 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
+{-
 		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0,
 		subPhases          = let
 			buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
@@ -214,6 +218,7 @@ civAbilities civ = case civ of
 			("Got Great Person: Build First Free Unit",  buildfreeunit),
 			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ]
 			,
+-}
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
@@ -222,16 +227,17 @@ civAbilities civ = case civ of
 			buildCityWalls gamename playername capitalcoors
 			return (),
 		discoverHutHook = addCulture 3,
-		discoverVillageHook = addCulture 3,
-		afterBattleHook = \ ownunitskilled enemyunitskilled -> switchToSubPhases (CivAbility Aztecs) 0 }
+		discoverVillageHook = addCulture 3 }
+--		afterBattleHook = switchToSubPhases (CivAbility Aztecs) 0 }
 
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
-		startOfGameHook = startBuildWonderHook_Egypt,
-		cardAbilities = [ cardAbility (CivAbility Egypt) [CityManagement] "Free Building" []
+--		startOfGameHook = startBuildWonderHook_Egypt,
+		cardAbilities = [ ] {-cardAbility (CivAbility Egypt) [CityManagement] "Free Building" []
 			(\ gamename playername -> do
-				return [] ) ] }
+				return [] ) ] -} }
 
+{-
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
 		armiesAsScouts = SetValue True }
@@ -281,15 +287,21 @@ civAbilities civ = case civ of
 		startOfGameHook         = \ gn pn -> forM_ [Artillery,Artillery] $ drawUnit gn pn,
 		exploreHutWithoutBattle = SetValue True,
 		buildCityNextToHuts     = SetValue True }
+-}
+	_ -> defaultAbilities
 
 techIdAbility tech = case tech of
 
-	Pottery              -> unchangedAbilities {
-		enabledBuildings   = [Granary],
-		cultureCardLimit   = constHookM $ ModifyValue (+1),
-		resourceAbilities  = [ resourceAbility Pottery [CityManagement] "Gain Coin" [AnyResource,AnyResource]
-			(addCoinToTech Pottery) ] }
+----	([Phase],((CardAbilityTarget String CardAbilityID),[ResourcePattern],HookM [Move],HookM ()))
 
+	Pottery              -> unchangedAbilities {
+		enabledBuildings = [Granary],
+		cultureCardLimit = constHookM $ ModifyValue (+1),
+		cardAbilities    = [ ] {-cardAbility (TechCardAbility Pottery) [CityManagement] "Gain Coin" [AnyResource,AnyResource]
+			(\ gamename playername -> return $ Move 
+			(addCoinToTech Pottery) ] -} }
+
+{-
 	Writing              -> unchangedAbilities {
 		enabledBuildings   = [Library],
 		resourceAbilities  = [ resourceAbility Writing [CityManagement] "Cancel City Action" [One Spy]
@@ -495,7 +507,7 @@ techIdAbility tech = case tech of
 			cardAbility (TechCardAbility CombustionEngine) [Movement] "Destroy Building"
 				(\ gamename playername -> do
 					return [] ),
-			cardAbility (TechCardAbility CombustionEngine) [Battle] "Destroy Walls"
+			cardAbility (TechCardAbility CombustionEngine) allPhases "Destroy Walls"
 				(\ gamename playername -> do
 					return [] )
 			] }
@@ -510,42 +522,40 @@ techIdAbility tech = case tech of
 			updateCivLensM (const True) $ civGameLens gamename . _Just . gameSpaceFlightTaken
 			victory TechVictory gamename playername }
 
+-}
+	_ -> unchangedAbilities
 	where
 
 	setUnitLevel unittypes unitlevel ut | ut `elem` unittypes = SetValue (Just unitlevel)
 	setUnitLevel _ _ _ = Unchanged
 
-techAbilities TechCard{..} = (techIdAbility _techCardTechId) { cardCoins = _techCardCoins + cardCoins ability }
+techAbilities TechCard{..} = ability { cardCoins = _techCardCoins + cardCoins ability } where
+	ability = techIdAbility _techCardTechId
 
---	cardAbilities       :: [([Phase],(ActionTarget,[ResourcePattern],HookM [Move],HookM ()))],
-cardAbility target phases name action = (phases,(CardAbilityTarget name target,respats,moves,action))
+{-
+--	([Phase],((CardAbilityTarget String CardAbilityID),[ResourcePattern],HookM [Move],HookM ()))
+cardAbility :: ActionTarget -> [Phase] -> String -> [ResourcePattern] -> HookM [Move] -> HookM () -> CardAbility
+cardAbility target phases name respats moves action = (phases,(CardAbilityTarget name target,respats,moves,action))
+-}
 
 getAbility :: CardAbilityTargetType -> Abilities
 getAbility targettype = case targettype of
 	TechCardAbility tech -> techIdAbility tech
 	CivAbility civ       -> civAbilities civ
 
+{-
 switchToSubPhases :: CardAbilityTargetType -> Int -> HookM ()
 switchToSubPhases targettype abilityindex gamename playername = do
-	updateCivLensM (const $ Just $ SubPhase targettype abilityindex 0) $ civPlayerLens gamename playername . _Just . playerSubPhase
-
-nextSubPhase :: GameName -> PlayerName -> UpdateCivM ()
-nextSubPhase gamename playername = do
-	updateCivLensM nextsubphase $ civPlayerLens gamename playername . _Just . playerSubPhase
-	where
-	nextsubphase (Just subphase@(SubPhase{..})) = case _subPhaseSubPhaseIndex + 1 of
-			subphaseindex' | subphaseindex' < length subphases ->
-				Just $ subphase { _subPhaseSubPhaseIndex = subphaseindex' }
-			_ -> Nothing
-		where
-		subphases = (subPhases $ getAbility _subPhaseTargetType) !! _subPhaseAbilityIndex
+	updateCivLensM ((SubPhase targettype abilityindex 0):) $
+		civPlayerLens gamename playername . _Just . playerSubPhases
+-}
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
 modifyValuePerNCoins n int2af gamename playername = do
 	Coins coins <- playerNumCoinsM gamename playername
 	return $ ModifyValue $ int2af (mod coins n)
 
---
+{-
 additionalCityActions_AtomicTheory gamename playername = do
 	--TODO
 	return ()
@@ -923,9 +933,9 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
 	(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
 	(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
+{-
 	(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
-{-
 	(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 -}
@@ -1380,6 +1390,19 @@ buildFigureCoors gamename playername figuretype citycoors = do
 
 techCosts player techlevel = consumedIncome techlevel -# getValueAbility researchCostBonus player
 
+{-
+nextSubPhase :: GameName -> PlayerName -> UpdateCivM ()
+nextSubPhase gamename playername = do
+	updateCivLensM nextsubphase $ civPlayerLens gamename playername . _Just . playerSubPhases
+	where
+	nextsubphase ((subphase@(SubPhase{..})):sps) = case _subPhaseSubPhaseIndex + 1 of
+			subphaseindex' | subphaseindex' < length subphases ->
+				subphase { _subPhaseSubPhaseIndex = subphaseindex' } : sps
+			_ -> sps
+		where
+		subphases = (subPhases $ getAbility _subPhaseTargetType) !! _subPhaseAbilityIndex
+-}
+
 doMove :: GameName -> PlayerName -> Move -> UpdateCivM ()
 doMove gamename playername move@(Move source target) = do
 	Just (Game{..}) <- getGame gamename
@@ -1431,17 +1454,23 @@ doMove gamename playername move@(Move source target) = do
 				gamename playername
 			addTech gamename playername Nothing tech
 
-		(ResourcesSource pn payments,target@(CardAbilityTarget _ targettype)) | pn==playername -> do
-			forM_ payments $ \case
-				ResourcePayment res            -> returnResource gamename playername res
-				CultureCardPayment culturecard -> returnCultureCard gamename playername culturecard
-				VillagePayment village         -> returnVillage gamename playername village
-				HutPayment hut                 -> returnHut gamename playername hut
-			let [(_,_,hook)] = filter (\(tg,_,_)->tg==target) $ map snd $
-				filter ((elem _gamePhase).fst) $ resourceAbilities (getAbility targettype)
-			hook gamename playername
+--type CardAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM [Move],HookM ()))
 
---	resourceAbilities   :: [([Phase],(ActionTarget,[ResourcePattern],HookM ()))],
+{-
+		(source,target@(CardAbilityTarget _ targettype)) -> do
+			case source of
+				NoSource ()                 -> return ()
+				ResourcesSource pn payments -> do
+					forM_ payments $ \case
+						ResourcePayment res            -> returnResource gamename playername res
+						CultureCardPayment culturecard -> returnCultureCard gamename playername culturecard
+						VillagePayment village         -> returnVillage gamename playername village
+						HutPayment hut                 -> returnHut gamename playername hut
+			let [(_,_,action)] = filter (\(tg,_,_)->tg==target) $ map snd $
+				filter ((elem _gamePhase).fst) $ cardAbilities (getAbility targettype)
+			action gamename playername
+-}
+
 {-
 		(NoSource (),target@(CardAbilityTarget _ cardtarget)) -> do
 			let [(_,hook)] = filter (\ (tg,_) -> tg==target) $ cardAbilities (getAbility cardtarget)
@@ -1454,11 +1483,17 @@ doMove gamename playername move@(Move source target) = do
 
 		_ -> error $ show move ++ " not implemented yet"
 
-	updateCivLensM (addmove _gameTurn _gamePhase) $ civPlayerLens gamename playername . _Just . playerMoves
+	updateCivLensM (addmove _gameTurn _gamePhase _playerSubPhases) $
+		civGameLens gamename . _Just . gameMoves
 	return ()
 	where
-	addmove turn phase =
-		Map.insertWith (Map.unionWith (++)) turn (Map.singleton phase [move])
+	addmove turn phase subphases = addModifyAssoc turn
+		(singletonAssocList (phase,[buildmovenode subphases]))
+		concatAssocLists
+		where
+		buildmovenode [] = NormalMove playername move
+		buildmovenode (subphase:ss) = SubPhaseMoves subphase [buildmovenode ss]
+		
 
 playerNumCoins :: GameName -> PlayerName -> Update CivState Coins
 playerNumCoins gamename playername = do
@@ -1629,7 +1664,7 @@ moveGen gamename my_playername = do
 							[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 
 				abilitymovess <- forM (playerAbilities player) $ \ ability -> do
-
+{-
 					resourcemovess <- forM (filter ((elem _gamePhase).fst) $ resourceAbilities ability) $ \ (_,(target,resourcepats,hook)) -> do
 						return [ Move (ResourcesSource playername payment) target |
 							payment <- possiblePayments player resourcepats ]
@@ -1638,12 +1673,14 @@ moveGen gamename my_playername = do
 						return [ Move (NoSource ()) target ]
 
 					return $ concat $ resourcemovess ++ cardmovess
+-}
+					return []
 
 				return $ phasemoves ++ concat abilitymovess
 
-		mb_movesthisphase <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerMoves . at _gameTurn . _Just . at _gamePhase . _Just
-		let movesthisphase = maybe [] Prelude.id mb_movesthisphase
-		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves movesthisphase
+		mb_movenodesthisphase <- queryCivLensM $ civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+		let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
+		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves my_movesthisphase
 	case res of
 		Right moves -> return moves
 		Left msg -> error msg
