@@ -72,6 +72,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		myplayerori = maybe Northward _playerOrientation mb_myplayer
 		di = DisplayInfo gamename game mb_playername mb_myplayer myplayerori toplayer
 		(playernametomove,_) = nthAssocList (_gamePlayersTurn game) (_gamePlayers game)
+	movelist <- moveList di
 	playerlist <- playerList di
 	boardarea <- boardArea di moves
 	actionarea <- actionArea di mb_playername moves
@@ -182,6 +183,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 
 <div .Sidebar>
   <table>
+    <tr><td>^{movelist}
     <tr><td>Zoom <input type="text" id="Zoom" readonly style="border:0;" /><div id="ZoomSlider" />
     <tr><td>^{playerlist}
     <tr><td>^{actionarea}
@@ -219,6 +221,11 @@ actionArea di@(DisplayInfo{..}) (Just playername) moves = do
   <table .ActionArea>
     $forall move <- moves
       <tr><td><button type=button onclick="sendAction(JSON.stringify(#{data2markup $ GameActionA move}))">#{show move}
+|]
+
+moveList :: DisplayInfo -> Handler Widget
+moveList di@(DisplayInfo{..}) = do
+	return [whamlet|
 |]
 
 playerList :: DisplayInfo -> Handler Widget
