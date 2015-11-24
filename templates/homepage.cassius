@@ -183,3 +183,16 @@ img
 .PlateContainer img
     height: 100%
     width: 100%
+
+.collapsibleList li > input + *
+    display: none
+ 
+.collapsibleList li > input:checked + *
+    display: block
+
+.collapsibleList li > input
+    display: none
+
+.collapsibleList label
+    cursor: pointer
+    color: blue

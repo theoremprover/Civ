@@ -227,17 +227,17 @@ moveList :: DisplayInfo -> Handler Widget
 moveList di@(DisplayInfo{..}) = do
 	let moves = map (\(turn,phs)->(turn,fromAssocList phs)) $ fromAssocList $ _gameMoves gameDI
 	return [whamlet|
-<div>
-  <ul>
+<div style="overflow:scroll">
+  <ul .collapsibleList>
     $forall (turn,phasemoves) <- moves
       <li>
-        $with labelprefix <- "movelist_turn" ++ show turn
+        $with labelprefix <- concat ["movelist_turn",show turn]
           <label for=#{labelprefix}>Turn #{show turn}
           <input type="checkbox" id=#{labelprefix}>
           <ul>
             $forall (phase,movenodes) <- phasemoves
               <li>
-                $with labelprefix2 <- labelprefix ++ "_" ++ show phase
+                $with labelprefix2 <- concat [labelprefix,"_",show phase]
                   <label for=#{labelprefix2}>#{show phase}
                   <input type="checkbox" id=#{labelprefix2}>
                   ^{movenodes2html labelprefix2 movenodes}
@@ -249,10 +249,10 @@ moveList di@(DisplayInfo{..}) = do
     <li>
       $case movenode
         $of NormalMove pn move
-          #{Text.unpack (playerName pn) ++ ": " ++ show move}
+          #{concat [Text.unpack (playerName pn),": ",show move]}
         $of SubPhaseMoves subphase submovenodes
-          $with subphasename <- 
-            $with labelprefix2 <- labelprefix ++ "_" ++ subphasename
+          $with subphasename <- subphaseName subphase
+            $with labelprefix2 <- concat [labelprefix,"_",subphasename]
               <label for=#{labelprefix2}>#{subphasename}
               <input type="checkbox" id=#{labelprefix2}>
               ^{movenodes2html labelprefix2 submovenodes}

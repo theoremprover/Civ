@@ -83,6 +83,7 @@ data Abilities = Abilities {
 	getThisHook         :: HookM (),
 	getTechHook         :: Tech -> HookM (),
 	startOfGameHook     :: HookM (),
+	startOfPlayHook     :: HookM (),
 	spendResourceHook   :: HookM (),
 	investCoinHook      :: HookM (),
 	afterBattleHook     :: [UnitCard] -> [UnitCard] -> HookM (),
@@ -129,6 +130,7 @@ defaultAbilities = Abilities {
 	getThisHook     = noopHookM,
 	getTechHook     = \ _ -> noopHookM,
 	startOfGameHook = noopHookM,
+	startOfPlayHook = noopHookM,
 	spendResourceHook  = noopHookM,
 	investCoinHook     = noopHookM,
 	afterBattleHook    = \ _ _ -> noopHookM,
@@ -173,6 +175,7 @@ unchangedAbilities = Abilities {
 	getThisHook     = noopHookM,
 	getTechHook     = \ _ -> noopHookM,
 	startOfGameHook = noopHookM,
+	startOfPlayHook = noopHookM,
 	spendResourceHook  = noopHookM,
 	investCoinHook     = noopHookM,
 	afterBattleHook    = \ _ _ -> noopHookM,
@@ -222,7 +225,7 @@ civAbilities civ = case civ of
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {
-		startOfGameHook = \ gamename playername -> do
+		startOfPlayHook = \ gamename playername -> do
 			Just (capitalcoors:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors
 			buildCityWalls gamename playername capitalcoors
 			return (),
@@ -544,6 +547,24 @@ getAbility targettype = case targettype of
 	CivAbility civ       -> civAbilities civ
 
 {-
+	cardAbilities           :: [CardAbility],
+	subPhases               :: [[(String,HookM [Move])]] }
+{-
+		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0,
+		subPhases          = let
+			buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
+				return [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
+			in [ [
+			("Got Great Person: Build First Free Unit",  buildfreeunit),
+			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ]
+			,
+-}
+-}
+subphaseName :: SubPhase -> String
+subphaseName (SubPhase (catt,caindex) subphaseindex) =
+	fst $ ((subPhases $ getAbility catt) !! subphaseindex) !! caindex
+
+{-
 switchToSubPhases :: CardAbilityTargetType -> Int -> HookM ()
 switchToSubPhases targettype abilityindex gamename playername = do
 	updateCivLensM ((SubPhase targettype abilityindex 0):) $
@@ -807,7 +828,9 @@ startGame gamename = runUpdateCivM $ do
 		setGovernment startgov gamename playername
 		forM_ [Incense,Wheat,Linen,Iron] $ \ res -> do
 			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
-		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> a gamename playername
+		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> do
+			() <- a gamename playername   -- TODO: Why is this necessary to report errors in a?
+			return ()
 
 	when debugMode $ do
 		Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
