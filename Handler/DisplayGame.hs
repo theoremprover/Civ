@@ -225,7 +225,24 @@ actionArea di@(DisplayInfo{..}) (Just playername) moves = do
 
 moveList :: DisplayInfo -> Handler Widget
 moveList di@(DisplayInfo{..}) = do
+	let moves = map (\(turn,phs)->(turn,fromAssocList phs)) $ fromAssocList $ _gameMoves gameDI
 	return [whamlet|
+<div>
+  <ul>
+    $forall (turn,phasemoves) <- moves
+      <li>
+        $with labelprefix <- "movelist_turn" ++ show turn
+          <label for=#{}>
+        $forall (phase,movenodes) <- phasemoves
+          ^{movenodes2html labelprefix movenodes}
+|]
+	where
+	movenodes2html turn phase movenodes = [whamlet|
+$forall movenode <- movenodes
+  $case movenode
+    $of NormalMove pn move
+    $of SubPhaseMoves subphase submovenodes
+      ^{movenodes2html turn phase submovenodes}
 |]
 
 playerList :: DisplayInfo -> Handler Widget

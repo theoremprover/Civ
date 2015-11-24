@@ -13,3 +13,20 @@
     50%  { opacity: 0; }
     100% { opacity: 1; }
 }
+
+.collapsibleList li > input + * {
+ display: none;
+}
+ 
+.collapsibleList li > input:checked + * {
+ display: block;
+}
+
+.collapsibleList li > input {
+ display: none;
+}
+
+.collapsibleList label {
+ cursor: pointer;
+ color: blue;
+}
