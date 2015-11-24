@@ -758,7 +758,7 @@ type CardAbilityID = (CardAbilityTargetType,Int)
 data SubPhase = SubPhase {
 	_cardAbilityID :: CardAbilityID,
 	_subPhaseIndex :: Int }
-	deriving (Show,Eq,Ord,Data,Typeable)
+	deriving (Show,Eq,Ord,Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
 
 data ActionTarget =

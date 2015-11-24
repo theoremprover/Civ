@@ -232,17 +232,30 @@ moveList di@(DisplayInfo{..}) = do
     $forall (turn,phasemoves) <- moves
       <li>
         $with labelprefix <- "movelist_turn" ++ show turn
-          <label for=#{}>
-        $forall (phase,movenodes) <- phasemoves
-          ^{movenodes2html labelprefix movenodes}
+          <label for=#{labelprefix}>Turn #{show turn}
+          <input type="checkbox" id=#{labelprefix}>
+          <ul>
+            $forall (phase,movenodes) <- phasemoves
+              <li>
+                $with labelprefix2 <- labelprefix ++ "_" ++ show phase
+                  <label for=#{labelprefix2}>#{show phase}
+                  <input type="checkbox" id=#{labelprefix2}>
+                  ^{movenodes2html labelprefix2 movenodes}
 |]
 	where
-	movenodes2html turn phase movenodes = [whamlet|
-$forall movenode <- movenodes
-  $case movenode
-    $of NormalMove pn move
-    $of SubPhaseMoves subphase submovenodes
-      ^{movenodes2html turn phase submovenodes}
+	movenodes2html labelprefix movenodes = [whamlet|
+<ul>
+  $forall movenode <- movenodes
+    <li>
+      $case movenode
+        $of NormalMove pn move
+          #{Text.unpack (playerName pn) ++ ": " ++ show move}
+        $of SubPhaseMoves subphase submovenodes
+          $with subphasename <- 
+            $with labelprefix2 <- labelprefix ++ "_" ++ subphasename
+              <label for=#{labelprefix2}>#{subphasename}
+              <input type="checkbox" id=#{labelprefix2}>
+              ^{movenodes2html labelprefix2 submovenodes}
 |]
 
 playerList :: DisplayInfo -> Handler Widget
