@@ -32,9 +32,9 @@ deleteAssoc assoc assoclist = assoclist { fromAssocList = delete assoc (fromAsso
 
 mapAssoc :: (Eq key) => key -> (val -> val) -> AssocList key val -> AssocList key val 
 mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList assoclist) } where
-	mf (k,v) = case k==key of
-		False -> (k,v)
-		True  -> (k,f v)
+	mf (k,v) = (k,case k==key of
+		False -> v
+		True  -> f v)
 
 addModifyAssoc :: (Eq key) => key -> val -> (val -> val -> val) -> AssocList key val -> AssocList key val
 addModifyAssoc k v f assoclist = case lookupAssocList k assoclist of

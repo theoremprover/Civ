@@ -878,7 +878,6 @@ autoPlayGame :: GameName -> StdGen -> Update CivState UpdateResult
 autoPlayGame gamename randgen = do
 	startGame gamename
 	runUpdateCivM $ autoPlayLoop gamename randgen
-	return oK
 
 autoPlayLoop :: GameName -> StdGen -> UpdateCivM ()
 autoPlayLoop gamename randgen = do
