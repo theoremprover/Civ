@@ -39,7 +39,7 @@ mapAssoc key f assoclist = assoclist { fromAssocList = map mf (fromAssocList ass
 addModifyAssoc :: (Eq key) => key -> val -> (val -> val -> val) -> AssocList key val -> AssocList key val
 addModifyAssoc k v f assoclist = case lookupAssocList k assoclist of
 	Nothing  -> addAssoc (k,v) assoclist
-	Just val -> mapAssoc k (f val) assoclist
+	Just val -> mapAssoc k (const $ f val v) assoclist
 
 concatAssocLists :: (Eq key) => AssocList key val -> AssocList key val -> AssocList key val
 concatAssocLists al1 al2 = AssocList (fromAssocList al1 ++ fromAssocList al2)

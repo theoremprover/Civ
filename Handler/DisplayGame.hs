@@ -235,24 +235,25 @@ moveList di@(DisplayInfo{..}) = do
           <label for=#{labelprefix}>Turn #{show turn}
           <input type="checkbox" id=#{labelprefix}>
           <ul>
-            $forall (phase,movenodes) <- phasemoves
+            $forall (i,(phase,movenodes)) <- zip iinf phasemoves
               <li>
-                $with labelprefix2 <- concat [labelprefix,"_",show phase]
+                $with labelprefix2 <- concat [labelprefix,"_",show i]
                   <label for=#{labelprefix2}>#{show phase}
                   <input type="checkbox" id=#{labelprefix2}>
                   ^{movenodes2html labelprefix2 movenodes}
 |]
 	where
+	iinf = [1..]
 	movenodes2html labelprefix movenodes = [whamlet|
 <ul>
-  $forall movenode <- movenodes
+  $forall (i,movenode) <- zip iinf movenodes
     <li>
       $case movenode
         $of NormalMove pn move
           #{concat [Text.unpack (playerName pn),": ",show move]}
         $of SubPhaseMoves subphase submovenodes
           $with subphasename <- subphaseName subphase
-            $with labelprefix2 <- concat [labelprefix,"_",subphasename]
+            $with labelprefix2 <- concat [labelprefix,"_",show i]
               <label for=#{labelprefix2}>#{subphasename}
               <input type="checkbox" id=#{labelprefix2}>
               ^{movenodes2html labelprefix2 submovenodes}
