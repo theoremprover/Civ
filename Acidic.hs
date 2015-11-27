@@ -961,6 +961,7 @@ allowSecondMove secondmove move = case (move,secondmove) of
 	(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 -}
+	(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
 	_ -> True
 
 getCity gamename coors = do
@@ -1700,9 +1701,11 @@ moveGen gamename my_playername = do
 
 				return $ phasemoves ++ concat abilitymovess
 
-		mb_movenodesthisphase <- queryCivLensM $ civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+		mb_movenodesthisphase <- queryCivLensM $
+			civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
 		let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves my_movesthisphase
+		let debugmoves = [ Move (NoSource ()) (DebugTarget $ show my_movesthisphase) ]
+		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves (debugmoves ++ my_movesthisphase)
 	case res of
 		Right moves -> return moves
 		Left msg -> error msg

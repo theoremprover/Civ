@@ -670,9 +670,9 @@ cultureStep step = ([
 	Nothing
 	] ++ repeat Nothing) !! step
 
-cultureStepCost step | step <= 7 =  (Culture 3,Trade 0)
+cultureStepCost step | step <= 7  = (Culture 3,Trade 0)
 cultureStepCost step | step <= 14 = (Culture 5,Trade 3)
-cultureStepCost step =              (Culture 7,Trade 6)
+cultureStepCost step              = (Culture 7,Trade 6)
 
 data CultureCard = CultureCard {
 	_cultureCardRevealed :: Bool,
@@ -820,7 +820,7 @@ collectMoves :: PlayerName -> MoveNodes -> [Move]
 collectMoves playername movenodes = concatMap collectmoves movenodes where
 	collectmoves (NormalMove pn move) | pn==playername = [move]
 	collectmoves (NormalMove _ _) = []
-	collectmoves (SubPhaseMoves _ movenodes) = collectMoves playername movenodes
+	collectmoves (SubPhaseMoves _ submovenodes) = collectMoves playername submovenodes
 
 
 data Player = Player {
