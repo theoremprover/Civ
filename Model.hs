@@ -282,7 +282,7 @@ instance GeneratesIncome City where
 		cultureIncome (maybe 1 (const 2) _cityMetropolisOrientation) +#
 		_cityIncomeBonus
 
-newCity owner capital metroori = City owner capital False False NoWalls False noIncome metroori
+newCity owner capital = City owner capital False False NoWalls False noIncome Nothing
 
 data BuildingMarker = BarracksOrAcademy | ForgeOrIronMine |
 	GranaryOrAquaeduct | TempleOrCathedral | LibraryOrUniversity |
@@ -756,8 +756,8 @@ $(deriveSafeCopy modelVersion 'base ''CardAbilityTargetType)
 type CardAbilityID = (CardAbilityTargetType,Int)
 
 data SubPhase = SubPhase {
-	_cardAbilityID :: CardAbilityID,
-	_subPhaseIndex :: Int }
+	_cardAbilityID      :: CardAbilityID,
+	_intraSubPhaseIndex :: Int }
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
 
@@ -766,7 +766,7 @@ data ActionTarget =
 	DebugTarget String |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
-	BuildCityTarget () |
+	BuildCityTarget ()
 	CardAbilityTarget String CardAbilityID |
 	TechTarget PlayerName Tech |
 	TechTreeTarget PlayerName |
@@ -783,6 +783,7 @@ $(deriveSafeCopy modelVersion 'base ''Move)
 instance Show Move where
 	show (Move source target) = case (source,target) of
 		(_,BuildFirstCityTarget _ coors) -> "Build first city at " ++ show coors
+		(MetropolisSource _,SquareTarget coors) -> "Build Metropolis at " ++ show coors
 		(FigureOnBoardSource figureid _ sourcecoors,BuildCityTarget ()) -> "Build city at " ++ show sourcecoors ++ " with " ++ show figureid
 		(_,GetTradeTarget _) -> "Get Trade"
 		(FigureSource _ figure,SquareTarget coors) -> "Place " ++ show figure ++ " on " ++ show coors
@@ -847,8 +848,8 @@ data Player = Player {
 	_playerCityStack        :: TokenStack () (),
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
-	_playerCityCoors        :: [Coors],  -- The first one is the capital
-	_playerSubPhases        :: [SubPhase] -- Outermost subphase first
+	_playerCityCoors        :: [Coors],   -- The first one is the capital
+	_playerSubPhases        :: [SubPhase] -- Innermost subphase first
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -875,7 +876,7 @@ gameName (GameName gn) = gn
 type Players = AssocList PlayerName Player
 
 emptyPlayers :: Players
-emptyPlayers = AssocList []
+emptyPlayers = emptyAssocList
 
 numPlayers :: Players -> Int
 numPlayers = length . fromAssocList
