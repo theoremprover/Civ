@@ -48,7 +48,7 @@ civCityLens gamename coors = civSquareLens gamename coors . squareTokenMarker . 
 civPlayerIndexLens :: GameName -> Int -> Traversal' CivState (PlayerName,Player)
 civPlayerIndexLens gamename index = civPlayersLens gamename . nthAssocListLens index
 
-nthAssocListLens :: Int -> Lens' (AssocList key val) (key,val)
+nthAssocListLens :: (Eq key) => Int -> Lens' (AssocList key val) (key,val)
 nthAssocListLens index = lens ((!!index).fromAssocList) ins where
 	ins (AssocList l) e = AssocList $ take index l ++ [e] ++ drop index l
 

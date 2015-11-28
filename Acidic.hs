@@ -1512,7 +1512,7 @@ doMove gamename playername move@(Move source target) = do
 	where
 	addmove turn phase subphases = addModifyAssoc turn
 		(singletonAssocList (phase,[buildmovenode subphases]))
-		concatAssocLists
+		(concatAssocLists (++))
 		where
 		buildmovenode [] = NormalMove playername move
 		buildmovenode (subphase:ss) = SubPhaseMoves subphase [buildmovenode ss]
