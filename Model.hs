@@ -263,16 +263,17 @@ data Walls = NoWalls | Walls
 	deriving (Show,Data,Typeable,Eq,Bounded,Ix,Ord,Enum)
 $(deriveSafeCopy modelVersion 'base ''Walls)
 
-data City = SecondCitySquare Orientation | City {
-	_cityOwner                 :: PlayerName,
-	_cityCapital               :: Bool,
-	_cityDoubleProd            :: Bool,
-	_cityFortified             :: Bool,
-	_cityWalls                 :: Walls,
-	_cityCaravan               :: Bool,
-	_cityIncomeBonus           :: Income,   -- Temporary Bonus per phase, will be reset before CityManagement!
-	_cityMetropolisOrientation :: Maybe Orientation
-	}
+data City =
+	SecondCitySquare Orientation |  -- orientation points to main city square
+	City {
+		_cityOwner                 :: PlayerName,
+		_cityCapital               :: Bool,
+		_cityDoubleProd            :: Bool,
+		_cityFortified             :: Bool,
+		_cityWalls                 :: Walls,
+		_cityCaravan               :: Bool,
+		_cityIncomeBonus           :: Income,   -- Temporary Bonus per phase, will be reset before CityManagement!
+		_cityMetropolisOrientation :: Maybe Orientation } -- orientation points to extended city square
 	deriving (Show,Data,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''City)
 makeLenses ''City
@@ -760,13 +761,14 @@ data SubPhase = SubPhase {
 	_intraSubPhaseIndex :: Int }
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
+makeLenses ''SubPhase
 
 data ActionTarget =
 	NoTarget () |
 	DebugTarget String |
 	SquareTarget Coors |
 	BuildFirstCityTarget PlayerName Coors |
-	BuildCityTarget ()
+	BuildCityTarget () |
 	CardAbilityTarget String CardAbilityID |
 	TechTarget PlayerName Tech |
 	TechTreeTarget PlayerName |

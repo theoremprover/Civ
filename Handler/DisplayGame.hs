@@ -243,7 +243,7 @@ moveList di@(DisplayInfo{..}) = do
                   ^{movenodes2html labelprefix2 movenodes}
 |]
 	where
-	iinf = [1..]
+	iinf = [1..] :: [Int]
 	movenodes2html labelprefix movenodes = [whamlet|
 <ul>
   $forall (i,movenode) <- zip iinf movenodes
@@ -252,11 +252,10 @@ moveList di@(DisplayInfo{..}) = do
         $of NormalMove pn move
           #{concat [Text.unpack (playerName pn),": ",show move]}
         $of SubPhaseMoves subphase submovenodes
-          $with subphasename <- subphaseName subphase
-            $with labelprefix2 <- concat [labelprefix,"_",show i]
-              <label for=#{labelprefix2}>#{subphasename}
-              <input type="checkbox" id=#{labelprefix2}>
-              ^{movenodes2html labelprefix2 submovenodes}
+          $with labelprefix2 <- concat [labelprefix,"_",show i]
+            <label for=#{labelprefix2}>#{subphaseName subphase}
+            <input type="checkbox" id=#{labelprefix2}>
+            ^{movenodes2html labelprefix2 submovenodes}
 |]
 
 playerList :: DisplayInfo -> Handler Widget
@@ -485,22 +484,42 @@ boardArea di@(DisplayInfo{..}) moves = do
 		(xcoors,ycoors) = (map xCoor allcoors,map yCoor allcoors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
-		cityori (city@City{..}) = case _cityMetropolisOrientation of
+		cityori City{..} = case _cityMetropolisOrientation of
 			Nothing -> playerori _cityOwner
-			Just metropolisori -> addOri metropolisori Westward
+			Just metropolisori -> case (playerori _cityOwner,metropolisori) of
+				(Northward,Northward) -> Westward
+				(Northward,Westward)  -> Northward
+				(Northward,Southward) -> Westward
+				(Northward,Eastward)  -> Northward
+				(Westward, Northward) -> Westward
+				(Westward, Westward)  -> Southward
+				(Westward, Southward) -> Westward
+				(Westward, Eastward)  -> Southward
+				(Southward,Northward) -> Westward
+				(Southward,Westward)  -> Southward
+				(Southward,Southward) -> Westward
+				(Southward,Eastward)  -> Southward
+				(Eastward, Northward) -> Eastward
+				(Eastward, Westward)  -> Southward
+				(Eastward, Southward) -> Eastward
+				(Eastward, Eastward)  -> Southward
 		playerori playername = _playerOrientation $ playernameToPlayerDI playername
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
-		rowcolspan :: Coors -> Maybe (Int,Int,String)
-		rowcolspan coors = case arrlookup coors of
-			Square _ _ _ _ _ (Just (CityMarker city)) _ -> case city of
-				SecondCitySquare _          -> Nothing
-				City _ _ _ _ _ _ _ Nothing    -> Just (1,1,"SquareContainer")
-				City _ _ _ _ _ _ _ (Just ori) -> case ori of
-					Southward -> Just (2,1,"VertDoubleSquareContainer")
-					Eastward  -> Just (1,2,"HorDoubleSquareContainer")
-					_         -> error $ "Strange orientation: " ++ show coors
-			_ -> Just (1,1,"SquareContainer")
+		showcity :: Coors -> Maybe City
+		showcity coors = case arrlookup coors of
+			Square _ _ _ _ _ (Just (CityMarker citysq)) _ -> case citysq of
+				SecondCitySquare ori          -> case ori of
+					Westward  -> Nothing
+					Northward -> Nothing
+					_  -> Just city where
+						city@(City _ _ _ _ _ _ _ _) = _cityMarker $ fromJust $ _squareTokenMarker $ arrlookup (addCoorsOri coors ori)
+				city@(City _ _ _ _ _ _ _ Nothing) -> Just city
+				city@(City _ _ _ _ _ _ _ (Just ori)) -> case ori of
+					Eastward  -> Just city
+					Southward -> Just city
+					_         -> Nothing
+			_ -> Nothing
 
 	return [whamlet|
 <div .Parent>
@@ -513,27 +532,26 @@ boardArea di@(DisplayInfo{..}) moves = do
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
-              $maybe (rowspan,colspan,sizeclass) <- rowcolspan (Coors x y)
-                <td .SquareContainer.Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} rowspan="#{show rowspan}" colspan="#{show colspan}" alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer.Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
                     $of _
                       $maybe tokmarker <- _squareTokenMarker square
-                        $case tokmarker
-                          $of ArtifactMarker artifact
-                            <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
-                          $of HutMarker _
-                            <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
-                          $of VillageMarker _
-                            <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
-                          $of CityMarker (city@(City{..}))
-                             <div class="#{sizeclass}">
-                               <div .Center class="PlateContainer City #{show (cityori city)}Square">
-                                 <img src=@{cityRoute (playercolour _cityOwner) city}>
-                          $of CityMarker (SecondCitySquare _)
-                          $of BuildingMarker (Building buildingtype owner)
-                            <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
+                        $maybe city <- showcity (Coors x y)
+                          <div .SquareContainer>
+                            <div .Center class="PlateContainer City #{show (cityori city)}Square">
+                              <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
+                        $nothing
+                          $case tokmarker
+                            $of ArtifactMarker artifact
+                              <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
+                            $of HutMarker _
+                              <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
+                            $of VillageMarker _
+                              <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
+                            $of BuildingMarker (Building buildingtype owner)
+                              <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
                       ^{figuresSquare di (_squareFigures square)}
 
   <div .Map-Layer2>

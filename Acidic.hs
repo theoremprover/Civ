@@ -62,6 +62,9 @@ noMoves = constHookM []
 type CardAbility = ([Phase],(ActionTarget,HookM [Move],HookM ()))
 type ResourceAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM ()))
 
+type SubPhaseStep = (String,HookM [Move])
+type SubPhaseDef = (String,[SubPhaseStep])
+
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
 	unitAttackBonus          :: UnitType -> Strength,
@@ -105,7 +108,7 @@ data Abilities = Abilities {
 	canBuildMetropolis      :: Value Bool,
 	cultureEventImmunity    :: Value Bool,
 	cardAbilities           :: [CardAbility],
-	subPhases               :: [[(String,HookM [Move])]] }
+	subPhases               :: [SubPhaseDef] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
@@ -298,8 +301,11 @@ techIdAbility tech = case tech of
 	Agriculture          -> unchangedAbilities {
 		getThisHook        = switchToSubPhase (TechCardAbility Agriculture) 0,
 		subPhases          = [
-			[ ("Build Metropolis",\ gamename playername -> do
-				return []) ] ]
+			("Build Metropolis",[
+				("Select Metropolis Square",\ gamename playername -> do
+					coorss <- metropolisExpansionSquares gamename playername
+					return $ Move (NoSource ()) (FinishPhaseTarget ()) :
+						[ Move (MetropolisSource playername) (SquareTarget coors) | coors <- coorss ] ) ] ) ],
 		canBuildMetropolis = SetValue True }
 
 	Pottery              -> unchangedAbilities {
@@ -547,6 +553,12 @@ getAbility targettype = case targettype of
 	TechCardAbility tech -> techIdAbility tech
 	CivAbility civ       -> civAbilities civ
 
+getSubPhaseDef :: CardAbilityID -> SubPhaseDef
+getSubPhaseDef (catt,subphaseindex) = (subPhases $ getAbility catt) !! subphaseindex
+
+getSubPhaseStep :: SubPhase -> SubPhaseStep
+getSubPhaseStep (SubPhase caaid intrasubphase) = (snd $ getSubPhaseDef caaid) !! intrasubphase
+
 {-
 	cardAbilities           :: [CardAbility],
 	subPhases               :: [[(String,HookM [Move])]] }
@@ -561,12 +573,11 @@ getAbility targettype = case targettype of
 -}
 
 subphaseName :: SubPhase -> String
-subphaseName (SubPhase (catt,caindex) subphaseindex) =
-	fst $ ((subPhases $ getAbility catt) !! subphaseindex) !! caindex
+subphaseName subphase = fst $ getSubPhaseDef (_cardAbilityID subphase)
 
 switchToSubPhase :: CardAbilityTargetType -> Int -> HookM ()
 switchToSubPhase targettype abilityindex gamename playername = do
-	updateCivLensM ((SubPhase (targettype,abilityindex) 0]):) $
+	updateCivLensM ((SubPhase (targettype,abilityindex) 0):) $
 		civPlayerLens gamename playername . _Just . playerSubPhases
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
@@ -757,34 +768,45 @@ getPlayerTurn gamename = do
 	return playername
 
 finishPlayerPhase gamename = do
-	incPlayerIndex gamename gamePlayersTurn
-	Just (game@Game{..}) <- queryCivLensM $ civGameLens gamename . _Just
-	when (_gamePlayersTurn == _gameStartPlayer) $ do
-		updateCivLensM nextPhase $ civGameLens gamename . _Just . gamePhase
-		Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
-		case phase of
-			CityManagement -> do
-				forAllPlayers gamename $ \ (playername,player) -> do
-					forAllCities gamename playername $ \ (coors,_) -> do
-						updateCivLensM (const noIncome) $
-							civCityLens gamename coors . cityIncomeBonus
-				return ()
+	playername <- getPlayerTurn gamename
+	Just subphases <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerSubPhases
+	case subphases of
+		[] -> do
+			incPlayerIndex gamename gamePlayersTurn
+			Just (game@Game{..}) <- queryCivLensM $ civGameLens gamename . _Just
+			when (_gamePlayersTurn == _gameStartPlayer) $ do
+				updateCivLensM nextPhase $ civGameLens gamename . _Just . gamePhase
+				Just phase <- queryCivLensM $ civGameLens gamename . _Just . gamePhase
+				case phase of
+					CityManagement -> do
+						forAllPlayers gamename $ \ (playername,player) -> do
+							forAllCities gamename playername $ \ (coors,_) -> do
+								updateCivLensM (const noIncome) $
+									civCityLens gamename coors . cityIncomeBonus
+						return ()
 
-			Movement -> do
-				forAllPlayers gamename $ \ (playername,player) -> do
-					let range = getValueAbility moveRange player
-					updateCivLensM (Map.map $ \ figure -> figure { _figureRangeLeft = range }) $
-						civPlayerLens gamename playername . _Just . playerFiguresOnBoard
-				return ()
+					Movement -> do
+						forAllPlayers gamename $ \ (playername,player) -> do
+							let range = getValueAbility moveRange player
+							updateCivLensM (Map.map $ \ figure -> figure { _figureRangeLeft = range }) $
+								civPlayerLens gamename playername . _Just . playerFiguresOnBoard
+						return ()
 
-			StartOfTurn -> do
-				updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
-				when (_gameTurn>1) $ do
-					incPlayerIndex gamename gamePlayersTurn
-					incPlayerIndex gamename gameStartPlayer
+					StartOfTurn -> do
+						updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
+						when (_gameTurn>1) $ do
+							incPlayerIndex gamename gamePlayersTurn
+							incPlayerIndex gamename gameStartPlayer
 
-			_ -> return ()
-
+					_ -> return ()
+		SubPhase{..} : _ -> do
+			let (_,movegens) = getSubPhaseDef _cardAbilityID
+			case length movegens > _intraSubPhaseIndex + 1 of
+				True  -> do
+					updateCivLensM (+1) $ civPlayerLens gamename playername . _Just . playerSubPhases . ix 0 . intraSubPhaseIndex
+				False -> do
+					updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerSubPhases
+					
 allowSecondMove secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
@@ -1035,7 +1057,7 @@ addTech gamename playername mb_level tech = do
 	let techcards = [TechCard tech (Coins 0)]
 	updateCivLensM (Just . maybe techcards (++techcards)) $
 		civPlayerLens gamename playername . _Just . playerTechs . at techlevel
-	getThisHook $ getAbility (TechCardAbility tech)
+	(getThisHook $ getAbility (TechCardAbility tech)) gamename playername
 
 addCoinToTech :: Tech -> GameName -> PlayerName -> UpdateCivM ()
 addCoinToTech tech gamename playername = do
@@ -1155,6 +1177,9 @@ playernamesOnSquare square = case square of
 	Square _ _ _ _ _ _ sqfigures -> nub $ map fst sqfigures
 	_ -> []
 
+noOtherPlayersOnSquare playername square =
+	null $ playernamesOnSquare square \\ [playername]
+
 canBuildCityHere :: GameName -> PlayerName -> Coors -> UpdateCivM Bool
 canBuildCityHere gamename playername coors = do
 	let cityarea = coors : surroundingSquares 1 coors
@@ -1168,9 +1193,24 @@ canBuildCityHere gamename playername coors = do
 				Square _ (terrain:_) _ _ _ mbtokmark _ ->
 					((citynexttohuts && isHut mbtokmark) || isNothing mbtokmark) &&
 					terrain `elem` (allOfThem \\ [Water]) &&
-					null (playernamesOnSquare square \\ [playername])
+					noOtherPlayersOnSquare playername square
 				_ -> False
 	return $ all (==True) empties
+
+getCapitalCoors :: GameName -> PlayerName -> UpdateCivM Coors
+getCapitalCoors gamename playername = do
+	Just capitalcoors <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors . ix 0
+	return capitalcoors
+
+metropolisExpansionSquares :: GameName -> PlayerName -> UpdateCivM [Coors]
+metropolisExpansionSquares gamename playername = do
+	capitalcoors <- getCapitalCoors gamename playername
+	coorsss <- forM (neighbourSquares capitalcoors) $ \ coors -> do
+		mb_square <- getSquare gamename coors
+		return $ case mb_square of
+			Just square | noOtherPlayersOnSquare playername square -> [coors]
+			_ -> []
+	return $ concat coorsss
 
 buildCity :: GameName -> PlayerName -> Bool -> Coors -> UpdateCivM ()
 buildCity gamename playername capital coors = do
@@ -1180,11 +1220,11 @@ buildCity gamename playername capital coors = do
 
 buildMetropolis :: GameName -> PlayerName -> Coors -> UpdateCivM ()
 buildMetropolis gamename playername coors = do
-	Just capitalcoors <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerCityCoors . at 0 . _Just
+	capitalcoors <- getCapitalCoors gamename playername
 	let metro_ori = coorDiffOri capitalcoors coors
 	updateCivLensM (const $ Just metro_ori) $ civCityLens gamename capitalcoors . cityMetropolisOrientation
-	updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare ori) $
-		civSquareLens gamename (addCoorsOri coors ori) . squareTokenMarker
+	updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare metro_ori) $
+		civSquareLens gamename (addCoorsOri coors metro_ori) . squareTokenMarker
 
 buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
 buildBuilding gamename playername coors buildingtype = do
@@ -1273,7 +1313,7 @@ doMove gamename playername move@(Move source target) = do
 	case (source,target) of
 
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
-			buildCity gamename playername coors
+			buildCity gamename playername True coors
 
 		(MetropolisSource pn1,SquareTarget coors) | pn1==playername -> do
 			buildMetropolis gamename playername coors 
@@ -1286,7 +1326,7 @@ doMove gamename playername move@(Move source target) = do
 
 		(FigureOnBoardSource figureid pn coors,BuildCityTarget ()) | pn==playername -> do
 			destroyFigure gamename playername figureid
-			buildCity gamename coors $ newCity playername False Nothing
+			buildCity gamename playername False coors
 
 		(CityProductionSource _ (ProduceFigure figure),SquareTarget coors) -> do
 			buildFigure gamename playername figure coors
@@ -1400,9 +1440,8 @@ moveGen gamename my_playername = do
 		playername <- getPlayerTurn gamename
 		Just (Game{..}) <- getGame gamename
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
-		moves <- case _playerSubPhases of
-			(SubPhase{..}):_ -> do
-				
+		case _playerSubPhases of
+			subphase:_ -> (snd $ getSubPhaseStep subphase) gamename playername
 			[] -> case my_playername == playername of
 				False -> return []
 				True -> do
@@ -1543,12 +1582,12 @@ moveGen gamename my_playername = do
 	-}
 						return []
 
-					return $ phasemoves ++ concat abilitymovess
+					let allmoves = phasemoves ++ concat abilitymovess
 
-		mb_movenodesthisphase <- queryCivLensM $
-			civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-		let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-		return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) moves my_movesthisphase
+					mb_movenodesthisphase <- queryCivLensM $
+						civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+					let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
+					return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) allmoves my_movesthisphase
 	case res of
 		Right moves -> return moves
 		Left msg -> error msg
