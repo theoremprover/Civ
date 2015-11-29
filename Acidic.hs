@@ -671,7 +671,7 @@ startGame gamename = runUpdateCivM $ do
 	forAllPlayers gamename $ \ (playername,player@(Player{..})) -> do
 		forM_ [Artillery,Infantry,Cavalry] $ drawUnit gamename playername
 		let (starttech,startgov) = civStartTechAndGov _playerCiv
-		addTech gamename playername (Just TechLevelI) starttech
+--		addTech gamename playername (Just TechLevelI) starttech
 		setGovernment startgov gamename playername
 		forM_ [Incense,Wheat,Linen,Iron] $ \ res -> do
 			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
@@ -1314,6 +1314,9 @@ doMove gamename playername move@(Move source target) = do
 
 		(CitySource pn1,BuildFirstCityTarget pn2 coors) | pn1==playername && pn2==playername -> do
 			buildCity gamename playername True coors
+			let (starttech,_) = civStartTechAndGov _playerCiv
+			addTech gamename playername (Just TechLevelI) starttech
+			getTrade gamename playername
 
 		(MetropolisSource pn1,SquareTarget coors) | pn1==playername -> do
 			buildMetropolis gamename playername coors 
@@ -1447,14 +1450,15 @@ moveGen gamename my_playername = do
 				True -> do
 					phasemoves <- case _gamePhase of
 						StartOfGame -> return []
+
 						BuildingFirstCity -> return $
 							[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
+
 						PlaceFirstFigures -> do
 							possible_squares <- buildFigureCoors gamename playername Wagon (head _playerCityCoors)
 							let possible_figures = [Wagon,Flag]
 							return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
-						GettingFirstTrade ->
-							return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+
 						StartOfTurn -> do
 							buildcitymovess <- case tokenStackAvailableKeys _playerCityStack of
 								[] -> return []
@@ -1468,6 +1472,7 @@ moveGen gamename my_playername = do
 
 						Trading ->
 							return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
+
 						CityManagement -> do
 							movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
 								income <- cityIncome gamename my_playername citycoors
