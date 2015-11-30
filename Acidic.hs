@@ -303,9 +303,14 @@ techIdAbility tech = case tech of
 		subPhases          = [
 			("Build Metropolis",[
 				("Select Metropolis Square",\ gamename playername -> do
-					coorss <- metropolisExpansionSquares gamename playername
-					return $ Move (NoSource ()) (FinishPhaseTarget ()) :
-						[ Move (MetropolisSource playername) (SquareTarget coors) | coors <- coorss ] ) ] ) ],
+					capitalcoors <- getCapitalCoors gamename playername
+					Just mb_metroori <- queryCivLensM $ civCityLens gamename capitalcoors . cityMetropolisOrientation
+					case mb_metroori of
+						Just _ -> return []
+						Nothing -> do
+							coorss <- metropolisExpansionSquares gamename playername
+							return $ Move (NoSource ()) (FinishPhaseTarget ()) :
+								[ Move (MetropolisSource playername) (SquareTarget coors) | coors <- coorss ] ) ] ) ],
 		canBuildMetropolis = SetValue True }
 
 	Pottery              -> unchangedAbilities {
@@ -927,8 +932,8 @@ cityIncome gamename playername coors = do
 
 squareIncome :: GameName -> PlayerName -> Coors -> UpdateCivM Income
 squareIncome gamename playername coors = do
-	Just (Square{..}) <- getSquare gamename coors
-	return $ case null $ filter ((/=playername).fst) _squareFigures of
+	Just (square@Square{..}) <- getSquare gamename coors
+	return $ case noOtherPlayersOnSquare playername square of
 		False -> noIncome
 		True  -> case _squareTokenMarker of
 			Just (BuildingMarker (Building buildingtype pn)) | pn==playername -> generatedIncome buildingtype
@@ -1226,10 +1231,12 @@ buildCity gamename playername capital coors = do
 buildMetropolis :: GameName -> PlayerName -> Coors -> UpdateCivM ()
 buildMetropolis gamename playername coors = do
 	capitalcoors <- getCapitalCoors gamename playername
-	let metro_ori = coorDiffOri capitalcoors coors
+	let
+		metro_ori = coorDiffOri capitalcoors coors
+		sndsquare_ori = coorDiffOri coors capitalcoors
 	updateCivLensM (const $ Just metro_ori) $ civCityLens gamename capitalcoors . cityMetropolisOrientation
-	updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare metro_ori) $
-		civSquareLens gamename (addCoorsOri coors metro_ori) . squareTokenMarker
+	updateCivLensM (const $ Just $ CityMarker $ SecondCitySquare sndsquare_ori) $
+		civSquareLens gamename coors . squareTokenMarker
 
 buildBuilding :: GameName -> PlayerName -> Coors -> BuildingType -> UpdateCivM ()
 buildBuilding gamename playername coors buildingtype = do
@@ -1323,8 +1330,8 @@ doMove gamename playername move@(Move source target) = do
 			addTech gamename playername (Just TechLevelI) starttech
 			getTrade gamename playername
 
-		(MetropolisSource pn1,SquareTarget coors) | pn1==playername -> do
-			buildMetropolis gamename playername coors 
+		(MetropolisSource pn1,SquareTarget coors) -> do
+			buildMetropolis gamename pn1 coors 
 
 		(AutomaticMove (),GetTradeTarget pn) | pn==playername -> do
 			getTrade gamename playername
@@ -1448,11 +1455,11 @@ moveGen gamename my_playername = do
 		playername <- getPlayerTurn gamename
 		Just (Game{..}) <- getGame gamename
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
-		case _playerSubPhases of
-			subphase:_ -> (snd $ getSubPhaseStep subphase) gamename playername
-			[] -> case my_playername == playername of
-				False -> return []
-				True -> do
+		case my_playername == playername of
+			False -> return []
+			True -> case _playerSubPhases of
+				subphase:_ -> (snd $ getSubPhaseStep subphase) gamename playername
+				[] -> do
 					phasemoves <- case _gamePhase of
 						StartOfGame -> return []
 
