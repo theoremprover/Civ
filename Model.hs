@@ -492,10 +492,10 @@ $(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square
 
 initialBoardTileStack :: TokenStack () TileID
-initialBoardTileStack = tokenStackFromList [((),
-	[ Tile1,Tile2,Tile3,Tile4,Tile5,Tile6,Tile7,Tile8,Tile9,Tile10,
-		Tile11,Tile12,Tile13,Tile14,Tile15,Tile16,Tile17,Tile18,
-		Tile19,Tile20,Tile21,Tile22,Tile23,Tile24,Tile25,Tile26,Tile27 ] )]
+initialBoardTileStack = tokenStackFromList [((),[
+	Tile1,Tile2,Tile3,Tile4,Tile5,Tile6,Tile7,Tile8,Tile9,Tile10,
+	Tile11,Tile12,Tile13,Tile14,Tile15,Tile16,Tile17,Tile18,
+	Tile19,Tile20,Tile21,Tile22,Tile23,Tile24,Tile25,Tile26,Tile27 ] )]
 
 data TechCard = TechCard {
 	_techCardTechId :: Tech,

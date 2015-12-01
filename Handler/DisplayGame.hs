@@ -34,12 +34,6 @@ import AssocList
 default (Int, Float)
 
 
-{-
-movelisttarget2markup :: [Move] -> String
-movelisttarget2markup []    = data2markup $ NoTarget ()
-movelisttarget2markup (Move _ target : _) = data2markup target
--}
-
 data2markup :: (ToJSON a) => a -> String
 data2markup a = Data.ByteString.Lazy.Char8.unpack $ encode a
 
@@ -177,6 +171,8 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		allowedMovesJulius moves
 
 		[whamlet|
+^{overviewboard}
+
 <div .GameArea>
   <div>^{arena}
   <div .DragArea>
@@ -202,8 +198,6 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
-
-^{overviewboard}
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -495,14 +489,14 @@ boardArea di@(DisplayInfo{..}) moves = do
 				(Westward, Westward)  -> Southward
 				(Westward, Southward) -> Westward
 				(Westward, Eastward)  -> Southward
-				(Southward,Northward) -> Westward
+				(Southward,Northward) -> Eastward
 				(Southward,Westward)  -> Southward
-				(Southward,Southward) -> Westward
+				(Southward,Southward) -> Eastward
 				(Southward,Eastward)  -> Southward
 				(Eastward, Northward) -> Eastward
-				(Eastward, Westward)  -> Southward
+				(Eastward, Westward)  -> Northward
 				(Eastward, Southward) -> Eastward
-				(Eastward, Eastward)  -> Southward
+				(Eastward, Eastward)  -> Northward
 		playerori playername = _playerOrientation $ playernameToPlayerDI playername
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
@@ -615,7 +609,8 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		[(0.2,0.33),(0.5,0.33),(0.8,0.33),(0.2,0.67),(0.5,0.67),(0.8,0.67)],
 		[(0.33,0.2),(0.67,0.2),(0.33,0.5),(0.67,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
 		[(0.33,0.2),(0.67,0.2),(0.3,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)],
-		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ]
+		[(0.2,0.2),(0.5,0.2),(0.8,0.2),(0.2,0.5),(0.5,0.5),(0.8,0.5),(0.2,0.8),(0.5,0.8),(0.8,0.8)] ] ++
+		repeat (error "figuresSquare pos too many figures, not implemented yet")
 		-- TODO: Expand
 
 stackOfRoute route source target n = let

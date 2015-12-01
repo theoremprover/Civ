@@ -108,7 +108,8 @@ data Abilities = Abilities {
 	canBuildMetropolis      :: Value Bool,
 	cultureEventImmunity    :: Value Bool,
 	cardAbilities           :: [CardAbility],
-	subPhases               :: [SubPhaseDef] }
+	subPhases               :: [SubPhaseDef],
+	cityTerrains            :: [Terrain] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
@@ -155,7 +156,8 @@ defaultAbilities = Abilities {
 	canBuildMetropolis  = SetValue False,
 	cultureEventImmunity = SetValue False,
 	cardAbilities       = [],
-	subPhases           = [] }
+	subPhases           = [],
+	cityTerrains        = allOfThem \\ [Water] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
@@ -199,7 +201,8 @@ unchangedAbilities = Abilities {
 	buildCityNextToHuts = Unchanged,
 	canBuildMetropolis  = Unchanged,
 	cardAbilities       = [],
-	subPhases           = [] }
+	subPhases           = [],
+	cityTerrains        = [] }
 
 civAbilities civ = case civ of
 
@@ -621,6 +624,9 @@ getValueAbility1 f player arg = getValueAbility (\ abilities -> f abilities arg)
 getValueAbility :: (Ord a,Show a) => (Abilities -> Value a) -> Player -> a
 getValueAbility toability player = valueAbilities $ map toability (playerAbilities player)
 
+getConcatAbility :: (Abilities -> [a]) -> Player -> [a]
+getConcatAbility abilityf player = concatMap abilityf $ playerAbilities player
+
 getHookValueAbilityM :: (Ord a,Show a) => GameName -> PlayerName -> (Abilities -> HookM (Value a)) -> UpdateCivM a
 getHookValueAbilityM gamename playername ability2hook = do
 	Just player <- getPlayer gamename playername
@@ -631,6 +637,7 @@ getHookValueAbilityM gamename playername ability2hook = do
 playerAbilities player@(Player{..}) =
 	defaultAbilities : civAbilities _playerCiv :
 	map techAbilities (concat $ Map.elems _playerTechs)
+
 
 
 ------------
@@ -1192,20 +1199,20 @@ noOtherPlayersOnSquare playername square =
 
 canBuildCityHere :: GameName -> PlayerName -> Coors -> UpdateCivM Bool
 canBuildCityHere gamename playername coors = do
-	let cityarea = coors : surroundingSquares 1 coors
 	Just player <- getPlayer gamename playername
-	let citynexttohuts = getValueAbility buildCityNextToHuts player
-	empties <- forM cityarea $ \ cs -> do
-		mb_square <- getSquare gamename cs
-		return $ case mb_square of
-			Nothing -> False
-			Just square -> case square of
-				Square _ (terrain:_) _ _ _ mbtokmark _ ->
-					((citynexttohuts && isHut mbtokmark) || isNothing mbtokmark) &&
-					terrain `elem` (allOfThem \\ [Water]) &&
-					noOtherPlayersOnSquare playername square
-				_ -> False
-	return $ all (==True) empties
+	Just citysquare <- getSquare gamename coors
+	case citysquare of
+		Square _ (terrain:_) _ _ _ _ _ | terrain `elem` (getConcatAbility cityTerrains player) -> do
+			let citynexttohuts = getValueAbility buildCityNextToHuts player
+			empties <- forM (surroundingSquares 1 coors) $ \ cs -> do
+				mb_square <- getSquare gamename cs
+				return $ case mb_square of
+					Just square@(Square _ _ _ _ _ mbtokmark _) ->
+							((citynexttohuts && isHut mbtokmark) || isNothing mbtokmark) &&
+							noOtherPlayersOnSquare playername square
+					_ -> False
+			return $ all (==True) empties
+		_ -> return False
 
 getCapitalCoors :: GameName -> PlayerName -> UpdateCivM Coors
 getCapitalCoors gamename playername = do
@@ -1215,12 +1222,21 @@ getCapitalCoors gamename playername = do
 metropolisExpansionSquares :: GameName -> PlayerName -> UpdateCivM [Coors]
 metropolisExpansionSquares gamename playername = do
 	capitalcoors <- getCapitalCoors gamename playername
-	coorsss <- forM (neighbourSquares capitalcoors) $ \ coors -> do
+	Just player <- getPlayer gamename playername
+	coorss <- forM (neighbourSquares capitalcoors) $ \ coors -> do
 		mb_square <- getSquare gamename coors
-		return $ case mb_square of
-			Just square | noOtherPlayersOnSquare playername square -> [coors]
-			_ -> []
-	return $ concat coorsss
+		case mb_square of
+			Just square@(Square _ _ _ _ _ _ _) | noOtherPlayersOnSquare playername square -> do
+				revealeds <- forM (outskirtsOf [coors]) $ \ outcoors -> do
+					mb_outsquare <- getSquare gamename outcoors
+					return $ case mb_outsquare of
+						Just (Square _ _ _ _ _ _ _) -> True
+						_                           -> False
+				return $ case all (==True) revealeds of
+					True  -> [coors]
+					False -> []
+			_ -> return []
+	return $ concat coorss
 
 buildCity :: GameName -> PlayerName -> Bool -> Coors -> UpdateCivM ()
 buildCity gamename playername capital coors = do
@@ -1497,7 +1513,7 @@ moveGen gamename my_playername = do
 										squarecoors <- possible_fig_coors ]
 
 								let
-									player_buildings = concatMap enabledBuildings $ playerAbilities player
+									player_buildings = getConcatAbility enabledBuildings player
 									buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
 									all_avail_buildings = buildings_left `intersect` player_buildings
 									avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
