@@ -737,16 +737,20 @@ data ActionSource =
 	FigureSource PlayerName FigureType |
 	FigureOnBoardSource FigureID PlayerName Coors |
 	ResourceSource PlayerName Resource |
-	CitySource PlayerName | MetropolisSource PlayerName |
+	CitySource PlayerName |
+	MetropolisSource PlayerName |
 	ProductionSource Production |
 	CityProductionSource Coors Production |
 	SquareSource Coors |
 	TechSource Tech |
-	DialCoinSource PlayerName | DialCultureSource PlayerName |
-	HutSource PlayerName Hut | VillageSource PlayerName Village |
+	DialCoinSource PlayerName |
+	DialCultureSource PlayerName |
+	HutSource PlayerName Hut |
+	VillageSource PlayerName Village |
 	TechCoinSource PlayerName Tech |
 	ArtifactSource PlayerName Artifact |
-	ResourcesSource PlayerName [ResourcePayment]
+	ResourcesSource PlayerName [ResourcePayment] |
+	PolicySource PlayerName Policy
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
@@ -775,6 +779,7 @@ data ActionTarget =
 	FigureOnBoardTarget FigureID PlayerName Coors |
 	GetTradeTarget PlayerName |
 	RevealTileTarget Orientation Coors |
+	PoliciesTarget PlayerName () |
 	FinishPhaseTarget ()
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
@@ -797,6 +802,7 @@ instance Show Move where
 		(ResourcesSource _ payments,CardAbilityTarget name (TechCardAbility tech,_)) -> show tech ++ ": " ++ name ++ " (" ++ showpayments payments ++ ")"
 		(NoSource (),CardAbilityTarget name (TechCardAbility tech,_)) -> show tech ++ ": " ++ name
 		(NoSource (),CardAbilityTarget name (CivAbility civ,_)) -> show civ ++ ": " ++ name
+		(PolicySource _ policy,PoliciesTarget _ ()) -> "Adopt Policy " ++ show policy
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
@@ -1289,3 +1295,4 @@ deriveJSON defaultOptions ''Coins
 deriveJSON defaultOptions ''Hut
 deriveJSON defaultOptions ''Village
 deriveJSON defaultOptions ''SubPhase
+deriveJSON defaultOptions ''Policy

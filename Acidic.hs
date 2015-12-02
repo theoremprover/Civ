@@ -109,7 +109,8 @@ data Abilities = Abilities {
 	cultureEventImmunity    :: Value Bool,
 	cardAbilities           :: [CardAbility],
 	subPhases               :: [SubPhaseDef],
-	cityTerrains            :: [Terrain] }
+	cityTerrains            :: [Terrain],
+	buildCityFigureTypes    :: [FigureType] }
 
 defaultAbilities = Abilities {
 	unitLevel       = \case
@@ -157,7 +158,8 @@ defaultAbilities = Abilities {
 	cultureEventImmunity = SetValue False,
 	cardAbilities       = [],
 	subPhases           = [],
-	cityTerrains        = allOfThem \\ [Water] }
+	cityTerrains        = allOfThem \\ [Water],
+	buildCityFigureTypes = [Wagon] }
 
 unchangedAbilities = Abilities {
 	unitLevel       = const Unchanged,
@@ -202,7 +204,8 @@ unchangedAbilities = Abilities {
 	canBuildMetropolis  = Unchanged,
 	cardAbilities       = [],
 	subPhases           = [],
-	cityTerrains        = [] }
+	cityTerrains        = [],
+	buildCityFigureTypes = [] }
 
 civAbilities civ = case civ of
 
@@ -241,20 +244,29 @@ civAbilities civ = case civ of
 
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
---		startOfGameHook = startBuildWonderHook_Egypt,
-		cardAbilities = [ ] {-cardAbility (CivAbility Egypt) [CityManagement] "Free Building" []
-			(\ gamename playername -> do
-				return [] ) ] -} }
+		startOfGameHook = switchToSubPhase (CivAbility Egypt) 0,
+		subPhases          = [
+			("Extra Wonder",[
+				("Extra Wonder",\ gamename playername -> do
+					return [] -- TODO!
+					) ] ) ] }
 
-{-
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
 		armiesAsScouts = SetValue True }
 
 	French   -> defaultAbilities {
 		battleStrengthBonus = ModifyValue (+2),
-		startOfGameHook     = extraStartPolicyHook_French }
+		startOfGameHook     = switchToSubPhase (CivAbility French) 0,
+		subPhases          = [
+			("Get Extra Policy",[
+				("Select Extra Policy",\ gamename playername -> do
+					Just Player{..} <- getPlayer gamename playername
+					let (policycards,_) = _playerPolicies
+					forM (concatMap card2Policies policycards) $ \ policy -> do
+						return $ Move (PolicySource playername policy) (PoliciesTarget playername ()) ) ] ) ] }
 
+{-
 	Germany  -> defaultAbilities {
 		startOfGameHook = \ gn pn -> forM_ [Infantry,Infantry] $ drawUnit gn pn,
 		getTechHook     = getTechHook_Germany }
@@ -824,7 +836,7 @@ finishPlayerPhase gamename = do
 				False -> do
 					updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerSubPhases
 					
-allowSecondMove secondmove move = case (move,secondmove) of
+allowSecondMove gamephase playersubphases secondmove move = case (move,secondmove) of
 	(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 	(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
 	(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
@@ -837,6 +849,9 @@ allowSecondMove secondmove move = case (move,secondmove) of
 		Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 -}
 	(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
+	(Move (PolicySource _ _,PoliciesTarget _ (),Move (PolicySource _ _,PoliciesTarget _ ()) |
+		??? -> False
+	
 	_ -> True
 
 getCity gamename coors = do
@@ -1391,6 +1406,8 @@ doMove gamename playername move@(Move source target) = do
 				gamename playername
 			addTech gamename playername Nothing tech
 
+		(PolicySource pn1 policy,PoliciesTarget pn2 ()) | playername==pn1 && playername==pn2 -> do
+			drawPolicy gamename playername policy
 {-
 		(source,target@(CardAbilityTarget _ targettype)) -> do
 			case source of
@@ -1473,154 +1490,155 @@ moveGen gamename my_playername = do
 		Just (player@(Player{..})) <- queryCivLensM $ civPlayerLens gamename playername . _Just
 		case my_playername == playername of
 			False -> return []
-			True -> case _playerSubPhases of
-				subphase:_ -> (snd $ getSubPhaseStep subphase) gamename playername
-				[] -> do
-					phasemoves <- case _gamePhase of
-						StartOfGame -> return []
+			True -> do
+				allmoves <- case _playerSubPhases of
+					subphase:_ -> (snd $ getSubPhaseStep subphase) gamename playername
+					[] -> do
+						phasemoves <- case _gamePhase of
+							StartOfGame -> return []
 
-						BuildingFirstCity -> return $
-							[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
+							BuildingFirstCity -> return $
+								[ Move (CitySource my_playername) (BuildFirstCityTarget my_playername coors) | coors <- _playerFirstCityCoors ]
 
-						PlaceFirstFigures -> do
-							possible_squares <- buildFigureCoors gamename playername Wagon (head _playerCityCoors)
-							let possible_figures = [Wagon,Flag]
-							return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
+							PlaceFirstFigures -> do
+								possible_squares <- buildFigureCoors gamename playername Wagon (head _playerCityCoors)
+								let possible_figures = allOfThem
+								return [ Move (FigureSource my_playername figure) (SquareTarget coors) | coors <- possible_squares, figure <- possible_figures ]
 
-						StartOfTurn -> do
-							buildcitymovess <- case tokenStackAvailableKeys _playerCityStack of
-								[] -> return []
-								_ -> do
-									forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
-										canbuildcityhere <- canBuildCityHere gamename playername _figureCoors
-										return $ case canbuildcityhere && (_figureType==Wagon) of
-											False -> []
-											True -> [ Move (FigureOnBoardSource figureid playername _figureCoors) (BuildCityTarget ()) ] 
-							return $ concat buildcitymovess
-
-						Trading ->
-							return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
-
-						CityManagement -> do
-							movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
-								income <- cityIncome gamename my_playername citycoors
-
-								possible_fig_coors <- buildFigureCoors gamename playername Wagon citycoors
-								let
-									possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
-									prodfiguremoves = [ Move (CityProductionSource citycoors (ProduceFigure figty)) (SquareTarget squarecoors) |
-										figty <- filter ((<=income).consumedIncome) possible_figures,
-										squarecoors <- possible_fig_coors ]
-
-								let
-									player_buildings = getConcatAbility enabledBuildings player
-									buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
-									all_avail_buildings = buildings_left `intersect` player_buildings
-									avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
-									avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
-									affordable_buildings = filter ((<=income).consumedIncome) avail_buildings
-								prodbuildingmovess <- forCityOutskirts gamename playername citycoors $ \ (coors,city,square) -> do
-									let buildings = (terrainBuildings $ head (_squareTerrain square)) `intersect` affordable_buildings
-									return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
-										building <- buildings ]									
-
-								
-								produnitmoves <- forEnabledUnitTypes gamename playername $ \ unittype unitlevel -> return $
-									case consumedIncome (unittype,unitlevel) <= income of
-										False -> []
-										True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
-
-								let
-									producible_res = case AnyResource `elem` inResource income of
-										True -> [ Linen,Iron,Incense,Wheat ]
-										False -> nub $ map oneResource $ inResource income
-									avail_res = tokenStackAvailableKeys _gameResourceStack
-									harvestmoves = map (\ res -> Move (CityProductionSource citycoors (HarvestResource res)) (NoTarget ())) $
-										producible_res `intersect` avail_res
-
-								let
-									devotemove = 
-										Move (CityProductionSource citycoors (DevoteToArts (inCulture income))) (NoTarget ())
-
-								return $
-									prodfiguremoves ++
-									(concat prodbuildingmovess) ++
-									produnitmoves ++
-									harvestmoves ++
-									[ devotemove ]
-
-							return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
-
-						Movement -> do
-							cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
-								canstay <- canStayOn gamename playername _figureType _figureCoors
-								case _figureRangeLeft of
-									0 -> case canstay of
-										True  -> return []
-										False -> do
-											destroyFigure gamename playername figureid
-											return []
+							StartOfTurn -> do
+								buildcitymovess <- case tokenStackAvailableKeys _playerCityStack of
+									[] -> return []
 									_ -> do
-										targetmustss <- forM (neighbourSquares _figureCoors) $ \ targetcoors -> do
-											mb_square <- getSquare gamename targetcoors
-											case mb_square of
-												Nothing -> return []
-												Just OutOfBounds -> return []
-												Just (UnrevealedSquare tileid tileorigin) -> do
-													let ori = coorDiffOri _figureCoors targetcoors
-													return [ (RevealTileTarget ori tileorigin,False) ]
-												Just _ -> do
-													cancross_target <- canCross gamename playername _figureType targetcoors
-													case cancross_target of
-														False -> return []
-														True -> do
-															canstay_target <- canStayOn gamename playername _figureType targetcoors
-															case canstay_target of
-																False | _figureRangeLeft <=1 -> return []
-																_ -> do
-																	return [(SquareTarget targetcoors,not canstay)]
-										return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
-											(target,mustmove) <- concat targetmustss ]
-							
-							let
-								cmoves = concat cmovess
-								finishmoves = case all (not.snd) cmoves of
-									True  -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
-									False -> []
+										forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+											canbuildcityhere <- canBuildCityHere gamename playername _figureCoors
+											return $ case canbuildcityhere && (_figureType `elem` (getConcatAbility buildCityFigureTypes player)) of
+												False -> []
+												True -> [ Move (FigureOnBoardSource figureid playername _figureCoors) (BuildCityTarget ()) ] 
+								return $ concat buildcitymovess
 
-							return $ finishmoves ++ map fst cmoves
+							Trading ->
+								return [ Move (AutomaticMove ()) (GetTradeTarget my_playername) ]
 
-						Research -> do
-							let
-								level_techs = (TechLevelI,[]) : map (\ level -> (level,maybe [] id (Map.lookup level _playerTechs))) allOfThem
-								ptechs [_] = []
-								ptechs ((_,t1):(l2,t2):ns) = ptechs ((l2,t2):ns) ++ case (length t1 > length t2 + 1) || l2==TechLevelI of
-									False -> []
-									True -> case (inTrade $ techCosts player l2) <= _playerTrade of
+							CityManagement -> do
+								movess <- forAllCities gamename my_playername $ \ (citycoors,city) -> do
+									income <- cityIncome gamename my_playername citycoors
+
+									possible_fig_coors <- buildFigureCoors gamename playername Wagon citycoors
+									let
+										possible_figures = map fst $ filter ((>0).snd) $ tokenStackHeights _playerFigures
+										prodfiguremoves = [ Move (CityProductionSource citycoors (ProduceFigure figty)) (SquareTarget squarecoors) |
+											figty <- filter ((<=income).consumedIncome) possible_figures,
+											squarecoors <- possible_fig_coors ]
+
+									let
+										player_buildings = getConcatAbility enabledBuildings player
+										buildings_left = concatMap buildingMarkerToType $ map fst $ filter ((>0).snd) $ tokenStackHeights _gameBuildingStack
+										all_avail_buildings = buildings_left `intersect` player_buildings
+										avail_downgraded = [ dg | (_,[dg,ug]) <- buildingMarkerType, ug `elem` all_avail_buildings ]
+										avail_buildings = filter (`notElem` avail_downgraded) all_avail_buildings
+										affordable_buildings = filter ((<=income).consumedIncome) avail_buildings
+									prodbuildingmovess <- forCityOutskirts gamename playername citycoors $ \ (coors,city,square) -> do
+										let buildings = (terrainBuildings $ head (_squareTerrain square)) `intersect` affordable_buildings
+										return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
+											building <- buildings ]									
+
+									
+									produnitmoves <- forEnabledUnitTypes gamename playername $ \ unittype unitlevel -> return $
+										case consumedIncome (unittype,unitlevel) <= income of
+											False -> []
+											True  -> [ Move (CityProductionSource citycoors (ProduceUnit unittype)) (NoTarget ()) ]
+
+									let
+										producible_res = case AnyResource `elem` inResource income of
+											True -> [ Linen,Iron,Incense,Wheat ]
+											False -> nub $ map oneResource $ inResource income
+										avail_res = tokenStackAvailableKeys _gameResourceStack
+										harvestmoves = map (\ res -> Move (CityProductionSource citycoors (HarvestResource res)) (NoTarget ())) $
+											producible_res `intersect` avail_res
+
+									let
+										devotemove = 
+											Move (CityProductionSource citycoors (DevoteToArts (inCulture income))) (NoTarget ())
+
+									return $
+										prodfiguremoves ++
+										(concat prodbuildingmovess) ++
+										produnitmoves ++
+										harvestmoves ++
+										[ devotemove ]
+
+								return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) : concat movess
+
+							Movement -> do
+								cmovess <- forAllPlayerFigures gamename playername $ \ (figureid,Figure{..}) -> do
+									canstay <- canStayOn gamename playername _figureType _figureCoors
+									case _figureRangeLeft of
+										0 -> case canstay of
+											True  -> return []
+											False -> do
+												destroyFigure gamename playername figureid
+												return []
+										_ -> do
+											targetmustss <- forM (neighbourSquares _figureCoors) $ \ targetcoors -> do
+												mb_square <- getSquare gamename targetcoors
+												case mb_square of
+													Nothing -> return []
+													Just OutOfBounds -> return []
+													Just (UnrevealedSquare tileid tileorigin) -> do
+														let ori = coorDiffOri _figureCoors targetcoors
+														return [ (RevealTileTarget ori tileorigin,False) ]
+													Just _ -> do
+														cancross_target <- canCross gamename playername _figureType targetcoors
+														case cancross_target of
+															False -> return []
+															True -> do
+																canstay_target <- canStayOn gamename playername _figureType targetcoors
+																case canstay_target of
+																	False | _figureRangeLeft <=1 -> return []
+																	_ -> do
+																		return [(SquareTarget targetcoors,not canstay)]
+											return [ (Move (FigureOnBoardSource figureid playername _figureCoors) target,mustmove) |
+												(target,mustmove) <- concat targetmustss ]
+								
+								let
+									cmoves = concat cmovess
+									finishmoves = case all (not.snd) cmoves of
+										True  -> [ Move (AutomaticMove ()) (FinishPhaseTarget ()) ]
 										False -> []
-										True  -> techsOfLevel l2 \\ (map _techCardTechId $ concat $ Map.elems _playerTechs)
-							return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) :
-								[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 
-					abilitymovess <- forM (playerAbilities player) $ \ ability -> do
-	{-
-						resourcemovess <- forM (filter ((elem _gamePhase).fst) $ resourceAbilities ability) $ \ (_,(target,resourcepats,hook)) -> do
-							return [ Move (ResourcesSource playername payment) target |
-								payment <- possiblePayments player resourcepats ]
+								return $ finishmoves ++ map fst cmoves
 
-						cardmovess <- forM (filter ((elem _gamePhase).fst) $ cardAbilities ability) $ \ (_,(target,hook)) -> do
-							return [ Move (NoSource ()) target ]
+							Research -> do
+								let
+									level_techs = (TechLevelI,[]) : map (\ level -> (level,maybe [] id (Map.lookup level _playerTechs))) allOfThem
+									ptechs [_] = []
+									ptechs ((_,t1):(l2,t2):ns) = ptechs ((l2,t2):ns) ++ case (length t1 > length t2 + 1) || l2==TechLevelI of
+										False -> []
+										True -> case (inTrade $ techCosts player l2) <= _playerTrade of
+											False -> []
+											True  -> techsOfLevel l2 \\ (map _techCardTechId $ concat $ Map.elems _playerTechs)
+								return $ Move (AutomaticMove ()) (FinishPhaseTarget ()) :
+									[ Move (TechSource tech) (TechTreeTarget playername) | tech <- ptechs level_techs ]
 
-						return $ concat $ resourcemovess ++ cardmovess
-	-}
-						return []
+						abilitymovess <- forM (playerAbilities player) $ \ ability -> do
+		{-
+							resourcemovess <- forM (filter ((elem _gamePhase).fst) $ resourceAbilities ability) $ \ (_,(target,resourcepats,hook)) -> do
+								return [ Move (ResourcesSource playername payment) target |
+									payment <- possiblePayments player resourcepats ]
 
-					let allmoves = phasemoves ++ concat abilitymovess
+							cardmovess <- forM (filter ((elem _gamePhase).fst) $ cardAbilities ability) $ \ (_,(target,hook)) -> do
+								return [ Move (NoSource ()) target ]
 
-					mb_movenodesthisphase <- queryCivLensM $
-						civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-					let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-					return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove move1) allowedmoves) allmoves my_movesthisphase
+							return $ concat $ resourcemovess ++ cardmovess
+		-}
+							return []
+
+						return $ phasemoves ++ concat abilitymovess
+
+				mb_movenodesthisphase <- queryCivLensM $
+					civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+				let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
+				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
 	case res of
 		Right moves -> return moves
 		Left msg -> error msg
