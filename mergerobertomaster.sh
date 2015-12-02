@@ -1,6 +1,6 @@
 #!/bin/sh
 git checkout robert
-source gitcommitpush.sh
+./gitcommitpush.sh
 git merge origin master
 
 git checkout master
