@@ -171,8 +171,6 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 		allowedMovesJulius moves
 
 		[whamlet|
-^{overviewboard}
-
 <div .GameArea>
   <div>^{arena}
   <div .DragArea>
@@ -198,6 +196,8 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   <p border=1 bgcolor=yellow>#{dbgmsg}</ br>
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
+
+^{overviewboard}
 |]
 
 allowedMovesJulius :: [Move] -> Widget
