@@ -172,17 +172,40 @@ img
     z-index: 2
 
 .PlateContainer
-    #border: 2px solid red
+    /* border: 2px solid red */
     height: 90%
     width: 90%
     margin: auto
-    position: relative;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative
+    top: 50%
+    transform: translateY(-50%)
 
-.PlateContainer img
-    height: 100%
-    width: 100%
+@plateScale: 1
+
+.SquareContainer
+    .PlateContainer img
+/*        height: 100% */
+/*        width: 100% */
+        transform: scale(#{plateScale})
+        transform-origin: center
+
+.VertDoubleSquareContainer
+    .PlateContainer img
+        transform-origin: center
+        /* border: 2px solid orange */
+    .PlateContainer.EastwardPlate img
+        transform: translateX(-25%) translateY(50%) rotate(90deg) scale(#{plateScale})
+       -moz-transform: translateX(-25%) translateY(50%) rotate(90deg) scale(#{plateScale})
+       -webkit-transform: translateX(-25%) translateY(50%) rotate(90deg) scale(#{plateScale})
+       -o-transform: translateX(-25%) translateY(50%) rotate(90deg) scale(#{plateScale})
+    .PlateContainer.WestwardPlate img
+        transform: translateX(-25%) translateY(50%) rotate(-90deg) scale(#{plateScale})
+       -moz-transform: translateX(-25%) translateY(50%) rotate(-90deg) scale(#{plateScale})
+       -webkit-transform: translateX(-25%) translateY(50%) rotate(-90deg) scale(#{plateScale})
+       -o-transform: translateX(-25%) translateY(50%) rotate(-90deg) scale(#{plateScale})
+
+.Map-SquareContainer
+    border: 1px solid grey
 
 .collapsibleList li > input + *
     display: none

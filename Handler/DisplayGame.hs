@@ -538,8 +538,8 @@ boardArea di@(DisplayInfo{..}) moves = do
                     $of _
                       $maybe tokmarker <- _squareTokenMarker square
                         $maybe (city,containerclass) <- showcity (Coors x y)
-                          <div class=#{containerclass}>
-                            <div .Center class="PlateContainer City #{show (cityori city)}Square">
+                          <div class="#{containerclass}">
+                            <div .Center class="#{show (cityori city)}Plate PlateContainer City">
                               <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
                         $nothing
                           $case tokmarker
