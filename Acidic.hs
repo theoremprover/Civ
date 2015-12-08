@@ -842,16 +842,18 @@ finishPlayerPhase gamename = do
 				let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
 				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
 -}	
-allowedMoves :: [Move] -> UpdateCivM [Move]		
+allowedMoves :: GameName -> PlayerName -> [Move] -> UpdateCivM [Move]		
 allowedMoves gamename playername moves = do
+
 	mb_moves_this_turn <- queryCivLensM $
 		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just
+	let my_moves_this_turn  = maybe [] (collectMoves playername . concat . assocListValues) mb_moves_this_turn
+
 	mb_moves_this_phase <- queryCivLensM $
 		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-	let
-		my_moves_this_turn = maybe [] (collectMoves playername . assocListValues) mb_moves_this_turn
-		my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
-	(flip filterM) moves $ \ move -> do
+	let my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
+
+	(flip filterM) moves $ \ (move,secondmove) -> do
 		return $ case (move,secondmove) of
 			(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> []
 			(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
@@ -865,7 +867,7 @@ allowedMoves gamename playername moves = do
 				Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 		-}
 			(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
-			(Move (PolicySource _ _,PoliciesTarget _ (),Move (PolicySource _ _,PoliciesTarget _ ())) |
+			(Move (PolicySource _ _,PoliciesTarget _ (),Move (PolicySource _ _,PoliciesTarget _ ()))) |
 				False -> False
 			
 			_ -> True
