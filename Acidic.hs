@@ -836,13 +836,14 @@ finishPlayerPhase gamename = do
 				False -> do
 					updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerSubPhases
 
-{-
-				mb_movenodesthisphase <- queryCivLensM $
-					civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-				let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
--}			
+allowedMoves :: [Move] -> UpdateCivM [Move]
 allowedMoves moves = do
+	mb_mymovesthisturn <- queryCivLensM $
+		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just
+	let mymovesthisturn = maybe [] 
+
+	let mymovesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
+	
 	case (move,secondmove) of
 		(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 		(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
@@ -860,6 +861,7 @@ allowedMoves moves = do
 			??? -> False
 		
 		_ -> True
+				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
 
 getCity gamename coors = do
 	Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker

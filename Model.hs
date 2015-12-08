@@ -485,8 +485,7 @@ data Square =
 		_squareResource    :: Maybe Resource,
 		_squareNatWonder   :: Bool,
 		_squareTokenMarker :: Maybe TokenMarker,
-		_squareFigures     :: SquareFigures
-		}
+		_squareFigures     :: SquareFigures }
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Square)
 makeLenses ''Square
