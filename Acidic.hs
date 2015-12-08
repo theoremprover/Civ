@@ -836,32 +836,39 @@ finishPlayerPhase gamename = do
 				False -> do
 					updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerSubPhases
 
-allowedMoves :: [Move] -> UpdateCivM [Move]
-allowedMoves moves = do
-	mb_mymovesthisturn <- queryCivLensM $
-		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just
-	let mymovesthisturn = maybe [] 
-
-	let mymovesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-	
-	case (move,secondmove) of
-		(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
-		(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
-		(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
-		(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
-		(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
-	{-
-		(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),
-			Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
-		(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
-			Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
-	-}
-		(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
-		(Move (PolicySource _ _,PoliciesTarget _ (),Move (PolicySource _ _,PoliciesTarget _ ()) |
-			??? -> False
-		
-		_ -> True
+{-
+				mb_movenodesthisphase <- queryCivLensM $
+					civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+				let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
 				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
+-}	
+allowedMoves :: [Move] -> UpdateCivM [Move]		
+allowedMoves gamename playername moves = do
+	mb_moves_this_turn <- queryCivLensM $
+		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just
+	mb_moves_this_phase <- queryCivLensM $
+		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
+	let
+		my_moves_this_turn = maybe [] (collectMoves playername . assocListValues) mb_moves_this_turn
+		my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
+	(flip filterM) moves $ \ move -> do
+		return $ case (move,secondmove) of
+			(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> []
+			(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
+			(Move (FigureSource _ fig1) (SquareTarget _),Move (FigureSource _ fig2) (SquareTarget _)) | fig1==fig2 -> False
+			(Move (CityProductionSource coors1 _) _,Move (CityProductionSource coors2 _) _) | coors1==coors2 -> False
+			(Move (TechSource _) (TechTreeTarget _),Move (TechSource _) (TechTreeTarget _)) -> False
+		{-
+			(Move (ResourcesSource pn1 _) (TechResourceAbilityTarget _ tech1),
+				Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+			(Move (NoSource ()) (CardAbilityTarget name1 CardAbilityTargetType),
+				Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
+		-}
+			(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
+			(Move (PolicySource _ _,PoliciesTarget _ (),Move (PolicySource _ _,PoliciesTarget _ ())) |
+				False -> False
+			
+			_ -> True
 
 getCity gamename coors = do
 	Just city <- queryCivLensM $ civSquareLens gamename coors . squareTokenMarker . _Just . cityMarker
@@ -1644,7 +1651,7 @@ moveGen gamename my_playername = do
 
 						return $ phasemoves ++ concat abilitymovess
 
-				allowedMoves allmoves
+				allowedMoves gamename my_playername allmoves
 
 	case res of
 		Right moves -> return moves

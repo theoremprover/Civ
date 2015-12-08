@@ -18,6 +18,9 @@ emptyAssocList = AssocList []
 singletonAssocList :: (Eq key) => (key,val) -> AssocList key val
 singletonAssocList (key,val) = addModifyAssoc key val undefined emptyAssocList
 
+assocListValues :: (Eq key) => AssocList key val -> [val]
+assocListValues al = map snd $ fromAssocList al
+
 lookupAssocList :: (Eq key) => key -> AssocList key val -> Maybe val
 lookupAssocList key assoclist = lookup key (fromAssocList assoclist)
 
