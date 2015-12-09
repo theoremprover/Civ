@@ -845,6 +845,8 @@ finishPlayerPhase gamename = do
 allowedMoves :: GameName -> PlayerName -> [Move] -> UpdateCivM [Move]		
 allowedMoves gamename playername moves = do
 
+	Just Game{..} <- queryCivLensM $ civGameLens gamename
+
 	mb_moves_this_turn <- queryCivLensM $
 		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just
 	let my_moves_this_turn  = maybe [] (collectMoves playername . concat . assocListValues) mb_moves_this_turn
