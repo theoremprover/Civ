@@ -11,6 +11,11 @@ import Data.List
 import Model
 import TokenStack
 
+flipFilterM = flip filterM
+forAllM l p = do
+	r <- forM l p
+	return $ all (==True) r
+
 rotate4x4coors orientation (Coors x y) = case orientation of
 	Northward -> Coors    x     y
 	Southward -> Coors (3-x) (3-y)
