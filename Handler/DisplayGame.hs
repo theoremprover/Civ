@@ -500,7 +500,6 @@ boardArea di@(DisplayInfo{..}) moves = do
 		playerori playername = _playerOrientation $ playernameToPlayerDI playername
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
-{-
 		showcity :: Coors -> Maybe (City,String)
 		showcity coors = case arrlookup coors of
 			Square _ _ _ _ _ (Just (CityMarker citysq)) _ -> case citysq of
@@ -515,7 +514,7 @@ boardArea di@(DisplayInfo{..}) moves = do
 					Northward -> Nothing
 					_  -> Just (city,"OverflowVisible")
 			_ -> Nothing
--}
+
 	return [whamlet|
 <div .Parent>
   <div .Child .Map-Layer1>
@@ -527,7 +526,7 @@ boardArea di@(DisplayInfo{..}) moves = do
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
-                <td .SquareContainer.Map-SquareContainer data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer.Map-SquareContainer style="overflow:visible" data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -542,11 +541,13 @@ boardArea di@(DisplayInfo{..}) moves = do
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
+                          $of CityMarker _
+                            $maybe (city,oriclass) <- showcity (Coors x y)
+                              <div style="overflow:visible">
+                                <div style="overflow:visible" .Center class="PlateContainer City #{show (cityori city)}Square">
+                                  <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
                           $of _
-                            <div class=#{containerclass}>
-                              <div .Center class="PlateContainer City #{show (cityori city)}Square">
-                                <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
-                    ^{figuresSquare di (_squareFigures square)}
+                      ^{figuresSquare di (_squareFigures square)}
 
   <div .Map-Layer2>
     <table .NoSpacing>

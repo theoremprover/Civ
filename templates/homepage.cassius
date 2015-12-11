@@ -75,6 +75,14 @@ img
     width : 94px
     height: 94px
 
+.HorMetropolis
+    width : 188px
+    height: 94px
+
+.VertMetropolis
+    width : 94px
+    height: 188px
+
 .Center
     margin: auto
 
