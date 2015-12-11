@@ -500,26 +500,22 @@ boardArea di@(DisplayInfo{..}) moves = do
 		playerori playername = _playerOrientation $ playernameToPlayerDI playername
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
+{-
 		showcity :: Coors -> Maybe (City,String)
 		showcity coors = case arrlookup coors of
 			Square _ _ _ _ _ (Just (CityMarker citysq)) _ -> case citysq of
 				SecondCitySquare ori -> case ori of
 					Westward  -> Nothing
 					Northward -> Nothing
-					_ -> Just (city,containerclass ori) where
+					_ -> Just (city,"OverflowVisible") where
 						city@(City _ _ _ _ _ _ _ _) = _cityMarker $ fromJust $ _squareTokenMarker $ arrlookup (addCoorsOri coors ori)
 				city@(City _ _ _ _ _ _ _ Nothing) -> Just (city,"SquareContainer")
 				city@(City _ _ _ _ _ _ _ (Just ori)) -> case ori of
 					Westward  -> Nothing
 					Northward -> Nothing
-					_  -> Just (city,containerclass ori)
+					_  -> Just (city,"OverflowVisible")
 			_ -> Nothing
-			where
-			containerclass ori = case ori of
-				Southward -> "VertDoubleSquareContainer"
-				Eastward  -> "HorDoubleSquareContainer"
-				_ -> error $ "containerclass " ++ show ori
-
+-}
 	return [whamlet|
 <div .Parent>
   <div .Child .Map-Layer1>
@@ -537,22 +533,20 @@ boardArea di@(DisplayInfo{..}) moves = do
                     $of UnrevealedSquare _ _
                     $of _
                       $maybe tokmarker <- _squareTokenMarker square
-                        $maybe (city,containerclass) <- showcity (Coors x y)
-                          <div class=#{containerclass}>
-                            <div .Center class="PlateContainer City #{show (cityori city)}Square">
-                              <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
-                        $nothing
-                          $case tokmarker
-                            $of ArtifactMarker artifact
-                              <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
-                            $of HutMarker _
-                              <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
-                            $of VillageMarker _
-                              <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
-                            $of BuildingMarker (Building buildingtype owner)
-                              <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
-                            $of _
-                      ^{figuresSquare di (_squareFigures square)}
+                        $case tokmarker
+                          $of ArtifactMarker artifact
+                            <img .Center class="#{show myPlayerOriDI}" src=@{artifactRoute artifact}>
+                          $of HutMarker _
+                            <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
+                          $of VillageMarker _
+                            <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
+                          $of BuildingMarker (Building buildingtype owner)
+                            <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
+                          $of _
+                            <div class=#{containerclass}>
+                              <div .Center class="PlateContainer City #{show (cityori city)}Square">
+                                <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
+                    ^{figuresSquare di (_squareFigures square)}
 
   <div .Map-Layer2>
     <table .NoSpacing>
