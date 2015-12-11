@@ -12,6 +12,7 @@ img
 
 .Northward
     display: block
+
 .Eastward
     -moz-transform: rotate(90deg)
     -webkit-transform: rotate(90deg)
@@ -50,6 +51,24 @@ img
     white-space: nowrap
     transform: rotate(270deg) translate(-100%,0px)
     transform-origin: 0px 0px
+
+.NorthwardMetropolis
+    white-space: nowrap
+
+.EastwardMetropolis
+    white-space: nowrap
+    transform: rotate(90deg)
+    transform-origin: 47px 47px
+
+.SouthwardMetropolis
+    white-space: nowrap
+    transform: rotate(180deg)
+    transform-origin: 94px 47px
+
+.WestwardMetropolis
+    white-space: nowrap
+    transform: rotate(270deg)
+    transform-origin: 47px 47px
 
 .Parent
     position: relative

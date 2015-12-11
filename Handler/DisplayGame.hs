@@ -478,25 +478,7 @@ boardArea di@(DisplayInfo{..}) moves = do
 		(xcoors,ycoors) = (map xCoor allcoors,map yCoor allcoors)
 		xs = [(minimum xcoors)..(maximum xcoors)]
 		ys = [(minimum ycoors)..(maximum ycoors)]
-		cityori City{..} = case _cityMetropolisOrientation of
-			Nothing -> playerori _cityOwner
-			Just metropolisori -> case (playerori _cityOwner,metropolisori) of
-				(Northward,Northward) -> Westward
-				(Northward,Westward)  -> Northward
-				(Northward,Southward) -> Westward
-				(Northward,Eastward)  -> Northward
-				(Westward, Northward) -> Westward
-				(Westward, Westward)  -> Southward
-				(Westward, Southward) -> Westward
-				(Westward, Eastward)  -> Southward
-				(Southward,Northward) -> Eastward
-				(Southward,Westward)  -> Southward
-				(Southward,Southward) -> Eastward
-				(Southward,Eastward)  -> Southward
-				(Eastward, Northward) -> Eastward
-				(Eastward, Westward)  -> Northward
-				(Eastward, Southward) -> Eastward
-				(Eastward, Eastward)  -> Northward
+
 		playerori playername = _playerOrientation $ playernameToPlayerDI playername
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
@@ -506,14 +488,35 @@ boardArea di@(DisplayInfo{..}) moves = do
 				SecondCitySquare ori -> case ori of
 					Westward  -> Nothing
 					Northward -> Nothing
-					_ -> Just (city,"OverflowVisible") where
+					_ -> Just (city,cityori city ++ "Metropolis") where
 						city@(City _ _ _ _ _ _ _ _) = _cityMarker $ fromJust $ _squareTokenMarker $ arrlookup (addCoorsOri coors ori)
-				city@(City _ _ _ _ _ _ _ Nothing) -> Just (city,"SquareContainer")
+				city@(City _ _ _ _ _ _ _ Nothing) -> Just (city,cityori city ++ "Square")
 				city@(City _ _ _ _ _ _ _ (Just ori)) -> case ori of
 					Westward  -> Nothing
 					Northward -> Nothing
-					_  -> Just (city,"OverflowVisible")
+					_  -> Just (city,cityori city ++ "Metropolis")
 			_ -> Nothing
+			where
+			cityori City{..} = show $ case _cityMetropolisOrientation of
+				Nothing -> playerori _cityOwner
+				Just metropolisori -> case (playerori _cityOwner,metropolisori) of
+					(Northward,Northward) -> Westward
+					(Northward,Southward) -> Westward
+					(Northward,Eastward)  -> Northward
+					(Northward,Westward)  -> Northward
+					(Westward, Northward) -> Westward
+					(Westward, Southward) -> Westward
+					(Westward, Westward)  -> Southward
+					(Westward, Eastward)  -> Southward
+					(Southward,Northward) -> Eastward
+					(Southward,Southward) -> Eastward
+					(Southward,Westward)  -> Southward
+					(Southward,Eastward)  -> Southward
+					(Eastward, Northward) -> Eastward
+					(Eastward, Southward) -> Eastward
+					(Eastward, Westward)  -> Northward
+					(Eastward, Eastward)  -> Northward
+
 
 	return [whamlet|
 <div .Parent>
@@ -544,8 +547,8 @@ boardArea di@(DisplayInfo{..}) moves = do
                           $of CityMarker _
                             $maybe (city,oriclass) <- showcity (Coors x y)
                               <div style="overflow:visible">
-                                <div style="overflow:visible" .Center class="PlateContainer City #{show (cityori city)}Square">
-                                  <img src=@{cityRoute (playercolour (_cityOwner city)) city}>
+                                <div style="overflow:visible" .Center>
+                                  <img class="#{show oriclass}" src=@{cityRoute (playercolour (_cityOwner city)) city}>
                           $of _
                       ^{figuresSquare di (_squareFigures square)}
 

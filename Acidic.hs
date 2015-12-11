@@ -836,12 +836,6 @@ finishPlayerPhase gamename = do
 				False -> do
 					updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerSubPhases
 
-{-
-				mb_movenodesthisphase <- queryCivLensM $
-					civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-				let my_movesthisphase = maybe [] (collectMoves my_playername) mb_movenodesthisphase
-				return $ foldl (\ allowedmoves move1 -> filter (allowSecondMove _gamePhase _playerSubPhases move1) allowedmoves) allmoves my_movesthisphase
--}	
 allowedMoves :: GameName -> PlayerName -> [Move] -> UpdateCivM [Move]		
 allowedMoves gamename playername moves = do
 
