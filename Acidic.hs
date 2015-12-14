@@ -240,7 +240,7 @@ civAbilities civ = case civ of
 			return (),
 		discoverHutHook = addCulture 3,
 		discoverVillageHook = addCulture 3 }
---		afterBattleHook = switchToSubPhases (CivAbility Aztecs) 0 }
+--		TODO: afterBattleHook = switchToSubPhases (CivAbility Aztecs) 0 }
 
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
@@ -690,6 +690,10 @@ startGame gamename = runUpdateCivM $ do
 	checkCondition ("Cannot start " ++ show gamename ++ ", it is not in waiting state.")
 		(civGameLens gamename . _Just . gameState) (==Waiting)
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
+
+	openwonders <- forM [1..4] $ \ _ -> takeFromStack
+	updateCivLensM (const openwonders) $ civGameLens gamename . _Just . gameOpenWonders
+
 	createBoard gamename
 
 	forAllPlayers gamename $ \ (playername,player@(Player{..})) -> do

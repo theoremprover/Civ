@@ -137,6 +137,7 @@ executeAction action = do
 			personstack  <- shuffle initialGreatPersonStack
 			unitstack    <- shuffle initialUnitStack
 			culturestack <- shuffle initialCultureStack
+			wonderstack  <- shuffle initialWonderStack
 			res <- updateCivH $ CreateNewGame gamename $ (defaultNewGame now) {
 				_gameCreator = userEmail user,
 				_gameTileStack = tilestack,
@@ -144,7 +145,8 @@ executeAction action = do
 				_gameVillageStack = villagestack,
 				_gameGreatPersonStack = personstack,
 				_gameUnitStack = unitstack,
-				_gameCultureStack = culturestack }
+				_gameCultureStack = culturestack,
+				_gameWonderStack = wonderstack }
 
 			when debugMode $ do
 				updateCivH $ JoinGame gamename (PlayerName "Red") (userEmail user) Red Russia
