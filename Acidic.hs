@@ -691,7 +691,11 @@ startGame gamename = runUpdateCivM $ do
 		(civGameLens gamename . _Just . gameState) (==Waiting)
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 
-	openwonders <- forM [1..4] $ \ _ -> takeFromStack
+	let wonders = 
+	updateCivLensM (const $ tokenStackFromList [(),wonders]) $
+		civGameLens gamename . _Just . gameWonderStack
+
+	openwonders <- forM [1..4] $ \ _ -> takeFromStack 
 	updateCivLensM (const openwonders) $ civGameLens gamename . _Just . gameOpenWonders
 
 	createBoard gamename

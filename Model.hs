@@ -417,8 +417,6 @@ wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelI)   = WonderLevel
 wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelII)  = WonderLevelII
 wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelIII) = WonderLevelIII
 
-initialWonderStack = 
-
 instance GeneratesIncome Wonder where
 	generatedIncome wonder = cultureIncome $ case wonderLevel wonder of
 		WonderLevelI   -> 1
@@ -914,10 +912,11 @@ data Game = Game {
 	_gameCultureStack         :: TokenStack CultureLevel CultureEvent,
 	_gameReturnedCultureCards :: TokenStack CultureLevel CultureEvent,
 	_gameResourceStack        :: TokenStack Resource (),
-	_gameWonderStack          :: TokenStack WonderLevel Wonder,
+	_gameWonderStack          :: TokenStack () Wonder,
 	_gameSpaceFlightTaken     :: Bool,
 	_gameMoves                :: AssocList Turn (AssocList Phase MoveNodes),
-	_gameOpenWonders          :: [Wonder]
+	_gameOpenWonders          :: [Wonder],
+	_gameRandomGen            :: StdGen
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Game)
