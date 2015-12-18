@@ -15,6 +15,9 @@ $(deriveSafeCopy modelVersion 'base ''AssocList)
 
 emptyAssocList = AssocList []
 
+assocListLength :: (Eq key) => AssocList key val -> Int
+assocListLength assoclist = length $ assocListValues assoclist
+
 singletonAssocList :: (Eq key) => (key,val) -> AssocList key val
 singletonAssocList (key,val) = addModifyAssoc key val undefined emptyAssocList
 

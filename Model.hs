@@ -19,6 +19,7 @@ import Control.Lens
 import qualified Data.Map as Map
 import Data.Array.IArray
 import Data.Aeson.TH
+import System.Random
 
 import Entities
 import TokenStack
@@ -915,9 +916,7 @@ data Game = Game {
 	_gameWonderStack          :: TokenStack () Wonder,
 	_gameSpaceFlightTaken     :: Bool,
 	_gameMoves                :: AssocList Turn (AssocList Phase MoveNodes),
-	_gameOpenWonders          :: [Wonder],
-	_gameRandomGen            :: StdGen
-	}
+	_gameOpenWonders          :: [Wonder] }
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Game)
 makeLenses ''Game
