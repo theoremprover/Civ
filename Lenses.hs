@@ -54,6 +54,3 @@ nthAssocListLens index = lens ((!!index).fromAssocList) ins where
 
 civSquareLens :: GameName -> Coors -> Traversal' CivState Square
 civSquareLens gamename coors = civGameLens gamename . _Just . gameBoard . ix coors
-
-civRandomGenLens :: GameName -> Lens' CivState RandomGen
-civRandomGenLens gamename = civGameLens gamename . _Just . gameRandomGen
