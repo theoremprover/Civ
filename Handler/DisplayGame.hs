@@ -542,6 +542,8 @@ boardArea di@(DisplayInfo{..}) moves = do
                             <img .Center class="#{show myPlayerOriDI}" src=@{hutRoute}>
                           $of VillageMarker _
                             <img .Center class="#{show myPlayerOriDI}" src=@{villageRoute}>
+                          $of WonderMarker wonder
+                            <img .Center class="#{show myPlayerOriDI}" src=@{wonderBuildingRoute wonder}>
                           $of BuildingMarker (Building buildingtype owner)
                             <img .Center class="#{show (playerori owner)}Square" src=@{buildingTypeRoute buildingtype}>
                           $of CityMarker _
@@ -611,18 +613,26 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		repeat (error "figuresSquare pos too many figures, not implemented yet")
 		-- TODO: Expand
 
-stackOfRoute route source target n = let
-	relpos o = "top:" ++ show (o*10) ++ "px; left:" ++ show (o*10) ++ "px;"
-	positions = "position:static" : map (\ o -> "position:absolute; " ++ relpos o) [1..n]
+stackOfRoutes x0 y0 xd yd routes = let
+	style x y z = "position:absolute; top:" ++ show y ++ "px; left:" ++ show x ++ "px; z-index:" ++ show z
+	rs = [ (route,(x0 + i*xd, y0 + i*yd, 10+i)) | (i,route) <- zip [0..] routes ]
 	in [whamlet|
-<div .Parent>
-  $forall style <- positions
-    <img .Child src=@{route} style=#{show style}>
+<div .Child style="position:relative">
+  $forall (route,(x,y,z)) <- rs
+    <img .Child src=@{route} style=#{style x y z}>
 |]
 
-overviewBoard di@(DisplayInfo{..}) = do
+overviewBoard di = do
+	let
+		Game{..} = gameDI di
+		wonderroutes = map wonderBuildingRoute _gameOpenWonders
+		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ tokenStackElems _gameWonderStack)
 	return [whamlet|
-<div .Parent name="overviewboard">
-  <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
+<div .Parent>
+  <div .Child>
+    ^{stackOfRoutes 10 139 0 135 wonderroutes}
+    ^{stackOfRoutes 10 4 5 5 wonderstackroutes}
+  <div .Child name="overviewboard">
+    <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
 
 |]

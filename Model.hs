@@ -376,25 +376,6 @@ initialBuildingStack = tokenStackFromList $ replicateUnit [
 
 starBuildingType building = building `elem` [Barracks,Academy,Market,Bank,Shipyard,Temple,Cathedral]
 
-data TokenMarker =
-	ArtifactMarker Artifact |
-	HutMarker Hut |
-	VillageMarker Village |
-	CityMarker { _cityMarker :: City } |
-	BuildingMarker Building
-	deriving (Show,Data,Typeable,Eq)
-$(deriveSafeCopy modelVersion 'base ''TokenMarker)
-makeLenses ''TokenMarker
-
-isHut (Just (HutMarker _)) = True
-isHut _ = False
-
-isVillage (Just (VillageMarker _)) = True
-isVillage _ = False
-
-isCity (Just (CityMarker _)) = True
-isCity _ = False
-
 data Wonder =
 	Stonehenge | Colossus | HangingGardens | Oracle | GreatWall |
 	ChichenItza | Pyramids | GreatLighthouse | StatueZeus |
@@ -423,6 +404,26 @@ instance GeneratesIncome Wonder where
 		WonderLevelI   -> 1
 		WonderLevelII  -> 2
 		WonderLevelIII -> 3
+
+data TokenMarker =
+	ArtifactMarker Artifact |
+	HutMarker Hut |
+	VillageMarker Village |
+	WonderMarker Wonder |
+	CityMarker { _cityMarker :: City } |
+	BuildingMarker Building
+	deriving (Show,Data,Typeable,Eq)
+$(deriveSafeCopy modelVersion 'base ''TokenMarker)
+makeLenses ''TokenMarker
+
+isHut (Just (HutMarker _)) = True
+isHut _ = False
+
+isVillage (Just (VillageMarker _)) = True
+isVillage _ = False
+
+isCity (Just (CityMarker _)) = True
+isCity _ = False
 
 data PolicyCard =
 	NaturalOrOrganizedReligion |
@@ -729,6 +730,10 @@ instance Show Production where
 	show (HarvestResource res) = "Harvest " ++ show res
 	show (DevoteToArts (Culture c)) = "Devote to the Arts (" ++ show c ++ " Culture)"
 
+data StateData = ChosenWonder Wonder
+	deriving (Show,Ord,Eq,Data,Typeable)
+$(deriveSafeCopy modelVersion 'base ''StateData)	
+
 -- The unit types are for ActionSource to be JSON toplevel encodable
 data ActionSource =
 	AutomaticMove () |
@@ -750,7 +755,8 @@ data ActionSource =
 	TechCoinSource PlayerName Tech |
 	ArtifactSource PlayerName Artifact |
 	ResourcesSource PlayerName [ResourcePayment] |
-	PolicySource PlayerName Policy
+	PolicySource PlayerName Policy |
+	StateDataSource StateData
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionSource)
 
@@ -780,7 +786,8 @@ data ActionTarget =
 	GetTradeTarget PlayerName |
 	RevealTileTarget Orientation Coors |
 	PoliciesTarget PlayerName () |
-	FinishPhaseTarget ()
+	FinishPhaseTarget () |
+	StateDataTarget PlayerName
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''ActionTarget)
 
@@ -803,6 +810,7 @@ instance Show Move where
 		(NoSource (),CardAbilityTarget name (TechCardAbility tech,_)) -> show tech ++ ": " ++ name
 		(NoSource (),CardAbilityTarget name (CivAbility civ,_)) -> show civ ++ ": " ++ name
 		(PolicySource _ policy,PoliciesTarget _ ()) -> "Adopt Policy " ++ show policy
+		(StateDataSource statedata,StateDataTarget _) -> show statedata
 		(HaltSource (),_) -> "HALTED"
 		(_,DebugTarget msg) -> "DEBUG: " ++ msg
 		(_,FinishPhaseTarget ()) -> "Finish Phase"
@@ -824,6 +832,9 @@ data MoveNode =
 $(deriveSafeCopy modelVersion 'base ''MoveNode)
 makeLenses ''MoveNode
 
+isNormalMove playername movenode = case movenode of
+	NormalMove pn _ | pn==playername -> True
+	_ -> False
 
 collectMoves :: PlayerName -> MoveNodes -> [Move]
 collectMoves playername movenodes = concatMap collectmoves movenodes where
@@ -831,6 +842,17 @@ collectMoves playername movenodes = concatMap collectmoves movenodes where
 	collectmoves (NormalMove _ _) = []
 	collectmoves (SubPhaseMoves _ submovenodes) = collectMoves playername submovenodes
 
+collectCurrentSubPhaseMoves :: PlayerName -> MoveNodes -> [Move]
+collectCurrentSubPhaseMoves playername movenodes = case movenodes of
+	[] -> []
+	l -> case last l of
+		NormalMove _ _ -> []
+		SubPhaseMoves _ submovenodes -> collectmoves submovenodes
+	where
+	collectmoves [] = []
+	collectmoves movenodes = case last movenodes of
+		NormalMove _ _               -> filter (isNormalMove playername) movenodes
+		SubPhaseMoves _ submovenodes -> collectmoves submovenodes
 
 data Player = Player {
 	_playerUserEmail        :: PlayerEmail,
@@ -857,7 +879,8 @@ data Player = Player {
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
 	_playerCityCoors        :: [Coors],   -- The first one is the capital
-	_playerSubPhases        :: [SubPhase] -- Innermost subphase first
+	_playerSubPhases        :: [SubPhase], -- Innermost subphase first
+	_playerStateData        :: [StateData]
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -869,7 +892,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
 	[] [] initialFigureStack Map.empty [] Northward initialCityStack
-	0 [] [] []
+	0 [] [] [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)

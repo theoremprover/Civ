@@ -55,6 +55,7 @@ unitCardRoute (UnitCard{..}) revealed = case revealed of
 
 $(makeMultiRoutes [''Wonder] "wonderBuildingRoute" ["_Squares_","_Building_jpg"])
 $(makeMultiRoutes [''Wonder] "wonderCardRoute" ["_Wonders_","_jpg"])
+$(makeMultiRoutes [''WonderLevel] "wonderBackRoute" ["_Wonders_","_back_jpg"])
 
 $(makeMultiRoutes [''BuildingType] "buildingTypeRoute" ["_Squares_","_jpg"])
 

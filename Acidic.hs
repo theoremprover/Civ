@@ -246,9 +246,10 @@ civAbilities civ = case civ of
 		wondersNonobsoletable = SetValue True,
 		startOfGameHook = switchToSubPhase (CivAbility Egypt) 0,
 		subPhases          = [
-			("Extra Wonder",[
-				("Extra Wonder",\ gamename playername -> do
-					return [] -- TODO!
+			("Choose Start Wonder",[
+				("Choose Start Wonder",\ gamename playername -> do
+					Just openwonders <- queryCivLensM $ civGameLens gamename . _Just . gameOpenWonders
+					return [ Move (StateDataSource $ ChosenWonder wonder) (StateDataTarget playername) | wonder <- openwonders ]
 					) ] ) ] }
 
 	English  -> defaultAbilities {
@@ -862,11 +863,17 @@ allowedMoves gamename playername moves = do
 
 	mb_moves_this_phase <- queryCivLensM $
 		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
-	let my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
+
+	mb_moves_this_subphase <- 
+	let
+		my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
+		my_moves_this_subphase = maybe [] (collectCurrentSubPhaseMoves playername) mb_moves_this_phase
 
 	flipFilterM moves $ \ move -> do
 		forAllM my_moves_this_turn $ \ move_this_turn -> do
-			let in_same_phase = move_this_turn `elem` my_moves_this_phase
+			let
+				in_same_phase = move_this_turn `elem` my_moves_this_phase
+				in_same_subphase = move_this_turn `elem` my_moves_this_subphase
 			return $ case (move_this_turn,move) of
 				(Move _ (GetTradeTarget _),Move _ (GetTradeTarget _)) -> False
 				(Move _ (BuildFirstCityTarget _ _),Move _ (BuildFirstCityTarget _ _)) -> False
@@ -880,7 +887,8 @@ allowedMoves gamename playername moves = do
 					Move (ResourcesSource pn2 _) (TechResourceAbilityTarget _ tech2)) | pn1==pn2 && tech1==tech2 -> False
 			-}
 				(Move (NoSource ()) (DebugTarget s1),Move (NoSource ()) (DebugTarget s2)) -> False
-				(Move (PolicySource _ _) (PoliciesTarget _ ()),Move (PolicySource _ _) (PoliciesTarget _ ())) -> not in_same_phase		
+				(Move (PolicySource _ _) (PoliciesTarget _ ()),Move (PolicySource _ _) (PoliciesTarget _ ())) -> not in_same_phase
+				(Move (StateDataSource (ChosenWonder _)) (StateDataTarget pn1),Move (StateDataSource (ChosenWonder _)) (StateDataTarget pn2)) | pn1==pn2 -> not in_same_subphase
 				_ -> True
 
 getCity gamename coors = do
@@ -1461,6 +1469,9 @@ doMove gamename playername move@(Move source target) = do
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 
 		(_,DebugTarget msg) -> return ()
+
+		(StateDataSource statedata,StateDataTarget pn) | pn == playername -> do
+			updateCivLensM (statedata:) $ civPlayerLens gamename playername . _Just . playerStateData
 
 		_ -> error $ show move ++ " not implemented yet"
 
