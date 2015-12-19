@@ -692,13 +692,17 @@ startGame gamename = runUpdateCivM $ do
 	updateCivLensM (const Running) $ civGameLens gamename . _Just . gameState
 
 	Just players <- queryCivLensM $ civPlayersLens gamename
-	let numofplayers = numPlayers players 
+	let
+		numofplayers = numPlayers players
+		numofwondersperplayer = max (numofplayers + 1) 4
 
-	allwonderss <- forM (map wondersOfLevel allOfThem) shuffleList
-	updateCivLensM (const $ tokenStackFromList [(),concatMap (take $ max (numofplayers + 1) 4) allwonderss]) $
-		civGameLens gamename . _Just . gameWonderStack
+	updateCivLensM (tokenStackMapElems $ \ wonders -> concatMap (\ wonderlevel ->
+		take numofwondersperplayer (filter ((==wonderlevel).wonderLevel) wonders)) allOfThem)
+		(civGameLens gamename . _Just . gameWonderStack)
 
-	openwonders <- forM [1..4] $ \ _ -> takeFromStack 
+	openwonders <- forM [1..4] $ \ _ -> do
+		Just wonder <- takeFromStackM (civGameLens gamename . _Just . gameWonderStack) ()
+		return wonder
 	updateCivLensM (const openwonders) $ civGameLens gamename . _Just . gameOpenWonders
 
 	createBoard gamename

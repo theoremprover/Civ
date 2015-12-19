@@ -402,11 +402,11 @@ data Wonder =
 	BrandenburgGate | Louvre | NotreDame | LeonardosWorkshop |
 	SydneyOpera | StatueLiberty | PanamaCanal | UnitedNations |
 	BigBen | CristoRedentor | Kremlin | Pentagon | Internet
-	deriving (Show,Ord,Ix,Data,Typeable,Eq)
+	deriving (Show,Ord,Ix,Data,Bounded,Typeable,Eq)
 $(deriveSafeCopy modelVersion 'base ''Wonder)
 
 data WonderLevel = WonderLevelI | WonderLevelII | WonderLevelIII 
-	deriving (Show,Eq,Ord,Enum,Data,Typeable)
+	deriving (Show,Eq,Ord,Enum,Data,Ix,Bounded,Typeable)
 $(deriveSafeCopy modelVersion 'base ''WonderLevel)
 
 wondersOfLevel level = case level of

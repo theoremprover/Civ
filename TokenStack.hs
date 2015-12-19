@@ -36,3 +36,5 @@ tokenStackLookup = Map.lookup
 tokenStackAvailableKeys tokenstack = map fst $ filter ((>0).snd) $ tokenStackHeights tokenstack
 
 tokenStackElems = Map.elems
+
+tokenStackMapElems = Map.map
