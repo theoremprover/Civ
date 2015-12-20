@@ -625,13 +625,39 @@ stackOfRoutes x0 y0 xd yd routes = let
 overviewBoard di = do
 	let
 		Game{..} = gameDI di
+		(dx,dy) = (4,3)
+		playercolour playername = _playerColour $ playernameToPlayerDI playername
+
+		wondercardroutes = map wonderCardRoute _gameOpenWonders
 		wonderroutes = map wonderBuildingRoute _gameOpenWonders
 		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ concat $ tokenStackElems _gameWonderStack)
+		buildingroutes buildingtype = tokenStackHeights _gameBuildingStack
+		unitroutes unittype = tokenStackHeights _gameUnitStack
+
+		playersteps = [ (steps,map fst $ filter ((==steps).snd) (fromAssocList _gamePlayers)) |
+			steps <- nub $ map _playerCultureSteps $ assocListValues _gamePlayers ]
+
 	return [whamlet|
 <div .Parent>
   <div .Child>
-    ^{stackOfRoutes 10 139 0 135 wonderroutes}
-    ^{stackOfRoutes 10 4 5 5 wonderstackroutes}
+    ^{stackOfRoutes   10 139 0 135 wondercardroutes}
+    ^{stackOfRoutes  209 155 0 135 wonderroutes}
+    ^{stackOfRoutes   10   4 dx dy wonderstackroutes}
+    ^{stackOfRoutes  357  20 dx dy (buildingroutes Market)}
+    ^{stackOfRoutes  357 184 dx dy (buildingroutes Granary)}
+    ^{stackOfRoutes  357 347 dx dy (buildingroutes Barracks)}
+    ^{stackOfRoutes  410 512 dx dy (buildingroutes TradePost)}
+    ^{stackOfRoutes  603  20 dx dy (buildingroutes Temple)}
+    ^{stackOfRoutes  603 184 dx dy (buildingroutes Library)}
+    ^{stackOfRoutes  603 347 dx dy (buildingroutes Forge)}
+    ^{stackOfRoutes  603 512 dx dy (buildingroutes Harbour)}
+    ^{stackOfRoutes  713 512 dx dy (buildingroutes Shipyard)}
+    ^{stackOfRoutes 1013  63 dx dy (unitroutes Infantry)}
+    ^{stackOfRoutes 1399  63 dx dy (unitroutes Cavalry)}
+    ^{stackOfRoutes 1013 398 dx dy (unitroutes Artillery)}
+    ^{stackOfRoutes 1399 398 dx dy (unitroutes Airforce)}
+    $forall (steps,playernames) <- playersteps
+      ^{stackOfRoutes (9+steps*71) 712 0 
   <div .Child name="overviewboard">
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
 
