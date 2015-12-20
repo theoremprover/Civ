@@ -399,6 +399,18 @@ wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelI)   = WonderLevel
 wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelII)  = WonderLevelII
 wonderLevel wonder | wonder `elem` (wondersOfLevel WonderLevelIII) = WonderLevelIII
 
+instance ConsumesIncome Wonder where
+	consumedIncome wonder = hammerIncome $ case wonderLevel wonder of
+		WonderLevelI -> case wonder of
+			Stonehenge -> 10
+			_          -> 15
+		WonderLevelII -> case wonder of
+			BrandenburgGate -> 15
+			_               -> 20
+		WonderLevelIII -> case wonder of
+			UnitedNations -> 20
+			_             -> 25
+
 instance GeneratesIncome Wonder where
 	generatedIncome wonder = cultureIncome $ case wonderLevel wonder of
 		WonderLevelI   -> 1
@@ -832,7 +844,7 @@ data MoveNode =
 $(deriveSafeCopy modelVersion 'base ''MoveNode)
 makeLenses ''MoveNode
 
-isNormalMove playername movenode = case movenode of
+isNormalMoveNode playername movenode = case movenode of
 	NormalMove pn _ | pn==playername -> True
 	_ -> False
 
@@ -849,9 +861,10 @@ collectCurrentSubPhaseMoves playername movenodes = case movenodes of
 		NormalMove _ _ -> []
 		SubPhaseMoves _ submovenodes -> collectmoves submovenodes
 	where
+	normalmove (NormalMove _ move) = move
 	collectmoves [] = []
 	collectmoves movenodes = case last movenodes of
-		NormalMove _ _               -> filter (isNormalMove playername) movenodes
+		NormalMove _ _               -> map normalmove $ filter (isNormalMoveNode playername) movenodes
 		SubPhaseMoves _ submovenodes -> collectmoves submovenodes
 
 data Player = Player {
@@ -1322,3 +1335,4 @@ deriveJSON defaultOptions ''Hut
 deriveJSON defaultOptions ''Village
 deriveJSON defaultOptions ''SubPhase
 deriveJSON defaultOptions ''Policy
+deriveJSON defaultOptions ''StateData

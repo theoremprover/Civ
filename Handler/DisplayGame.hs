@@ -626,13 +626,13 @@ overviewBoard di = do
 	let
 		Game{..} = gameDI di
 		wonderroutes = map wonderBuildingRoute _gameOpenWonders
-		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ tokenStackElems _gameWonderStack)
+		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ concat $ tokenStackElems _gameWonderStack)
 	return [whamlet|
 <div .Parent>
   <div .Child>
     ^{stackOfRoutes 10 139 0 135 wonderroutes}
     ^{stackOfRoutes 10 4 5 5 wonderstackroutes}
   <div .Child name="overviewboard">
-    <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
+    <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
 
 |]

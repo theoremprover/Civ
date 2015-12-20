@@ -65,6 +65,16 @@ type ResourceAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM ()))
 type SubPhaseStep = (String,HookM [Move])
 type SubPhaseDef = (String,[SubPhaseStep])
 
+popStateDataM :: GameName -> PlayerName -> UpdateCivM StateData
+popStateDataM gamename playername = do
+	Just (statedata:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerStateData
+	updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerStateData
+	return statedata
+
+pushStateDataM :: GameName -> PlayerName -> StateData -> UpdateCivM ()
+pushStateDataM gamename playername statedata = do
+	updateCivLensM (statedata:) $ civPlayerLens gamename playername . _Just . playerStateData
+
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
 	unitAttackBonus          :: UnitType -> Strength,
@@ -244,12 +254,18 @@ civAbilities civ = case civ of
 
 	Egypt    -> defaultAbilities {
 		wondersNonobsoletable = SetValue True,
-		startOfGameHook = switchToSubPhase (CivAbility Egypt) 0,
+		startOfPlayHook = switchToSubPhase (CivAbility Egypt) 0,
 		subPhases          = [
 			("Choose Start Wonder",[
 				("Choose Start Wonder",\ gamename playername -> do
 					Just openwonders <- queryCivLensM $ civGameLens gamename . _Just . gameOpenWonders
 					return [ Move (StateDataSource $ ChosenWonder wonder) (StateDataTarget playername) | wonder <- openwonders ]
+					),
+				("Place Start Wonder",\ gamename playername -> do
+					ChosenWonder wonder <- popStateDataM gamename playername
+					capitalcoors <- getCapitalCoors gamename playername
+					possible_wonders <- getOpenWonders gamename
+					prodWonderMoves gamename playername capitalcoors possible_wonders
 					) ] ) ] }
 
 	English  -> defaultAbilities {
@@ -715,11 +731,15 @@ startGame gamename = runUpdateCivM $ do
 		setGovernment startgov gamename playername
 		forM_ [Incense,Wheat,Linen,Iron] $ \ res -> do
 			putOnStackM (civGameLens gamename . _Just . gameResourceStack) res ()
-		forM_ (map startOfGameHook (playerAbilities player)) $ \ a -> do
-			() <- a gamename playername   -- TODO: Why is this necessary to report errors in a?
-			return ()
+		callHook gamename startOfGameHook
 
 	updateCivLensM (const BuildingFirstCity) $ civGameLens gamename . _Just . gamePhase
+
+callHook gamename hook = do
+	forAllPlayers gamename $ \ (playername,player) -> do
+		forM_ (map hook (playerAbilities player)) $ \ a -> do
+			() <- a gamename playername   -- TODO: Why is this necessary to report errors in a?
+			return ()
 
 debugAction gamename = do
 	Just (pn0,p0) <- queryCivLensM $ civPlayerIndexLens gamename 0
@@ -835,6 +855,7 @@ finishPlayerPhase gamename = do
 						return ()
 
 					StartOfTurn -> do
+						callHook gamename startOfPlayHook
 						when (debugMode && _gameTurn==0) $ debugAction gamename
 
 						updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
@@ -864,7 +885,6 @@ allowedMoves gamename playername moves = do
 	mb_moves_this_phase <- queryCivLensM $
 		civGameLens gamename . _Just . gameMoves . at _gameTurn . _Just . at _gamePhase . _Just
 
-	mb_moves_this_subphase <- 
 	let
 		my_moves_this_phase = maybe [] (collectMoves playername) mb_moves_this_phase
 		my_moves_this_subphase = maybe [] (collectCurrentSubPhaseMoves playername) mb_moves_this_phase
@@ -1311,6 +1331,15 @@ buildBuilding gamename playername coors buildingtype = do
 	Just () <- takeFromStackM (civGameLens gamename . _Just . gameBuildingStack) (buildingTypeToMarker buildingtype)
 	setTokenMarker gamename (BuildingMarker $ Building buildingtype playername) coors
 
+buildWonder :: GameName -> PlayerName -> Coors -> Wonder -> UpdateCivM ()
+buildWonder gamename playername coors wonder = do
+	Just newwonder <- takeFromStackM (civGameLens gamename . _Just . gameWonderStack) ()
+	updateCivLensM (replace newwonder) $ civGameLens gamename . _Just . gameOpenWonders
+	setTokenMarker gamename (WonderMarker wonder) coors
+	where
+	replace new (w:ws) | w==wonder = new:ws
+	replace new (w:ws) = w : replace new ws
+
 victory victorytype gamename playername = error "Not implemented yet"
 
 modifyRange :: GameName -> PlayerName -> FigureID -> (Coor -> Coor) -> UpdateCivM ()
@@ -1417,6 +1446,9 @@ doMove gamename playername move@(Move source target) = do
 		(CityProductionSource _ (ProduceBuilding building),SquareTarget coors) -> do
 			buildBuilding gamename playername coors building
 
+		(CityProductionSource _ (ProduceWonder wonder),SquareTarget coors) -> do
+			buildWonder gamename playername coors wonder
+
 		(CityProductionSource _ (ProduceUnit unittype),NoTarget ()) -> do
 			drawUnit gamename playername unittype
 			return ()
@@ -1437,6 +1469,9 @@ doMove gamename playername move@(Move source target) = do
 		(FigureOnBoardSource figureid pn _,RevealTileTarget ori tileorigin) | pn==playername -> do
 			modifyRange gamename playername figureid (+(-1))
 			revealTile gamename tileorigin ori
+
+		(StateDataSource statedata,StateDataTarget pn) -> do
+			pushStateDataM gamename pn statedata
 
 		(TechSource tech,TechTreeTarget pn) | playername==pn -> do
 			setTrade (min (inTrade $ techCosts player (levelOfTech tech)) _playerTrade )
@@ -1469,9 +1504,6 @@ doMove gamename playername move@(Move source target) = do
 		(_,FinishPhaseTarget ()) -> finishPlayerPhase gamename
 
 		(_,DebugTarget msg) -> return ()
-
-		(StateDataSource statedata,StateDataTarget pn) | pn == playername -> do
-			updateCivLensM (statedata:) $ civPlayerLens gamename playername . _Just . playerStateData
 
 		_ -> error $ show move ++ " not implemented yet"
 
@@ -1518,6 +1550,22 @@ possiblePayments Player{..} requiredpats = nub $ map sort $ poss_pays availpays 
 			One res -> elem res . fst
 			AnyResource -> const True)
 			avails
+
+getOpenWonders gamename = do
+	Just openwonders <- queryCivLensM $ civGameLens gamename . _Just . gameOpenWonders
+	return openwonders
+
+prodWonderMoves gamename playername citycoors possible_wonders = do
+	wondercoorss <- forCityOutskirts gamename playername citycoors $ \ (coors,_,square) -> return $ case square of
+		Square _ _ _ _ _ (Just (WonderMarker _)) _ -> [coors]
+		_ -> []
+	prodwondercoorss <- case concat wondercoorss of
+		[] -> forCityOutskirts gamename playername citycoors $ \ (coors,_,square) -> do
+			return $ case square of
+				Square _ (terrain:_) _ _ _ _ _ | terrain /= Water -> [coors]
+				_                                                 -> []
+		_  -> return wondercoorss
+	return [ Move (CityProductionSource citycoors (ProduceWonder wonder)) (SquareTarget coors) | coors <- concat prodwondercoorss, wonder <- possible_wonders ]
 
 moveGenM :: GameName -> PlayerName -> UpdateCivM [Move]
 moveGenM gamename playername = Import.lift $ moveGen gamename playername
@@ -1582,7 +1630,10 @@ moveGen gamename my_playername = do
 										return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
 											building <- buildings ]									
 
-									
+									open_wonders <- getOpenWonders gamename
+									let possible_wonders = filter ((<=income).consumedIncome) open_wonders
+									prodwondermoves <- prodWonderMoves gamename playername citycoors possible_wonders
+
 									produnitmoves <- forEnabledUnitTypes gamename playername $ \ unittype unitlevel -> return $
 										case consumedIncome (unittype,unitlevel) <= income of
 											False -> []
@@ -1603,6 +1654,7 @@ moveGen gamename my_playername = do
 									return $
 										prodfiguremoves ++
 										(concat prodbuildingmovess) ++
+										prodwondermoves ++
 										produnitmoves ++
 										harvestmoves ++
 										[ devotemove ]
