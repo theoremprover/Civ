@@ -613,19 +613,21 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		repeat (error "figuresSquare pos too many figures, not implemented yet")
 		-- TODO: Expand
 
-stackOfRoutes x0 y0 xd yd routes = let
+stackOfRoutes :: String -> Int -> Int -> Int -> Int -> [Route App] -> Widget
+stackOfRoutes classstr x0 y0 xd yd routes = let
 	style x y z = "position:absolute; top:" ++ show y ++ "px; left:" ++ show x ++ "px; z-index:" ++ show z
 	rs = [ (route,(x0 + i*xd, y0 + i*yd, 10+i)) | (i,route) <- zip [0..] routes ]
 	in [whamlet|
 <div .Child style="position:relative">
   $forall (route,(x,y,z)) <- rs
-    <img .Child src=@{route} style=#{style x y z}>
+    <img .Child class=#{classstr} src=@{route} style=#{style x y z}>
 |]
 
 overviewBoard di@DisplayInfo{..} = do
 	let
 		Game{..} = gameDI
-		(dx,dy) = (3,3)
+		(dxu,dyu) = (3,3)
+		(dxb,dyb) = (5,3)
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
 		wondercardroutes = map wonderCardRoute _gameOpenWonders
@@ -646,24 +648,24 @@ overviewBoard di@DisplayInfo{..} = do
 	return [whamlet|
 <div .Parent name="overviewboard">
   <div .Child>
-    ^{stackOfRoutes   10 139 0 135 wondercardroutes}
-    ^{stackOfRoutes  209 155 0 135 wonderroutes}
-    ^{stackOfRoutes   10   4 dx dy wonderstackroutes}
-    ^{stackOfRoutes  357  20 dx dy (buildingroutes Market)}
-    ^{stackOfRoutes  357 184 dx dy (buildingroutes Granary)}
-    ^{stackOfRoutes  357 347 dx dy (buildingroutes Barracks)}
-    ^{stackOfRoutes  410 512 dx dy (buildingroutes TradePost)}
-    ^{stackOfRoutes  603  20 dx dy (buildingroutes Temple)}
-    ^{stackOfRoutes  603 184 dx dy (buildingroutes Library)}
-    ^{stackOfRoutes  603 347 dx dy (buildingroutes Forge)}
-    ^{stackOfRoutes  603 512 dx dy (buildingroutes Harbour)}
-    ^{stackOfRoutes  713 512 dx dy (buildingroutes Shipyard)}
-    ^{stackOfRoutes 1013  63 dx dy (unitroutes Infantry)}
-    ^{stackOfRoutes 1399  63 dx dy (unitroutes Cavalry)}
-    ^{stackOfRoutes 1013 398 dx dy (unitroutes Artillery)}
-    ^{stackOfRoutes 1399 398 dx dy (unitroutes Aircraft)}
+    ^{stackOfRoutes ""   10 139 0 135 wondercardroutes}
+    ^{stackOfRoutes "Eastward"  209 155 0 135 wonderroutes}
+    ^{stackOfRoutes ""   10   4 dxu dyu wonderstackroutes}
+    ^{stackOfRoutes ""  357  20 dxb dyb (buildingroutes Market)}
+    ^{stackOfRoutes ""  357 184 dxb dyb (buildingroutes Granary)}
+    ^{stackOfRoutes ""  357 347 dxb dyb (buildingroutes Barracks)}
+    ^{stackOfRoutes ""  410 512 dxb dyb (buildingroutes TradePost)}
+    ^{stackOfRoutes ""  603  20 dxb dyb (buildingroutes Temple)}
+    ^{stackOfRoutes ""  603 184 dxb dyb (buildingroutes Library)}
+    ^{stackOfRoutes ""  603 347 dxb dyb (buildingroutes Forge)}
+    ^{stackOfRoutes ""  603 512 dxb dyb (buildingroutes Harbour)}
+    ^{stackOfRoutes ""  713 512 dxb dyb (buildingroutes Shipyard)}
+    ^{stackOfRoutes "" 1013  63 dxu dyu (unitroutes Infantry)}
+    ^{stackOfRoutes "" 1399  63 dxu dyu (unitroutes Cavalry)}
+    ^{stackOfRoutes "" 1013 398 dxu dyu (unitroutes Artillery)}
+    ^{stackOfRoutes "" 1399 398 dxu dyu (unitroutes Aircraft)}
     $forall (steps,playerroutes) <- playersteps
-      <div .Center>^{stackOfRoutes (stepsx steps) 712 0 20 playerroutes}
+      <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes}
   <div .Child>
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
 
