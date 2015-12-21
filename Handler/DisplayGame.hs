@@ -17,7 +17,7 @@ import Text.Blaze (string)
 import Data.Text.Lazy.Builder (fromString)
 import Text.Julius (RawJavascript(..))
 import Data.Acid.Advanced
-import Data.List ((!!))
+import Data.List ((!!),nub)
 
 import GameMonad
 import Model
@@ -622,23 +622,29 @@ stackOfRoutes x0 y0 xd yd routes = let
     <img .Child src=@{route} style=#{style x y z}>
 |]
 
-overviewBoard di = do
+overviewBoard di@DisplayInfo{..} = do
 	let
-		Game{..} = gameDI di
-		(dx,dy) = (4,3)
+		Game{..} = gameDI
+		(dx,dy) = (3,3)
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
 		wondercardroutes = map wonderCardRoute _gameOpenWonders
 		wonderroutes = map wonderBuildingRoute _gameOpenWonders
 		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ concat $ tokenStackElems _gameWonderStack)
-		buildingroutes buildingtype = tokenStackHeights _gameBuildingStack
-		unitroutes unittype = tokenStackHeights _gameUnitStack
+		buildingroutes buildingtype = replicate (length buildingmarkers) $ buildingTypeRoute buildingtype
+			where
+			Just buildingmarkers = tokenStackLookup (buildingTypeToMarker buildingtype) _gameBuildingStack
+		unitroutes unittype = replicate (length unitcards) unitCardBackRoute
+			where
+			Just unitcards = tokenStackLookup unittype _gameUnitStack
 
-		playersteps = [ (steps,map fst $ filter ((==steps).snd) (fromAssocList _gamePlayers)) |
-			steps <- nub $ map _playerCultureSteps $ assocListValues _gamePlayers ]
+		playersteps = [ (steps,map ((figureRoute Flag).playercolour.fst) $
+			filter ((==steps)._playerCultureSteps.snd) (fromAssocList _gamePlayers)) |
+				steps <- nub $ map _playerCultureSteps $ assocListValues _gamePlayers ]
+		stepsx steps = 9+steps*71
 
 	return [whamlet|
-<div .Parent>
+<div .Parent name="overviewboard">
   <div .Child>
     ^{stackOfRoutes   10 139 0 135 wondercardroutes}
     ^{stackOfRoutes  209 155 0 135 wonderroutes}
@@ -655,10 +661,10 @@ overviewBoard di = do
     ^{stackOfRoutes 1013  63 dx dy (unitroutes Infantry)}
     ^{stackOfRoutes 1399  63 dx dy (unitroutes Cavalry)}
     ^{stackOfRoutes 1013 398 dx dy (unitroutes Artillery)}
-    ^{stackOfRoutes 1399 398 dx dy (unitroutes Airforce)}
-    $forall (steps,playernames) <- playersteps
-      ^{stackOfRoutes (9+steps*71) 712 0 
-  <div .Child name="overviewboard">
+    ^{stackOfRoutes 1399 398 dx dy (unitroutes Aircraft)}
+    $forall (steps,playerroutes) <- playersteps
+      <div .Center>^{stackOfRoutes (stepsx steps) 712 0 20 playerroutes}
+  <div .Child>
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
 
 |]

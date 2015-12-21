@@ -51,7 +51,8 @@ $(makeMultiRoutes [''Investment] "investmentRoute" ["_Investments_","_jpg"])
 $(makeMultiRoutes [''UnitType,''UnitBalance] "unitCardRouteRevealed" ["_Units_","_","_jpg"])
 unitCardRoute (UnitCard{..}) revealed = case revealed of
 	True  -> unitCardRouteRevealed (unitType,unitBalance)
-	False -> StaticR _Units_Unit_back_jpg
+	False -> unitCardBackRoute 
+unitCardBackRoute = StaticR _Units_Unit_back_jpg
 
 $(makeMultiRoutes [''Wonder] "wonderBuildingRoute" ["_Squares_","_Building_jpg"])
 $(makeMultiRoutes [''Wonder] "wonderCardRoute" ["_Wonders_","_jpg"])
