@@ -643,7 +643,7 @@ overviewBoard di@DisplayInfo{..} = do
 		playersteps = [ (steps,map ((figureRoute Flag).playercolour.fst) $
 			filter ((==steps)._playerCultureSteps.snd) (fromAssocList _gamePlayers)) |
 				steps <- nub $ map _playerCultureSteps $ assocListValues _gamePlayers ]
-		stepsx steps = 9+steps*71
+		stepsx steps = 19+steps*71
 
 	return [whamlet|
 <div .Parent name="overviewboard">

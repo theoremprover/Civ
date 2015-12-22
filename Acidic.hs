@@ -738,7 +738,7 @@ startGame gamename = runUpdateCivM $ do
 callHook gamename hook = do
 	forAllPlayers gamename $ \ (playername,player) -> do
 		forM_ (map hook (playerAbilities player)) $ \ a -> do
-			() <- a gamename playername   -- TODO: Why is this necessary to report errors in a?
+			() <- a gamename playername   -- TODO: Why is it necessary to match vs () in order to have errors reported?
 			return ()
 
 debugAction gamename = do
