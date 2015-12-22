@@ -613,14 +613,16 @@ figuresSquare di@(DisplayInfo{..}) squarefigures = [whamlet|
 		repeat (error "figuresSquare pos too many figures, not implemented yet")
 		-- TODO: Expand
 
-stackOfRoutes :: String -> Int -> Int -> Int -> Int -> [Route App] -> Widget
-stackOfRoutes classstr x0 y0 xd yd routes = let
+stackOfRoutes :: String -> Int -> Int -> Int -> Int -> [Route App] -> Maybe ActionSource -> Maybe ActionTarget -> Widget
+stackOfRoutes classstr x0 y0 xd yd routes mb_datasource mb_datatarget = let
 	style x y z = "position:absolute; top:" ++ show y ++ "px; left:" ++ show x ++ "px; z-index:" ++ show z
 	rs = [ (route,(x0 + i*xd, y0 + i*yd, 10+i)) | (i,route) <- zip [0..] routes ]
+	mbsource = maybe "" (\ s -> "data-source=\"" + show s + "\"") mb_datasource
+	mbtarget = maybe "" (\ s -> "data-target=\"" + show s + "\"") mb_datatarget
 	in [whamlet|
-<div .Child style="position:relative">
+<div .Child style="position:relative" class=#{classstr} #{mbsource} #{mbtarget}>
   $forall (route,(x,y,z)) <- rs
-    <img .Child class=#{classstr} src=@{route} style=#{style x y z}>
+    <img .Child src=@{route} style=#{style x y z}>
 |]
 
 overviewBoard di@DisplayInfo{..} = do
@@ -631,7 +633,8 @@ overviewBoard di@DisplayInfo{..} = do
 		playercolour playername = _playerColour $ playernameToPlayerDI playername
 
 		wondercardroutes = map wonderCardRoute _gameOpenWonders
-		wonderroutes = map wonderBuildingRoute _gameOpenWonders
+		iwonders = zip [0..] _gameOpenWonders
+		iwondery i = 155 + i*135
 		wonderstackroutes = map (wonderBackRoute.wonderLevel) (reverse $ concat $ tokenStackElems _gameWonderStack)
 		buildingroutes buildingtype = replicate (length buildingmarkers) $ buildingTypeRoute buildingtype
 			where
@@ -643,27 +646,28 @@ overviewBoard di@DisplayInfo{..} = do
 		playersteps = [ (steps,map ((figureRoute Flag).playercolour.fst) $
 			filter ((==steps)._playerCultureSteps.snd) (fromAssocList _gamePlayers)) |
 				steps <- nub $ map _playerCultureSteps $ assocListValues _gamePlayers ]
-		stepsx steps = 9+steps*71
+		stepsx steps = 9 + steps*71
 
 	return [whamlet|
 <div .Parent name="overviewboard">
   <div .Child>
-    ^{stackOfRoutes ""   10 139 0 135 wondercardroutes}
-    ^{stackOfRoutes "Eastward"  209 155 0 135 wonderroutes}
+    ^{stackOfRoutes ""   10 139 0 135 wondercardroutes Nothing Nothing}
+    $forall (i,wonder) <- iwonders
+      ^{stackOfRoutes "Eastward"  209 (iwondery i) 10 10 [wonderBuildingRoute wonder] (Just $ ProductionSource $ ProduceWonder wonder) Nothing}
     ^{stackOfRoutes ""   10   4 dxu dyu wonderstackroutes}
-    ^{stackOfRoutes ""  357  20 dxb dyb (buildingroutes Market)}
-    ^{stackOfRoutes ""  357 184 dxb dyb (buildingroutes Granary)}
-    ^{stackOfRoutes ""  357 347 dxb dyb (buildingroutes Barracks)}
-    ^{stackOfRoutes ""  410 512 dxb dyb (buildingroutes TradePost)}
-    ^{stackOfRoutes ""  603  20 dxb dyb (buildingroutes Temple)}
-    ^{stackOfRoutes ""  603 184 dxb dyb (buildingroutes Library)}
-    ^{stackOfRoutes ""  603 347 dxb dyb (buildingroutes Forge)}
-    ^{stackOfRoutes ""  603 512 dxb dyb (buildingroutes Harbour)}
-    ^{stackOfRoutes ""  713 512 dxb dyb (buildingroutes Shipyard)}
-    ^{stackOfRoutes "" 1013  63 dxu dyu (unitroutes Infantry)}
-    ^{stackOfRoutes "" 1399  63 dxu dyu (unitroutes Cavalry)}
-    ^{stackOfRoutes "" 1013 398 dxu dyu (unitroutes Artillery)}
-    ^{stackOfRoutes "" 1399 398 dxu dyu (unitroutes Aircraft)}
+    ^{stackOfRoutes ""  357  20 dxb dyb (buildingroutes Market) (Just $ ProductionSource $ ProduceBuilding MarketOrBank) Nothing }
+    ^{stackOfRoutes ""  357 184 dxb dyb (buildingroutes Granary) (Just $ ProductionSource $ ProduceBuilding GranaryOrAquaeduct) Nothing }
+    ^{stackOfRoutes ""  357 347 dxb dyb (buildingroutes Barracks) (Just $ ProductionSource $ ProduceBuilding BarracksOrAcademy) Nothing }
+    ^{stackOfRoutes ""  410 512 dxb dyb (buildingroutes TradePost) (Just $ ProductionSource $ ProduceBuilding TradePosts) Nothing }
+    ^{stackOfRoutes ""  603  20 dxb dyb (buildingroutes Temple) (Just $ ProductionSource $ ProduceBuilding TempleOrCathedral) Nothing }
+    ^{stackOfRoutes ""  603 184 dxb dyb (buildingroutes Library) (Just $ ProductionSource $ ProduceBuilding LibraryOrUniversity) Nothing }
+    ^{stackOfRoutes ""  603 347 dxb dyb (buildingroutes Forge) (Just $ ProductionSource $ ProduceBuilding ForgeOrIronMine) Nothing }
+    ^{stackOfRoutes ""  603 512 dxb dyb (buildingroutes Harbour) (Just $ ProductionSource $ ProduceBuilding Harbours) Nothing }
+    ^{stackOfRoutes ""  713 512 dxb dyb (buildingroutes Shipyard) (Just $ ProductionSource $ ProduceBuilding Shipyards) Nothing }
+    ^{stackOfRoutes "" 1013  63 dxu dyu (unitroutes Infantry) (Just $ ProductionSource $ ProduceUnit Infantry) Nothing }
+    ^{stackOfRoutes "" 1399  63 dxu dyu (unitroutes Cavalry) (Just $ ProductionSource $ ProduceUnit Cavalry) Nothing }
+    ^{stackOfRoutes "" 1013 398 dxu dyu (unitroutes Artillery) (Just $ ProductionSource $ ProduceUnit Artillery) Nothing }
+    ^{stackOfRoutes "" 1399 398 dxu dyu (unitroutes Aircraft) (Just $ ProductionSource $ ProduceUnit Aircraft) Nothing }
     $forall (steps,playerroutes) <- playersteps
       <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes}
   <div .Child>

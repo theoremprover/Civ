@@ -727,7 +727,7 @@ paymentCultureCard culturecard = case _cultureCardEvent culturecard of
 
 data Production =
 	ProduceFigure FigureType |
-	ProduceBuilding BuildingType |
+	ProduceBuilding BuildingMarker |
 	ProduceWonder Wonder |
 	ProduceUnit UnitType |
 	HarvestResource Resource |
@@ -736,7 +736,7 @@ data Production =
 $(deriveSafeCopy modelVersion 'base ''Production)
 instance Show Production where
 	show (ProduceFigure fig) = "Produce " ++ show fig
-	show (ProduceBuilding buildingtype) = "Build " ++ show buildingtype
+	show (ProduceBuilding buildingmarker) = "Build " ++ show buildingmarker
 	show (ProduceWonder wonder) = "Build " ++ show wonder
 	show (ProduceUnit unittype) = "Produce " ++ show unittype
 	show (HarvestResource res) = "Harvest " ++ show res
