@@ -65,10 +65,13 @@ type ResourceAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM ()))
 type SubPhaseStep = (String,HookM [Move])
 type SubPhaseDef = (String,[SubPhaseStep])
 
-popStateDataM :: GameName -> PlayerName -> UpdateCivM StateData
+popStateDataM :: GameName -> PlayerName -> UpdateCivM ()
 popStateDataM gamename playername = do
-	Just (statedata:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerStateData
 	updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerStateData
+
+peekStateDataM :: GameName -> PlayerName -> UpdateCivM StateData
+peekStateDataM gamename playername = do
+	Just (statedata:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerStateData
 	return statedata
 
 pushStateDataM :: GameName -> PlayerName -> StateData -> UpdateCivM ()
@@ -123,39 +126,39 @@ data Abilities = Abilities {
 	buildCityFigureTypes    :: [FigureType] }
 
 defaultAbilities = Abilities {
-	unitLevel       = \case
+	unitLevel           = \case
 		Aircraft -> SetValue Nothing
 		_        -> SetValue (Just UnitLevelI),
-	unitAttackBonus = const 0,
-	lootBonus       = SetValue 0,
+	unitAttackBonus     = const 0,
+	lootBonus           = SetValue 0,
 	battleStrengthBonus = SetValue 0,
-	battleHandSize  = constHookM $ SetValue 3,
-	cultureCardLimit = constHookM $ SetValue 2,
-	cultureTrackBonus = constHookM $ SetValue noIncome,
-	researchCostBonus = SetValue noIncome,
-	unitStackLimit  = SetValue 2,
-	moveRange       = SetValue 2,
-	movementType    = SetValue Land,
-	cardCoins       = Coins 0,
-	threeTradeHammers = SetValue 1,
-	productionBonus = constHookM $ SetValue noIncome,
-	buildWonderHook = noopHookM,
-	drawCultureHook = noopHookM,
-	buildArmyHook   = noopHookM,
-	getThisHook     = noopHookM,
-	getTechHook     = \ _ -> noopHookM,
-	startOfGameHook = noopHookM,
-	startOfPlayHook = noopHookM,
-	spendResourceHook  = noopHookM,
-	investCoinHook     = noopHookM,
-	afterBattleHook    = \ _ _ -> noopHookM,
-	getGreatPersonHook = noopHookM,
-	wonBattleHook      = noopHookM,
+	battleHandSize      = constHookM $ SetValue 3,
+	cultureCardLimit    = constHookM $ SetValue 2,
+	cultureTrackBonus   = constHookM $ SetValue noIncome,
+	researchCostBonus   = SetValue noIncome,
+	unitStackLimit      = SetValue 2,
+	moveRange           = SetValue 2,
+	movementType        = SetValue Land,
+	cardCoins           = Coins 0,
+	threeTradeHammers   = SetValue 1,
+	productionBonus     = constHookM $ SetValue noIncome,
+	buildWonderHook     = noopHookM,
+	drawCultureHook     = noopHookM,
+	buildArmyHook       = noopHookM,
+	getThisHook         = noopHookM,
+	getTechHook         = \ _ -> noopHookM,
+	startOfGameHook     = noopHookM,
+	startOfPlayHook     = noopHookM,
+	spendResourceHook   = noopHookM,
+	investCoinHook      = noopHookM,
+	afterBattleHook     = \ _ _ -> noopHookM,
+	getGreatPersonHook  = noopHookM,
+	wonBattleHook       = noopHookM,
 	discoverHutHook     = noopHookM,
 	discoverVillageHook = noopHookM,
 	conquerCityHook     = noopHookM,
-	devoteToArtsBonusHook  = \ _ -> constHookM (Culture 0),
-	exploreTileHook    = noopHookM,
+	devoteToArtsBonusHook = \ _ -> constHookM (Culture 0),
+	exploreTileHook     = noopHookM,
 	indianResourceSpending = SetValue False,
 	enabledGovernments  = [Despotism,Anarchy],
 	enabledBuildings    = [],
@@ -217,6 +220,8 @@ unchangedAbilities = Abilities {
 	cityTerrains        = [],
 	buildCityFigureTypes = [] }
 
+popStateDataMove gamename playername = return [ Move (AutomaticMove ()) (StateDataTarget playername) ]
+
 civAbilities civ = case civ of
 
 	America  -> defaultAbilities {
@@ -262,11 +267,11 @@ civAbilities civ = case civ of
 					return [ Move (StateDataSource $ ChosenWonder wonder) (StateDataTarget playername) | wonder <- openwonders ]
 					),
 				("Place Start Wonder",\ gamename playername -> do
-					ChosenWonder wonder <- popStateDataM gamename playername
+					ChosenWonder wonder <- peekStateDataM gamename playername
 					capitalcoors <- getCapitalCoors gamename playername
-					possible_wonders <- getOpenWonders gamename
-					prodWonderMoves gamename playername capitalcoors possible_wonders
-					) ] ) ] }
+					prodWonderMoves gamename playername capitalcoors [wonder]
+					),
+				("Automatic",popStateDataMove ) ] ) ] }
 
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
@@ -1443,7 +1448,9 @@ doMove gamename playername move@(Move source target) = do
 		(CityProductionSource _ (ProduceFigure figure),SquareTarget coors) -> do
 			buildFigure gamename playername figure coors
 
-		(CityProductionSource _ (ProduceBuilding building),SquareTarget coors) -> do
+		(CityProductionSource _ (ProduceBuilding buildingmarker),SquareTarget coors) -> do
+			let building = maximum $
+				(buildingMarkerToType buildingmarker) `intersect` (getConcatAbility enabledBuildings player)
 			buildBuilding gamename playername coors building
 
 		(CityProductionSource _ (ProduceWonder wonder),SquareTarget coors) -> do
@@ -1472,6 +1479,9 @@ doMove gamename playername move@(Move source target) = do
 
 		(StateDataSource statedata,StateDataTarget pn) -> do
 			pushStateDataM gamename pn statedata
+
+		(AutomaticMove (),StateDataTarget pn) -> do
+			popStateDataM gamename pn
 
 		(TechSource tech,TechTreeTarget pn) | playername==pn -> do
 			setTrade (min (inTrade $ techCosts player (levelOfTech tech)) _playerTrade )
@@ -1627,7 +1637,7 @@ moveGen gamename my_playername = do
 										affordable_buildings = filter ((<=income).consumedIncome) avail_buildings
 									prodbuildingmovess <- forCityOutskirts gamename playername citycoors $ \ (coors,city,square) -> do
 										let buildings = (terrainBuildings $ head (_squareTerrain square)) `intersect` affordable_buildings
-										return [ Move (CityProductionSource citycoors (ProduceBuilding building)) (SquareTarget coors) |
+										return [ Move (CityProductionSource citycoors (ProduceBuilding $ buildingTypeToMarker building)) (SquareTarget coors) |
 											building <- buildings ]									
 
 									open_wonders <- getOpenWonders gamename

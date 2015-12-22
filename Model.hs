@@ -1336,3 +1336,4 @@ deriveJSON defaultOptions ''Village
 deriveJSON defaultOptions ''SubPhase
 deriveJSON defaultOptions ''Policy
 deriveJSON defaultOptions ''StateData
+deriveJSON defaultOptions ''BuildingMarker

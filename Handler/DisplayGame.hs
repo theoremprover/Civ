@@ -617,10 +617,10 @@ stackOfRoutes :: String -> Int -> Int -> Int -> Int -> [Route App] -> Maybe Acti
 stackOfRoutes classstr x0 y0 xd yd routes mb_datasource mb_datatarget = let
 	style x y z = "position:absolute; top:" ++ show y ++ "px; left:" ++ show x ++ "px; z-index:" ++ show z
 	rs = [ (route,(x0 + i*xd, y0 + i*yd, 10+i)) | (i,route) <- zip [0..] routes ]
-	mbsource = maybe "" (\ s -> "data-source=\"" + show s + "\"") mb_datasource
-	mbtarget = maybe "" (\ s -> "data-target=\"" + show s + "\"") mb_datatarget
+	source = maybe (NoSource ()) id mb_datasource
+	target = maybe (NoTarget ()) id mb_datatarget
 	in [whamlet|
-<div .Child style="position:relative" class=#{classstr} #{mbsource} #{mbtarget}>
+<div .Child style="position:relative" class=#{show classstr} data-source=#{data2markup $ source} data-target=#{data2markup $ target}>
   $forall (route,(x,y,z)) <- rs
     <img .Child src=@{route} style=#{style x y z}>
 |]
@@ -651,10 +651,10 @@ overviewBoard di@DisplayInfo{..} = do
 	return [whamlet|
 <div .Parent name="overviewboard">
   <div .Child>
-    ^{stackOfRoutes ""   10 139 0 135 wondercardroutes Nothing Nothing}
+    ^{stackOfRoutes "" 10 139 0 135 wondercardroutes Nothing Nothing}
     $forall (i,wonder) <- iwonders
-      ^{stackOfRoutes "Eastward"  209 (iwondery i) 10 10 [wonderBuildingRoute wonder] (Just $ ProductionSource $ ProduceWonder wonder) Nothing}
-    ^{stackOfRoutes ""   10   4 dxu dyu wonderstackroutes}
+      ^{stackOfRoutes "Eastward" 209 (iwondery i) 10 10 [wonderBuildingRoute wonder] (Just $ ProductionSource $ ProduceWonder wonder) Nothing}
+    ^{stackOfRoutes ""   10   4 dxu dyu wonderstackroutes Nothing Nothing}
     ^{stackOfRoutes ""  357  20 dxb dyb (buildingroutes Market) (Just $ ProductionSource $ ProduceBuilding MarketOrBank) Nothing }
     ^{stackOfRoutes ""  357 184 dxb dyb (buildingroutes Granary) (Just $ ProductionSource $ ProduceBuilding GranaryOrAquaeduct) Nothing }
     ^{stackOfRoutes ""  357 347 dxb dyb (buildingroutes Barracks) (Just $ ProductionSource $ ProduceBuilding BarracksOrAcademy) Nothing }
@@ -669,7 +669,7 @@ overviewBoard di@DisplayInfo{..} = do
     ^{stackOfRoutes "" 1013 398 dxu dyu (unitroutes Artillery) (Just $ ProductionSource $ ProduceUnit Artillery) Nothing }
     ^{stackOfRoutes "" 1399 398 dxu dyu (unitroutes Aircraft) (Just $ ProductionSource $ ProduceUnit Aircraft) Nothing }
     $forall (steps,playerroutes) <- playersteps
-      <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes}
+      <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes Nothing Nothing}
   <div .Child>
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
 
