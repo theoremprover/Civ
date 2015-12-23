@@ -65,18 +65,14 @@ type ResourceAbility = ([Phase],(ActionTarget,[ResourcePattern],HookM ()))
 type SubPhaseStep = (String,HookM [Move])
 type SubPhaseDef = (String,[SubPhaseStep])
 
-popStateDataM :: GameName -> PlayerName -> UpdateCivM ()
-popStateDataM gamename playername = do
-	updateCivLensM tail $ civPlayerLens gamename playername . _Just . playerStateData
+getStateDataM :: GameName -> PlayerName -> UpdateCivM (Maybe StateData)
+getStateDataM gamename playername = do
+	Just mb_statedata <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerSubPhases . ix 0 . subPhaseStateData
+	return mb_statedata
 
-peekStateDataM :: GameName -> PlayerName -> UpdateCivM StateData
-peekStateDataM gamename playername = do
-	Just (statedata:_) <- queryCivLensM $ civPlayerLens gamename playername . _Just . playerStateData
-	return statedata
-
-pushStateDataM :: GameName -> PlayerName -> StateData -> UpdateCivM ()
-pushStateDataM gamename playername statedata = do
-	updateCivLensM (statedata:) $ civPlayerLens gamename playername . _Just . playerStateData
+setStateDataM :: GameName -> PlayerName -> Maybe StateData -> UpdateCivM ()
+setStateDataM gamename playername mb_statedata = do
+	updateCivLensM (const $ mb_statedata) $ civPlayerLens gamename playername . _Just . playerSubPhases . ix 0 . subPhaseStateData
 
 data Abilities = Abilities {
 	unitLevel                :: UnitType -> Value (Maybe UnitLevel),
@@ -225,11 +221,11 @@ popStateDataMove gamename playername = return [ Move (AutomaticMove ()) (StateDa
 civAbilities civ = case civ of
 
 	America  -> defaultAbilities {
-		startOfGameHook   = getGreatPerson,
+		startOfPlayHook   = getGreatPerson,
 		threeTradeHammers = SetValue 2 }
 
 	Arabs    -> defaultAbilities {
-		startOfGameHook   = \ gn pn -> forM_ [Iron,Linen,Incense,Wheat] (getResource gn pn),
+		startOfPlayHook   = \ gn pn -> forM_ [Iron,Linen,Incense,Wheat] (getResource gn pn),
 		spendResourceHook = addCulture 1,
 		investCoinHook    = drawCultureCard }
 
@@ -267,11 +263,10 @@ civAbilities civ = case civ of
 					return [ Move (StateDataSource $ ChosenWonder wonder) (StateDataTarget playername) | wonder <- openwonders ]
 					),
 				("Place Start Wonder",\ gamename playername -> do
-					ChosenWonder wonder <- peekStateDataM gamename playername
+					Just (ChosenWonder wonder) <- getStateDataM gamename playername
 					capitalcoors <- getCapitalCoors gamename playername
 					prodWonderMoves gamename playername capitalcoors [wonder]
-					),
-				("Automatic",popStateDataMove ) ] ) ] }
+					) ] ) ] }
 
 	English  -> defaultAbilities {
 		movementType = SetValue CrossWater,
@@ -599,7 +594,7 @@ getSubPhaseDef :: CardAbilityID -> SubPhaseDef
 getSubPhaseDef (catt,subphaseindex) = (subPhases $ getAbility catt) !! subphaseindex
 
 getSubPhaseStep :: SubPhase -> SubPhaseStep
-getSubPhaseStep (SubPhase caaid intrasubphase) = (snd $ getSubPhaseDef caaid) !! intrasubphase
+getSubPhaseStep (SubPhase caaid intrasubphase _) = (snd $ getSubPhaseDef caaid) !! intrasubphase
 
 {-
 	cardAbilities           :: [CardAbility],
@@ -619,7 +614,7 @@ subphaseName subphase = fst $ getSubPhaseDef (_cardAbilityID subphase)
 
 switchToSubPhase :: CardAbilityTargetType -> Int -> HookM ()
 switchToSubPhase targettype abilityindex gamename playername = do
-	updateCivLensM ((SubPhase (targettype,abilityindex) 0):) $
+	updateCivLensM ((SubPhase (targettype,abilityindex) 0 Nothing):) $
 		civPlayerLens gamename playername . _Just . playerSubPhases
 
 modifyValuePerNCoins :: Int -> (Int -> a -> a) -> HookM (Value a)
@@ -860,7 +855,9 @@ finishPlayerPhase gamename = do
 						return ()
 
 					StartOfTurn -> do
-						callHook gamename startOfPlayHook
+						when (_gameTurn==0) $ do
+							callHook gamename startOfPlayHook
+							return ()
 						when (debugMode && _gameTurn==0) $ debugAction gamename
 
 						updateCivLensM (+1) $ civGameLens gamename . _Just . gameTurn
@@ -1478,10 +1475,7 @@ doMove gamename playername move@(Move source target) = do
 			revealTile gamename tileorigin ori
 
 		(StateDataSource statedata,StateDataTarget pn) -> do
-			pushStateDataM gamename pn statedata
-
-		(AutomaticMove (),StateDataTarget pn) -> do
-			popStateDataM gamename pn
+			setStateDataM gamename pn (Just statedata)
 
 		(TechSource tech,TechTreeTarget pn) | playername==pn -> do
 			setTrade (min (inTrade $ techCosts player (levelOfTech tech)) _playerTrade )

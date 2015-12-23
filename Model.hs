@@ -780,7 +780,8 @@ type CardAbilityID = (CardAbilityTargetType,Int)
 
 data SubPhase = SubPhase {
 	_cardAbilityID      :: CardAbilityID,
-	_intraSubPhaseIndex :: Int }
+	_intraSubPhaseIndex :: Int,
+	_subPhaseStateData  :: Maybe StateData }
 	deriving (Show,Eq,Ord,Data,Typeable)
 $(deriveSafeCopy modelVersion 'base ''SubPhase)
 makeLenses ''SubPhase
@@ -892,8 +893,7 @@ data Player = Player {
 	_playerCultureSteps     :: Int,
 	_playerFirstCityCoors   :: [Coors],
 	_playerCityCoors        :: [Coors],   -- The first one is the capital
-	_playerSubPhases        :: [SubPhase], -- Innermost subphase first
-	_playerStateData        :: [StateData]
+	_playerSubPhases        :: [SubPhase] -- Innermost subphase first
 	}
 	deriving (Data,Typeable,Show)
 $(deriveSafeCopy modelVersion 'base ''Player)
@@ -905,7 +905,7 @@ makePlayer useremail colour civ = Player
 	(tokenStackFromList $ replicateUnit $ map (,0) allOfThem)
 	[] [] [] []
 	[] [] initialFigureStack Map.empty [] Northward initialCityStack
-	0 [] [] [] []
+	0 [] [] []
 
 data GameState = Waiting | Running | Finished
 	deriving (Show,Eq,Ord,Data,Typeable)
