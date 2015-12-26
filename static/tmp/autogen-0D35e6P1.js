@@ -1,1 +1,0 @@
-$(function(){$(".Debug-Draggable").draggable();$(".Debug-Droppable").droppable({drop:function(event,ui){alert($(ui.draggable).html())}});$(".PlayerArea-CityItem").draggable();$(".Map-SquareContainer").droppable({accept:".PlayerArea-CityItem",drop:function(event,ui){var source=($(ui.draggable).data("source")),target=($(this).data("target"));alert(source);alert(target)}})})
