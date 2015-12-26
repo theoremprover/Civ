@@ -7,6 +7,23 @@ $(function() {
     }
   });
 
+  $('.Action-OpenOverview').click(function() {
+      $('.Overview').fadeIn();
+  });
+
+  $('.Action-ShowMapTest').click(function() {
+	  //$('.MapTest').html('aaa');
+      $('.MapTest2').html( $('.Arena').html() );
+      $('.MapTest').fadeIn();
+  });
+  $('.Action-HideMapTest').click(function() {
+     $('.MapTest2').fadeOut();
+  });
+
+  $('.Action-CloseOverview').click(function() {
+     $('.Overview').fadeOut();
+  });
+
   $('.Action-OpenDebug').click(function() {
       $('.DebugArea').fadeIn();
   });

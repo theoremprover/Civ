@@ -172,8 +172,12 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 
 		[whamlet|
 <div .GameArea>
-  <div>^{arena}
+  <div .Arena>^{arena}
+  <div .ArenaZoom.Debug-Draggable>
+  <div .MapTest.Action-HideMapTest>
+    <div .MapTest2>MapTest
   <div .DragArea>
+  <div .Overview>^{overviewboard}
 
 <div .Sidebar>
   <table>
@@ -182,6 +186,8 @@ displayGame (userid,user,gamename,game,mb_playername) = do
     <tr><td>^{playerlist}
     <tr><td>^{actionarea}
     <tr><td><a href="#" class="Action-OpenDebug">Show Debug
+    <tr><td><a href="#" class="Action-OpenOverview">Show Overview
+    <tr><td><a href="#" class="Action-ShowMapTest">Show Map
     <tr><td><a href="#" class="Action-ShowDialog" onclick="showDialog()">Show Dialog
     <tr><td><a href=@{HomeR}>Change
 
@@ -197,7 +203,7 @@ displayGame (userid,user,gamename,game,mb_playername) = do
   ^{debugarea}
   <a href="#" class="Action-CloseDebug">close</a>
 
-^{overviewboard}
+
 |]
 
 allowedMovesJulius :: [Move] -> Widget
@@ -497,6 +503,7 @@ boardArea di@(DisplayInfo{..}) moves = do
 					_  -> Just (city,cityori city ++ "Metropolis")
 			_ -> Nothing
 			where
+<<<<<<< HEAD
 			cityori City{..} = show $ case _cityMetropolisOrientation of
 				Nothing -> playerori _cityOwner
 				Just metropolisori -> case (playerori _cityOwner,metropolisori) of
@@ -517,6 +524,12 @@ boardArea di@(DisplayInfo{..}) moves = do
 					(Eastward, Westward)  -> Northward
 					(Eastward, Eastward)  -> Northward
 
+=======
+			containerclass ori = case ori of
+				Southward -> "DoubleSquareContainer VertDoubleSquareContainer"
+				Eastward  -> "DoubleSquareContainer HorDoubleSquareContainer"
+				_ -> error $ "containerclass " ++ show ori
+>>>>>>> origin
 
 	return [whamlet|
 <div .Parent>
@@ -649,6 +662,7 @@ overviewBoard di@DisplayInfo{..} = do
 		stepsx steps = 9 + steps*71
 
 	return [whamlet|
+<<<<<<< HEAD
 <div .Parent name="overviewboard">
   <div .Child>
     ^{stackOfRoutes "" 10 139 0 135 wondercardroutes Nothing Nothing}
@@ -672,5 +686,9 @@ overviewBoard di@DisplayInfo{..} = do
       <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes Nothing Nothing}
   <div .Child>
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
+=======
+<div .Parent.Action-CloseOverview name="overviewboard">
+  <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
+>>>>>>> origin
 
 |]
