@@ -503,7 +503,6 @@ boardArea di@(DisplayInfo{..}) moves = do
 					_  -> Just (city,cityori city ++ "Metropolis")
 			_ -> Nothing
 			where
-<<<<<<< HEAD
 			cityori City{..} = show $ case _cityMetropolisOrientation of
 				Nothing -> playerori _cityOwner
 				Just metropolisori -> case (playerori _cityOwner,metropolisori) of
@@ -523,13 +522,6 @@ boardArea di@(DisplayInfo{..}) moves = do
 					(Eastward, Southward) -> Eastward
 					(Eastward, Westward)  -> Northward
 					(Eastward, Eastward)  -> Northward
-
-=======
-			containerclass ori = case ori of
-				Southward -> "DoubleSquareContainer VertDoubleSquareContainer"
-				Eastward  -> "DoubleSquareContainer HorDoubleSquareContainer"
-				_ -> error $ "containerclass " ++ show ori
->>>>>>> origin
 
 	return [whamlet|
 <div .Parent>
@@ -662,8 +654,7 @@ overviewBoard di@DisplayInfo{..} = do
 		stepsx steps = 9 + steps*71
 
 	return [whamlet|
-<<<<<<< HEAD
-<div .Parent name="overviewboard">
+<div .Parent.Action-CloseOverview name="overviewboard">
   <div .Child>
     ^{stackOfRoutes "" 10 139 0 135 wondercardroutes Nothing Nothing}
     $forall (i,wonder) <- iwonders
@@ -686,9 +677,4 @@ overviewBoard di@DisplayInfo{..} = do
       <div .Center>^{stackOfRoutes "" (stepsx steps) 712 0 20 playerroutes Nothing Nothing}
   <div .Child>
     <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves}>
-=======
-<div .Parent.Action-CloseOverview name="overviewboard">
-  <img .Child src=@{overviewRoute} alt="alt" title=#{show $ _gameMoves gameDI}>
->>>>>>> origin
-
 |]
