@@ -73,6 +73,16 @@ displayGame (userid,user,gamename,game,mb_playername) = do
 	debugarea <- partialDebugArea di
 	overviewboard <- overviewBoard di
 	arena <- case fromAssocList (_gamePlayers game) of
+
+		[p0] -> do
+			playerarea0 <- playerArea di p0 Northward
+			return [whamlet|
+<div class=#{show myplayerori}>
+  <table cellspacing=20>
+    <tr><td>^{boardarea}
+    <tr><td>^{playerarea0}
+|]
+
 		[p0,p1] -> do
 			playerarea0 <- playerArea di p0 Southward
 			playerarea1 <- playerArea di p1 Northward

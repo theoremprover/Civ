@@ -232,16 +232,15 @@ civAbilities civ = case civ of
 	Aztecs   -> defaultAbilities {
 		afterBattleHook    = \ ownunitskilled enemyunitskilled ->
 			addCulture (Culture $ length ownunitskilled + length enemyunitskilled),
-{-
-		getGreatPersonHook = switchToSubPhases (CivAbility Aztecs) 0,
-		subPhases          = let
-			buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
-				return [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
-			in [ [
-			("Got Great Person: Build First Free Unit",  buildfreeunit),
-			("Got Great Person: Build Second Free Unit", buildfreeunit) ] ]
+		getGreatPersonHook = switchToSubPhase (CivAbility Aztecs) 0,
+		subPhases          = [
+			("Got Great Person",let
+				buildfreeunit gn pn = forEnabledUnitTypes gn pn $ \ unittype _ -> do
+					return [ Move (ProductionSource (ProduceUnit unittype)) (NoTarget ()) ]
+				in [
+				("Build First Free Unit",  buildfreeunit),
+				("Build Second Free Unit", buildfreeunit) ] ) ]
 			,
--}
 		wonBattleHook      = addTrade 3 }
 
 	China    -> defaultAbilities {

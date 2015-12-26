@@ -1262,6 +1262,10 @@ data LayoutTile = CT Int Orientation | NT
 boardLayout :: Int -> [(Coors,LayoutTile)]
 boardLayout numplayers = case numplayers of
 
+	1 -> [
+		(c 0  0,NT    ), (c 4  0,NT    ),
+		(c 0  4,NT    ), (c 4 4,CT 0 n) ]
+
 	2 -> [
 		(c 0  0,CT 0 s), (c 4  0,NT    ),
 		(c 0  4,NT    ), (c 4  4,NT    ),
