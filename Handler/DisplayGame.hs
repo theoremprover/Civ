@@ -529,7 +529,7 @@ boardArea di@(DisplayInfo{..}) moves = do
         <tr>
           $forall x <- xs
             $with square <- arrlookup (Coors x y)
-                <td .SquareContainer.Map-SquareContainer style="overflow:visible" data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
+                <td .SquareContainer .Map-SquareContainer style="overflow:visible" data-source=#{data2markup $ SquareSource (Coors x y)} data-target=#{data2markup $ SquareTarget (Coors x y)} alt="alt" title="#{(++) (show (x,y)) (show square)}" style="position:relative">
                   $case square
                     $of OutOfBounds
                     $of UnrevealedSquare _ _
@@ -620,7 +620,7 @@ stackOfRoutes classstr x0 y0 xd yd routes mb_datasource mb_datatarget = let
 	source = maybe (NoSource ()) id mb_datasource
 	target = maybe (NoTarget ()) id mb_datatarget
 	in [whamlet|
-<div .Child style="position:relative" class=#{show classstr} data-source=#{data2markup $ source} data-target=#{data2markup $ target}>
+<div .Child .PlayerAction style="position:relative" class=#{show classstr} data-source=#{data2markup $ source} data-target=#{data2markup $ target}>
   $forall (route,(x,y,z)) <- rs
     <img .Child src=@{route} style=#{style x y z}>
 |]
