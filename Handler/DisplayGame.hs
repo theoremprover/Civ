@@ -532,7 +532,6 @@ boardArea di@(DisplayInfo{..}) moves = do
 					(Eastward, Southward) -> Eastward
 					(Eastward, Westward)  -> Northward
 					(Eastward, Eastward)  -> Northward
-
 	return [whamlet|
 <div .Parent>
   <div .Child .Map-Layer1>
